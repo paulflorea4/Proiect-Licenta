@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.1e — `/infra`: placeholder directory + short README
+- Next commit: 0.2a — `infra/docker-compose.yml`: Postgres 16, named volume, healthcheck
 - In progress: —
-- Blocked: PR #4 (commit 0.1d) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #5 (commit 0.1e) awaiting review — checked just after opening, no response yet.

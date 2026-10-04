@@ -1,0 +1,4 @@
+- Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
+- Next commit: 0.1b — `/backend`: generate Spring Boot starter (Web, Security, Validation)
+- In progress: —
+- Blocked: PR #1 (commit 0.1a) awaiting review — checked just after opening, no response yet.

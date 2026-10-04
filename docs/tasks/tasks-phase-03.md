@@ -1,0 +1,19 @@
+# tasks-phase-03.md — Courses, Enrollment & Assignments
+
+| Commit | Task | Status | Notes |
+| --- | --- | --- | --- |
+| 3.1a | `POST /courses` (teacher): create a course, generate a unique enrollment code | Not started | Code generation must retry on collision against the unique constraint from 1.2b. Make codes short and unambiguous (no `0/O`, `1/l`). |
+| 3.1b | `GET /courses`: role-aware list — teacher sees own, student sees enrolled, admin sees all | Not started | One endpoint, three behaviors; test each. |
+| 3.1c | `GET /courses/{id}` with an access check | Not started | Ownership/enrollment check lives in one reusable place (a service method or security expression) — Phases 4–15 all need "can this user see this course/assignment/submission?". |
+| 3.1d | `PUT /courses/{id}` and `DELETE /courses/{id}` (owning teacher or admin) | Not started | Deleting a course with assignments is blocked with a clear error — no silent cascade over student submissions. |
+| 3.2a | `POST /courses/enroll`: student joins with an enrollment code | Not started | Joining twice is idempotent, not an error. Unknown code → 404, not 403, so codes can't be probed by error type. |
+| 3.2b | `DELETE /courses/{id}/enrollment` (student leaves) and `GET /courses/{id}/students` (teacher) | Not started | Leaving keeps the student's past submissions; they just lose access. |
+| 3.3a | `POST /courses/{id}/assignments` (owning teacher): title, description, language, deadline, limits, optional starter code | Not started | Validate `language` against the languages config (default: Java, Python), the deadline is in the future, limits within sane server-side maximums. New assignments start unpublished. |
+| 3.3b | `GET /courses/{id}/assignments` and `GET /assignments/{id}` | Not started | Students only see published assignments; teachers see all of their own. |
+| 3.3c | `PUT /assignments/{id}`, publish/unpublish, `DELETE /assignments/{id}` | Not started | Block language change and deletion once submissions exist. Publishing requires a valid rubric (3.4b). |
+| 3.4a | Rubric criteria CRUD: `POST/PUT/DELETE /assignments/{id}/rubric` | Not started | Criterion types come from the `TESTS`/`STATIC_ANALYSIS`/`OPEN_ANSWER`/`MANUAL` set in 1.2e. Only `TESTS` is functional here; `MANUAL` is enabled in 5.4d, `STATIC_ANALYSIS` in 13.4a, `OPEN_ANSWER` in 15.2a — until then reject the others with a clear "not available yet" error rather than silently accepting them. Once the assignment has any submission, criteria and weights are locked (CLAUDE.md Defaults) — reject edits and deletes with a clear error. |
+| 3.4b | Rubric validation: weights sum to 100 before an assignment can be published | Not started | Saving a draft rubric with a wrong sum is allowed; publishing is not. Publishing also requires every `TESTS` criterion to have at least one test case, otherwise its score would be 0 ÷ 0. |
+| 3.5a | Test case CRUD: `POST/PUT/DELETE /assignments/{id}/tests` | Not started | Each test must belong to a `TESTS` criterion of the same assignment. Visibility is `PUBLIC` or `HIDDEN`. Locked once the assignment has submissions (CLAUDE.md Defaults): a test referenced by `test_results` can't be edited or deleted. Add and fix tests before publishing. |
+| 3.5b | Student-facing DTO for tests: hidden tests have name masked, input and expected output absent | Not started | Mask in the DTO mapping layer, not in the frontend — a hidden test's content must never be in any student-facing response. The same rule feeds Phase 6's AI prompt. |
+| 3.6a | Authorization matrix tests: owner / other teacher / enrolled student / non-enrolled student / admin across every Phase 3 endpoint | Not started | The matrix is where privilege-escalation bugs show up. |
+| 3.6b | Tests: rubric-sum publish rule, hidden-test masking, enrollment idempotency | Not started | Masking test asserts on the raw JSON — no `input`/`expectedOutput` keys for hidden tests. |

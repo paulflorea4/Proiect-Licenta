@@ -1,0 +1,25 @@
+# tasks-phase-05.md — Submissions & Automatic Scoring
+
+| Commit | Task | Status | Notes |
+| --- | --- | --- | --- |
+| 5.1a | `POST /assignments/{id}/submissions` (enrolled student): source code as text | Not started | Returns `202` with the submission id and status `QUEUED` — never waits for grading. |
+| 5.1b | Same endpoint accepts a single uploaded source file (multipart) | Not started | Validate extension against the assignment's language and a max size; read it into `source_code` — files are not stored on disk. |
+| 5.1c | Submission validation: assignment published, before deadline, attempt limit not exceeded, max source size, language matches | Not started | Late → rejected with a clear error (default per CLAUDE.md). Compute `attempt_no` inside a transaction so two simultaneous submits can't get the same number. |
+| 5.2a | Bounded worker pool (`ThreadPoolTaskExecutor`) that picks up `QUEUED` submissions | Not started | Pool size and queue capacity are configuration. Bounded on purpose — a burst at the deadline must queue, not exhaust the host. |
+| 5.2b | Status transitions `QUEUED` → `RUNNING` → `GRADED` / `ERROR`, with `started_at` / `finished_at` | Not started | Any unexpected exception ends in `ERROR` with the submission preserved — a student's code is never lost because grading crashed. |
+| 5.2c | Startup recovery: re-queue submissions left `QUEUED` or `RUNNING` after a restart | Not started | Idempotent — re-running a submission replaces its previous partial `test_results`. |
+| 5.3a | Worker runs the assignment's tests through the Phase 4 runner and persists `test_results` | Not started | Public and hidden tests run identically; only the student-facing view differs (5.5a). |
+| 5.3b | A compile error short-circuits: every test recorded as `COMPILE_ERROR`, score zero for tests criteria | Not started | Still `GRADED`, not `ERROR` — the code was graded, it just didn't compile. |
+| 5.4a | Rubric scoring service: pure function from (rubric, test results) to criterion scores and total | Not started | Formula per the spec's Grading & Scoring System. Non-`TESTS` criteria contribute zero until their phases land (`MANUAL` in 5.4d) and are reported as "pending"/"not graded", not silently zero. Keep it a pure function so 5.6a can hand-compute it. A `TESTS` criterion with no tests (or zero total test weight) scores 0 — never a division by zero, never `NaN`. |
+| 5.4b | Persist `grades` and `criterion_scores` | Not started | Use `NUMERIC`/`BigDecimal`, never double. |
+| 5.4c | `GET /assignments/{id}/my-grade`: best score across the student's graded attempts | Not started | Best-score policy per CLAUDE.md. Returns which submission produced it. |
+| 5.4d | Enable the `MANUAL` rubric criterion type (lifting the 3.4a restriction): `PUT /submissions/{id}/manual-scores/{criterionId}` (course teacher or admin) with a score from 0 to the criterion's weight and an optional comment | Not started | Teacher grading of things tests can't judge (design, readability). Validate the score range server-side. Stored in `criterion_scores` with the comment from 1.2i. Teachers may grade any attempt, not only the best one. |
+| 5.4e | Recompute the submission's total through the pure scoring function (5.4a) whenever a manual score is saved; until all `MANUAL` criteria are scored the grade is flagged provisional | Not started | Never patch totals by hand — always recompute, so the displayed total can't drift from the criteria. The best-score query (5.4c) reads the recomputed totals. |
+| 5.5a | `GET /submissions/{id}`: student view (own submissions only) | Not started | Public tests in full; hidden tests as name-masked pass/fail via 3.5b's DTO rules; no hidden input, expected output, or actual output. |
+| 5.5b | Teacher view of the same endpoint (course owner or admin): full detail including hidden tests | Not started | Same URL, different projection by role — one authorization path, tested in 5.6c. |
+| 5.5c | `GET /assignments/{id}/submissions` (teacher) and `GET /assignments/{id}/my-submissions` (student) | Not started | Paginated. |
+| 5.6a | Scoring unit tests with hand-computed expected values (mixed weights, partial pass, compile error, zero tests passed) | Not started | This is the test that would catch a wrong weighting formula — do the arithmetic by hand, don't derive expected values by running the code. |
+| 5.6b | Integration test (with Docker): submit → worker runs → `GRADED` → results and grade match expectations | Not started | Use the seeded Java and Python assignments from 1.4b. |
+| 5.6c | Authorization and masking tests: other student gets 403, hidden-test fields absent from the student JSON, late and over-limit submissions rejected | Not started | Assert on raw JSON keys, as in 3.6b. |
+| 5.6d | Test: restart recovery and no lost submissions when execution throws | Not started | Directly tests 5.2b and 5.2c. |
+| 5.6e | Tests: manual score range validation, recompute after saving, provisional flag clears when the last manual criterion is scored, students get 403 on the manual-score endpoint | Not started | Expected totals hand-computed, as in 5.6a. |

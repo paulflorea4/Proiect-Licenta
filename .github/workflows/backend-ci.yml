@@ -1,0 +1,29 @@
+name: Backend CI
+
+# Independent of the ai-service and frontend workflows, so a failure there never blocks a
+# backend-only PR. No path filter: it runs on every PR, so the check is always reported.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      # GitHub-hosted Ubuntu runners already include Docker, which the Testcontainers-backed
+      # tests (from 1.1a) and the sandbox tests (Phase 4) will need.
+      - name: Build and test
+        run: ./mvnw -B verify

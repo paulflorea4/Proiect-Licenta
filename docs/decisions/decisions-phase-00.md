@@ -35,3 +35,9 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **GATE handled as written:** placeholders only; all three variables (`GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_SERVICE_TOKEN`) are empty. No DB variables.
 - **`GEMINI_MODEL` is left empty on purpose**, not given a "sensible" model name: the root `CLAUDE.md` says the model name comes from this env var and is never hardcoded, and choosing a model is the human's call. The comment says there is no default anywhere in the code (6.1b should not add one).
 - `AI_SERVICE_TOKEN` must be byte-for-byte the same as in `backend/.env` (0.3a); the file says so, and 6.1b makes the service refuse to start when it is empty.
+
+## 0.3c — `frontend/.env.example`
+
+- One variable, **`VITE_API_BASE_URL=http://localhost:8080`** (Spring Boot's default port, no trailing slash). The `VITE_` prefix is required: Vite only exposes prefixed variables to client code, as the root README says. 8.2a reads it from here.
+- The file warns that everything in it ends up in the browser bundle, so it must never hold a secret — the frontend has none by design.
+- Unlike the other two services, the file's header suggests copying to `.env.local` rather than `.env`: both are loaded by Vite, and `.env.local` is already covered by `frontend/.gitignore` (`*.local`) as well as the root `.gitignore`. The backend's CORS allow-list (`CORS_ALLOWED_ORIGINS`, 0.3a) defaults to the Vite dev origin `http://localhost:5173`.

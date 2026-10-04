@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.3c — `frontend/.env.example`: API base URL var
+- Next commit: 0.3d — Document the env-loading convention per service in the root README
 - In progress: —
-- Blocked: PR #12 (commit 0.3b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #13 (commit 0.3c) awaiting review — checked just after opening, no response yet.

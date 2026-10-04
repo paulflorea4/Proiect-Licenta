@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.1d — `/frontend`: `npm create vite@latest` React+TS skeleton
+- Next commit: 0.1e — `/infra`: placeholder directory + short README
 - In progress: —
-- Blocked: PR #3 (commit 0.1c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #4 (commit 0.1d) awaiting review — checked just after opening, no response yet.

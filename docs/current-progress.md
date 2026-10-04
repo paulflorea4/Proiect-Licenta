@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.3a — GATE: `backend/.env.example` (placeholders only; real secret values come from the human)
+- Next commit: 0.3b — GATE: `ai-service/.env.example` (placeholders only; `AI_SERVICE_TOKEN` must match the backend's)
 - In progress: —
-- Blocked: PR #10 (commit 0.2c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #11 (commit 0.3a) awaiting review — checked just after opening, no response yet.

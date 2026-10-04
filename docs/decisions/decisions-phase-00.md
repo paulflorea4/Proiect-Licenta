@@ -29,3 +29,9 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **GATE handled as written:** placeholders only. The three secrets (`SPRING_DATASOURCE_PASSWORD`, `JWT_SECRET`, `AI_SERVICE_TOKEN`) are empty; generating them is the human's job. `AI_SERVICE_TOKEN` must equal the value in `ai-service/.env` (0.3b).
 - **DB variable names: Spring's own** (`SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD`), not `DB_*`. The root README already says the backend relies on relaxed binding of real env vars, so these map straight to `spring.datasource.*` with no mapping code, and 1.1a / 2.1a can read them as-is. They are deliberately different from the `POSTGRES_*` names in `infra/.env` (those configure the container, these configure the client); the file's comment says the values must match.
 - **Non-secret conventions are filled in, not left blank:** database URL `jdbc:postgresql://localhost:5432/grading` and username `grading` (the compose defaults from 0.2a — 2.1a says `dev` may fall back to them), `AI_SERVICE_URL=http://localhost:8000` (uvicorn's default port), `CORS_ALLOWED_ORIGINS=http://localhost:5173` (Vite's default dev port), comma-separated. If `POSTGRES_PORT` is changed in `infra/.env`, the URL port here must change too.
+
+## 0.3b — `ai-service/.env.example`
+
+- **GATE handled as written:** placeholders only; all three variables (`GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_SERVICE_TOKEN`) are empty. No DB variables.
+- **`GEMINI_MODEL` is left empty on purpose**, not given a "sensible" model name: the root `CLAUDE.md` says the model name comes from this env var and is never hardcoded, and choosing a model is the human's call. The comment says there is no default anywhere in the code (6.1b should not add one).
+- `AI_SERVICE_TOKEN` must be byte-for-byte the same as in `backend/.env` (0.3a); the file says so, and 6.1b makes the service refuse to start when it is empty.

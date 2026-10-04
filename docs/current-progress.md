@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.3b — GATE: `ai-service/.env.example` (placeholders only; `AI_SERVICE_TOKEN` must match the backend's)
+- Next commit: 0.3c — `frontend/.env.example`: API base URL var
 - In progress: —
-- Blocked: PR #11 (commit 0.3a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #12 (commit 0.3b) awaiting review — checked just after opening, no response yet.

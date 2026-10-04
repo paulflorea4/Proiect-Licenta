@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.2a — `infra/docker-compose.yml`: Postgres 16, named volume, healthcheck
+- Next commit: 0.2b — Document `docker compose up` in the root README
 - In progress: —
-- Blocked: PR #7 (carries commit 0.1f to `main` — PR #6 merged into the 0.1e branch, not `main`) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #8 (commit 0.2a) awaiting review — checked just after opening, no response yet.

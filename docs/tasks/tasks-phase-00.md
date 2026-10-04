@@ -8,7 +8,7 @@
 | 0.1d | `/frontend`: `npm create vite@latest` React+TS skeleton | Done | Unmodified Vite output. |
 | 0.1e | `/infra`: placeholder directory + short README describing what will live here | Done | Just the directory and its purpose (database now, sandbox images in Phase 4). |
 | 0.1f | `/frontend`: test runner (Vitest + Testing Library + jsdom), `npm test` script, smoke tests for the template `App` | Done | Added at the human's request, after 0.1d, so the frontend has tests before 0.4c's CI step. Template source is untouched; only `vite.config.ts` (test block), `package.json` and new test files change. |
-| 0.2a | `infra/docker-compose.yml`: Postgres 16, named volume, healthcheck | Not started | Plain `postgres:16` image — no vector extension needed in this project. |
+| 0.2a | `infra/docker-compose.yml`: Postgres 16, named volume, healthcheck | Done | Plain `postgres:16` image — no vector extension needed in this project. |
 | 0.2b | Document `docker compose up` in the root README | Not started | One paragraph: how to bring up the local DB, nothing else yet. |
 | 0.2c | Document Docker as a prerequisite for running submissions in the root README | Not started | The backend starts sandbox containers from Phase 4 on, so the Docker daemon must be running on whatever machine runs the backend. One sentence, no setup steps yet. |
 | 0.3a | `backend/.env.example`: `JWT_SECRET`, DB connection vars, `AI_SERVICE_URL`, `AI_SERVICE_TOKEN`, `CORS_ALLOWED_ORIGINS` — no real values | Not started | **GATE**: real secret values come from you, not this commit. Placeholders only. |

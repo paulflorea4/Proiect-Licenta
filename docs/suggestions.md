@@ -8,3 +8,5 @@ Historical, append-only. Things that would meaningfully help (a missing MCP conn
 
 - (0.1d) Heads-up for **0.5c**: the current `create-vite` react-ts template (create-vite 9.2.1) ships **oxlint** (`.oxlintrc.json`, `npm run lint` → `oxlint`), not ESLint. 0.5c's literal wording ("ESLint + Prettier") will therefore conflict with the repo state — per the gate table that needs a human choice (keep oxlint, or replace it with ESLint) when we get there. Nothing changed in 0.1d; the output is unmodified.
 - (0.1d) The unmodified Vite template has no test runner or `test` script, but 0.4c's CI is "lint + test + build" and the workflow says all projects' tests must pass. A test runner (e.g. Vitest) will have to be introduced by some task — none of the Phase 0 rows names one. That is a new dependency, so it needs your call.
+
+- (0.1f) The "no test runner" gap raised under 0.1d is closed by 0.1f (Vitest). The oxlint-vs-ESLint question for 0.5c remains open.

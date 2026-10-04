@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
 - Next commit: 0.2a — `infra/docker-compose.yml`: Postgres 16, named volume, healthcheck
 - In progress: —
-- Blocked: PR #5 (commit 0.1e) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #5 (commit 0.1e) and PR #6 (commit 0.1f, stacked on #5) awaiting review — checked just after opening, no response yet.

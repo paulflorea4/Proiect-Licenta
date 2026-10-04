@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.2b — Document `docker compose up` in the root README
+- Next commit: 0.2c — Document Docker as a prerequisite for running submissions in the root README
 - In progress: —
-- Blocked: PR #8 (commit 0.2a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #9 (commit 0.2b) awaiting review — checked just after opening, no response yet.

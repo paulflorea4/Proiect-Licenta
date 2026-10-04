@@ -10,3 +10,6 @@ Historical, append-only. Things that would meaningfully help (a missing MCP conn
 - (0.1d) The unmodified Vite template has no test runner or `test` script, but 0.4c's CI is "lint + test + build" and the workflow says all projects' tests must pass. A test runner (e.g. Vitest) will have to be introduced by some task — none of the Phase 0 rows names one. That is a new dependency, so it needs your call.
 
 - (0.1f) The "no test runner" gap raised under 0.1d is closed by 0.1f (Vitest). The oxlint-vs-ESLint question for 0.5c remains open.
+
+- (0.2a) The dev machine has a native PostgreSQL listening on 5432, which clashes with the compose default. Handled with `POSTGRES_PORT` (see decisions). Whoever runs the backend or Testcontainers locally should be aware of two Postgres instances; Testcontainers uses random ports, so it is unaffected.
+- (0.2a) Root README's Postgres paragraph (from the docs set) predates the required `infra/.env`; 0.2b should fix it rather than this commit editing README out of scope.

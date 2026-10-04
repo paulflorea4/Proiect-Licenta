@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.1c — `/ai-service`: Python skeleton (`pyproject.toml`, `src/` layout, `GET /health` only)
+- Next commit: 0.1d — `/frontend`: `npm create vite@latest` React+TS skeleton
 - In progress: —
-- Blocked: PR #2 (commit 0.1b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #3 (commit 0.1c) awaiting review — checked just after opening, no response yet.

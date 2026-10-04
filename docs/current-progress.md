@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.2c — Document Docker as a prerequisite for running submissions in the root README
+- Next commit: 0.3a — GATE: `backend/.env.example` (placeholders only; real secret values come from the human)
 - In progress: —
-- Blocked: PR #9 (commit 0.2b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #10 (commit 0.2c) awaiting review — checked just after opening, no response yet.

@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.3d — Document the env-loading convention per service in the root README
+- Next commit: 0.4a — `.github/workflows/backend-ci.yml`: build + test on every PR
 - In progress: —
-- Blocked: PR #13 (commit 0.3c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #14 (commit 0.3d) awaiting review — checked just after opening, no response yet.

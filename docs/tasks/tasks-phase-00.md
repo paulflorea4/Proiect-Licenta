@@ -14,7 +14,7 @@
 | 0.3a | `backend/.env.example`: `JWT_SECRET`, DB connection vars, `AI_SERVICE_URL`, `AI_SERVICE_TOKEN`, `CORS_ALLOWED_ORIGINS` — no real values | Done | **GATE**: real secret values come from you, not this commit. Placeholders only. |
 | 0.3b | `ai-service/.env.example`: `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_SERVICE_TOKEN` — no real values | Done | **GATE**: same as above, for the AI service's own key. No DB vars — this service never connects to the database. `AI_SERVICE_TOKEN` must hold the same value as in the backend's file; the human generates it (long random string). |
 | 0.3c | `frontend/.env.example`: API base URL var | Done | No secrets here, just the convention. |
-| 0.3d | Document the env-loading convention per service in the root README | Not started | Spring profiles vs. a Python dotenv library vs. Vite's built-in env handling — write down which, so later phases don't reinvent it. |
+| 0.3d | Document the env-loading convention per service in the root README | Done | Spring profiles vs. a Python dotenv library vs. Vite's built-in env handling — write down which, so later phases don't reinvent it. |
 | 0.4a | `.github/workflows/backend-ci.yml`: build + test on every PR | Not started | Independent job so a Python or frontend failure never blocks a backend-only PR. GitHub-hosted Ubuntu runners include Docker, which Phase 4's sandbox tests will need. |
 | 0.4b | `.github/workflows/ai-service-ci.yml`: lint + test on every PR | Not started | Same independence reasoning as 0.4a. If no linter is configured yet (0.5b), run tests only and say so. |
 | 0.4c | `.github/workflows/frontend-ci.yml`: lint + test + build on every PR | Not started | Same independence reasoning as 0.4a. |

@@ -13,3 +13,5 @@ Historical, append-only. Things that would meaningfully help (a missing MCP conn
 
 - (0.2a) The dev machine has a native PostgreSQL listening on 5432, which clashes with the compose default. Handled with `POSTGRES_PORT` (see decisions). Whoever runs the backend or Testcontainers locally should be aware of two Postgres instances; Testcontainers uses random ports, so it is unaffected.
 - (0.2a) Root README's Postgres paragraph (from the docs set) predates the required `infra/.env`; 0.2b should fix it rather than this commit editing README out of scope.
+
+- (0.2b) GitGuardian is installed on the repo and flagged `infra/docker-compose.yml` line 10 on PR #8 as a hardcoded "Generic Password". It is a false positive (the `${POSTGRES_PASSWORD:?error message}` required-variable check, no secret value anywhere in the repo). The incident can be marked as a false positive on the GitGuardian dashboard (only the human can do that); the scanner may flag that line again if it is touched. Reword the line if the noise becomes a problem.

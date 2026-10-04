@@ -21,7 +21,7 @@ See `docs/project-specifications.md` for the full specification.
 
 ## Getting started
 
-Bring up the local Postgres database by running `docker compose up -d` from `/infra`; it listens on `localhost:5432` and persists data in a named Docker volume, so it survives container restarts until you explicitly run `docker compose down -v`.
+Bring up the local Postgres database from `/infra`: copy `.env.example` to `.env`, set `POSTGRES_PASSWORD` (the only required value; also set `POSTGRES_PORT` if another Postgres on your machine already uses 5432), then run `docker compose up -d`. It listens on `localhost:5432` (or your `POSTGRES_PORT`) and persists data in a named Docker volume, so it survives container restarts until you explicitly run `docker compose down -v`.
 
 Docker must also be installed and running to execute submissions: the backend starts one short-lived, network-less sandbox container per run.
 

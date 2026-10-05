@@ -2,7 +2,6 @@ name: AI Service CI
 
 # Independent of the backend and frontend workflows, so a failure there never blocks an
 # ai-service-only PR. No path filter: it runs on every PR, so the check is always reported.
-# Tests only for now — ruff + black arrive in task 0.5b, which adds the lint step here.
 on:
   pull_request:
 
@@ -31,6 +30,12 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --locked
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Format check (black)
+        run: uv run black --check .
 
       - name: Test
         run: uv run pytest

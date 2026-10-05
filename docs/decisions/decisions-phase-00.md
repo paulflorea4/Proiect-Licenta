@@ -75,3 +75,12 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Wired in as `check` on the `verify` phase**, not `apply`: CI (`./mvnw -B verify`) fails on unformatted code instead of silently rewriting it, and the check runs after the tests. Developers run `./mvnw spotless:apply`; documented in `backend/CLAUDE.md`. Because it is in `verify`, no change to `backend-ci.yml` was needed.
 - **Line endings:** Spotless's default (`GIT_ATTRIBUTES`) follows git's settings, so CRLF working copies on Windows (`core.autocrlf=true`) and LF on Linux CI both pass without a `.gitattributes` change. Verified locally on Windows; the Linux run is the PR's CI check.
 - The two existing Java files were reformatted (tabs → 4 spaces, empty test body collapsed to `{}`); no behaviour change.
+
+## 0.5b — ruff + black in `/ai-service`
+
+- **Division of labour:** ruff lints, black formats (the row names both). ruff's own formatter is not enabled, so there is one formatter. Both use `line-length = 88` (black's default) so they never disagree on E501.
+- **ruff rule set: `E, F, I, UP, B`** — pycodestyle errors, pyflakes, import sorting, pyupgrade (target py312), flake8-bugbear. A small, low-noise set; more rules can be added by a later task. `src = ["src", "tests"]` so isort classifies `ai_service` as first-party.
+- **Added as dev dependencies** via `uv add --dev` (ruff 0.16.10, black 26.10.0, locked in `uv.lock`); the version floors in `pyproject.toml` are what uv wrote. They are the tools the row specifies.
+- **CI:** `ai-service-ci.yml` now runs `ruff check .` and `black --check .` before the tests (lint failures show up fast); the "tests only" comment from 0.4b was removed.
+- Existing code already passed both tools unchanged, so there is no reformatting in this commit.
+- Line endings: black keeps whatever line ending a file already uses, so CRLF working copies on Windows and LF on Linux both pass.

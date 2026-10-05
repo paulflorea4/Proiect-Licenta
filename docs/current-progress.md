@@ -1,4 +1,4 @@
 - Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
-- Next commit: 1.2g — Migration V7: `submissions` table (id, assignment_id FK, student_id FK, language, source_code, status, attempt_no, submitted_at, started_at, finished_at)
+- Next commit: 1.2h — Migration V8: `test_results` table (id, submission_id FK, test_case_id FK, status, actual_output, stderr, runtime_ms)
 - In progress: —
-- Blocked: PR #33 (commit 1.2f) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #34 (commit 1.2g) awaiting review — checked just after opening, no response yet.

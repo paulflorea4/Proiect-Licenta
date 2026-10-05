@@ -17,4 +17,4 @@ Historical, append-only. Every PR opened, in order, with notable review outcomes
 - PR #12 — `phase-00/0.3b-ai-service-env-example` — commit 0.3b: `ai-service/.env.example` with placeholders only (`GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_SERVICE_TOKEN`, all empty). Outcome: merged, no review comments.
 - PR #13 — `phase-00/0.3c-frontend-env-example` — commit 0.3c: `frontend/.env.example` with `VITE_API_BASE_URL`. Outcome: merged, no review comments.
 - PR #14 — `phase-00/0.3d-readme-env-convention` — commit 0.3d: root README "Environment variables" section updated to the actual `.env.example` files (frontend uses `.env.local`; shared `AI_SERVICE_TOKEN`; DB values must match `infra/.env`; no secrets in Vite env). Outcome: merged, no review comments.
-- PR #15 — `phase-00/0.4a-backend-ci` — commit 0.4a: `.github/workflows/backend-ci.yml` (`./mvnw -B verify`, Temurin 17, on every PR). Outcome: awaiting review.
+- PR #15 — `phase-00/0.4a-backend-ci` — commit 0.4a: `.github/workflows/backend-ci.yml` (`./mvnw -B verify`, Temurin 17, on every PR). Outcome: merged, no review comments.

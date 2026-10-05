@@ -50,3 +50,12 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Actions used:** `actions/checkout@v7` and `actions/setup-java@v6` (with `cache: maven`), both GitHub first-party, referenced by major-version tag, not pinned to a commit SHA. `permissions: contents: read` only. These are the only external pieces CI pulls in; they are implied by the row ("build + test on every PR") but flagged in the PR since new external software is a gate in `CLAUDE.md`.
 - `mvnw` was checked to be executable in git and LF-normalized (`.gitattributes`), which Linux runners need.
 - Docker is already present on GitHub-hosted Ubuntu runners, so nothing is set up for it yet (Testcontainers from 1.1a, sandbox from Phase 4).
+
+## 0.4b — `.github/workflows/ai-service-ci.yml`
+
+- **Same shape as 0.4a:** triggers on every `pull_request`, no path filter, `permissions: contents: read`, its own workflow file for independence.
+- **Tests only, no lint step.** The row says to run tests only if no linter is configured yet; ruff + black arrive in 0.5b, which adds the lint step to this file. A comment in the workflow says so.
+- **uv installed with `pip install uv`, not `astral-sh/setup-uv`.** uv is already the project's package manager (`ai-service/CLAUDE.md`), so this adds no new tool, and avoiding the third-party action keeps the only external actions GitHub first-party (`actions/checkout@v7`, `actions/setup-python@v6`, by major tag like 0.4a). uv itself is not version-pinned in CI yet.
+- **Python 3.12** to match `requires-python` and the project default; the dev machine runs a newer interpreter.
+- **`uv sync --locked`** so CI fails if `uv.lock` is out of date instead of silently re-resolving; then `uv run pytest`. pip cache is keyed on `uv.lock`.
+- Verified locally with `uv sync --locked` + `uv run pytest`; the workflow itself is first exercised by this PR's own check run.

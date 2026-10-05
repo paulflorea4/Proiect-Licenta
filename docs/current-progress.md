@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
 - Next commit: 0.5c — `/frontend`: ESLint + Prettier config
 - In progress: —
-- Blocked: PR for commit 0.5b awaiting review — checked just after opening, no response yet.
+- Blocked: PR #20 (commit 0.5b) awaiting review — checked just after opening, no response yet.

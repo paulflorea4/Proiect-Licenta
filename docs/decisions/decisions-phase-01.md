@@ -52,3 +52,11 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **No numeric `CHECK`s** (e.g. `max_attempts > 0`, positive limits): range validation belongs to 3.3a's "sane server-side maximums", consistent with keeping validation in the application layer. Revisit if the human wants the DB to enforce it as well.
 - **`updated_at` has no trigger:** it defaults to `NOW()` on insert and the application must set it on each update (editing title/description/deadline arrives in Phase 3). A trigger would add a second place where behaviour lives; flagged in the SQL comment.
 - **Tests (`AssignmentsMigrationTests`):** V4 applied; new assignment is unpublished with `max_attempts`/`starter_code` null and both timestamps set; optional fields can be set; an unknown language string is accepted (proves no DB restriction); unknown course rejected; each required column (course, title, description, language, deadline, both limits) enforced, one test per column.
+
+## 1.2e — Migration V5: `rubric_criteria`
+
+- **File:** `V5__create_rubric_criteria.sql`, same conventions as V1–V4 (identity `BIGINT` id, FK index `idx_rubric_criteria_assignment_id`, no `ON DELETE`). No timestamps — the row lists none, and criteria are locked after the first submission anyway.
+- **As the row says:** `type VARCHAR(30)` with no `CHECK` (validated in code; later phases add types freely); `config JSONB` nullable.
+- **`weight INTEGER NOT NULL` — whole points.** The row names no type. The spec says weights sum to 100 and the default static-analysis weight is the integer `10`, so whole numbers make the sum-to-100 check exact (no 33.33 + 33.33 + 33.33 ≠ 100 rounding trouble). Trade-off: a teacher cannot give three criteria a third each. Flagged in the PR; widening to `NUMERIC` later would be a plain migration. The sum rule and non-negativity are enforced by the service (2.x/3.x rubric tasks), not the DB.
+- **Other nullability:** `assignment_id`, `name` (`VARCHAR(255)`), `type`, `weight` `NOT NULL`.
+- **Tests (`RubricCriteriaMigrationTests`):** V5 applied; generated id and null `config` by default; `config` really is `jsonb` and queryable (`config->>'maxComplexity'`); arbitrary type string accepted (no DB restriction); unknown assignment rejected; each required column enforced, one test per column.

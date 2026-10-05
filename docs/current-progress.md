@@ -1,4 +1,4 @@
 - Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
-- Next commit: 1.2e — Migration V5: `rubric_criteria` table (id, assignment_id FK, name, type, weight, config JSONB)
+- Next commit: 1.2f — Migration V6: `test_cases` table (id, assignment_id FK, criterion_id FK nullable, name, input, expected_output, visibility, weight, position)
 - In progress: —
-- Blocked: PR #31 (commit 1.2d) awaiting review — checked just after opening, no response yet.
+- Blocked: PR for commit 1.2e awaiting review — checked just after opening, no response yet.

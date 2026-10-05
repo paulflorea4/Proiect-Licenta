@@ -12,8 +12,9 @@ Spring Boot 4.1.1, Java 17, Maven. Project-wide rules (gates, defaults, Git safe
 
 ## Layout
 - Base package: `com.gradingplatform.backend`. Tests mirror it under `src/test/java`.
-- Currently only Web, Security and Validation are on the classpath. Data JPA, the PostgreSQL driver and Flyway arrive in task 1.1a, together with the first Testcontainers test.
-- Migrations will live in `src/main/resources/db/migration` (plain SQL, Flyway, run on startup); dev-only seed data goes in a separate Flyway location enabled only by the `dev` profile. Neither directory exists yet.
+- On the classpath: Web, Security, Validation, Data JPA, Flyway (`spring-boot-starter-flyway` plus `flyway-database-postgresql` — in Spring Boot 4 bare `flyway-core` does not autoconfigure) and the PostgreSQL driver.
+- Migrations live in `src/main/resources/db/migration` (plain SQL, Flyway, run on startup; `.gitkeep` until V1 arrives in 1.2a). Hibernate runs with `ddl-auto=validate`, so it never changes the schema. Dev-only seed data goes in a separate Flyway location enabled only by the `dev` profile; that location does not exist yet.
+- No `spring.datasource.*` keys in `application.properties`: the `SPRING_DATASOURCE_*` environment variables bind directly and have no default, so the app fails at startup if they are missing. Tests never use them.
 - Configuration comes from environment variables listed in `backend/.env.example` (datasource, `JWT_SECRET`, `AI_SERVICE_URL`, `AI_SERVICE_TOKEN`, `CORS_ALLOWED_ORIGINS`). Never commit `backend/.env`, and never log secrets.
 
 ## Conventions
@@ -21,4 +22,5 @@ Spring Boot 4.1.1, Java 17, Maven. Project-wide rules (gates, defaults, Git safe
 - Backend-relevant rules fixed in the root `CLAUDE.md` Defaults: schema changes only through Flyway; Spring Security + JWT, no OAuth; student code runs only in a sandbox container started through a `SandboxRunner` interface (`docker` CLI via `ProcessBuilder`); calls to the AI service are never made inside an open database transaction and never decide the grade.
 - Spotless owns formatting: don't hand-format or fight it — run `spotless:apply`.
 - Tests are part of the commit that adds the code, and all tests of all three projects must pass before a task counts as finished (root `CLAUDE.md`, Workflow).
-- Docker must be running for Testcontainers-backed tests (from 1.1a) and the sandbox tests (from Phase 4).
+- Tests get their database only from Testcontainers (`postgres:16`, matching `infra/docker-compose.yml`) — never the compose database or a CI service container. A `@SpringBootTest` imports `TestcontainersConfiguration` (`@ServiceConnection`); see `FlywayMigrationTests` for the pattern. This is a small first version; 2.7a turns it into the shared test base.
+- Docker must be running for the backend tests (Testcontainers) and for the sandbox tests (from Phase 4). On Windows start Docker Desktop first, or `./mvnw verify` fails before running any test.

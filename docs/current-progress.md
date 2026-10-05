@@ -1,4 +1,4 @@
 - Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
-- Next commit: 1.1a — Add Data JPA, the PostgreSQL driver and Flyway to `/backend`, with Testcontainers-backed migration test
+- Next commit: 1.1b — Document in the root README that the AI service never touches the database
 - In progress: —
-- Blocked: PR #25 (commit 0.6d, last of Phase 0) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #26 (commit 1.1a) awaiting review — checked just after opening, no response yet.

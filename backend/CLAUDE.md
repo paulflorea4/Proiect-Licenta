@@ -6,6 +6,7 @@ Spring Boot 4.1.1, Java 17, Maven. Project-wide rules (gates, defaults, Git safe
 - Build + test: `./mvnw -B verify` (`mvnw.cmd -B verify` on Windows). This is also what CI runs (`.github/workflows/backend-ci.yml`).
 - Tests only: `./mvnw -B test`
 - Run: `./mvnw spring-boot:run` — real OS environment variables are read directly (no dotenv library), so load `backend/.env` into the shell or the IDE run configuration first. See the root README, "Environment variables".
+- Format: `./mvnw spotless:apply` (palantir-java-format, 4-space). `spotless:check` is bound to the `verify` phase, so `./mvnw -B verify` (and CI) fails on unformatted code � run `spotless:apply` before committing.
 - Use the Maven wrapper, never a system Maven — it pins the version.
 
 ## Layout

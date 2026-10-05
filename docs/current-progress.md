@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.5a — `/backend`: Spotless config wired into the build
+- Next commit: 0.5b — `/ai-service`: ruff + black config in `pyproject.toml`, lint step in `ai-service-ci.yml`
 - In progress: —
-- Blocked: PR #18 (commit 0.4c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #19 (commit 0.5a) awaiting review — checked just after opening, no response yet.

@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.4b — `.github/workflows/ai-service-ci.yml`: lint + test on every PR
+- Next commit: 0.4c — `.github/workflows/frontend-ci.yml`: lint + test + build on every PR
 - In progress: —
-- Blocked: PR #15 (commit 0.4a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #17 (commit 0.4b) awaiting review — checked just after opening, no response yet.

@@ -1,4 +1,4 @@
 - Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
 - Next commit: 1.2b — Migration V2: `courses` table (id, title, description, teacher_id FK, enroll_code unique, created_at)
 - In progress: —
-- Blocked: PR for commit 1.2a awaiting review — checked just after opening, no response yet.
+- Blocked: PR #28 (commit 1.2a) awaiting review — checked just after opening, no response yet.

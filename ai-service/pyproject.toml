@@ -12,6 +12,8 @@ dependencies = [
 dev = [
     "pytest",
     "httpx",
+    "ruff>=0.16.10",
+    "black>=26.10.0",
 ]
 
 [build-system]
@@ -23,3 +25,16 @@ packages = ["src/ai_service"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# E/F = pycodestyle + pyflakes, I = import sorting, UP = pyupgrade, B = bugbear.
+select = ["E", "F", "I", "UP", "B"]

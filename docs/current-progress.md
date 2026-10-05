@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.5b — `/ai-service`: ruff + black config in `pyproject.toml`, lint step in `ai-service-ci.yml`
+- Next commit: 0.5c — `/frontend`: ESLint + Prettier config
 - In progress: —
-- Blocked: PR #19 (commit 0.5a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #20 (commit 0.5b) awaiting review — checked just after opening, no response yet.

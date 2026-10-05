@@ -6,9 +6,9 @@ Python FastAPI service, managed with `uv` (build backend: `hatchling`). Project-
 - Install dependencies: `uv sync`
 - Tests: `uv run pytest` (test paths are configured in `pyproject.toml`)
 - Run: `uv run uvicorn ai_service.main:app --reload`
-- Lint/format: not configured yet. ruff + black arrive in task 0.5b; until then there is nothing to run, and nothing to invent.
+- Lint: `uv run ruff check .` (add `--fix` for auto-fixable findings). Format: `uv run black .` (`--check` to verify only). Both run in CI (`.github/workflows/ai-service-ci.yml`); config is in `pyproject.toml`. ruff only lints — black is the formatter, so don't enable `ruff format`.
 - Always go through `uv run` — don't call a global `python` or `pytest`.
-- `requires-python` is `>=3.12`, and CI will run on 3.12 (task 0.4b). A newer local interpreter works, but don't rely on features newer than 3.12.
+- `requires-python` is `>=3.12`, and CI runs on 3.12. A newer local interpreter works, but don't rely on features newer than 3.12.
 
 ## Layout
 - `src/ai_service/` — the package (`main.py` holds the FastAPI `app`; only `GET /health` exists so far).

@@ -1,4 +1,4 @@
 - Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
-- Next commit: 1.1b — Document in the root README that the AI service never touches the database
+- Next commit: 1.2a — Migration V1: `users` table (id, email unique, password_hash, full_name, role, created_at)
 - In progress: —
-- Blocked: PR #26 (commit 1.1a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #27 (commit 1.1b) awaiting review — checked just after opening, no response yet.

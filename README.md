@@ -13,9 +13,11 @@ The system is split into three independent services; only the backend talks to t
 - **`/frontend`** — React + TypeScript. Single-page application, talks only to the Spring Boot API.
 - **`/infra`** — Local development infrastructure (database, sandbox images, etc.).
 
-Database: PostgreSQL.
+Database: PostgreSQL. Only `/backend` connects to it.
 
-Schema migrations are owned exclusively by `/backend`, via Flyway (`backend/src/main/resources/db/migration`), run automatically on Spring Boot startup. The AI service never connects to the database and never runs migrations of its own — it only receives data in HTTP requests and returns results, and the backend persists them. This keeps the services from drifting the schema independently.
+**The AI service never touches the database.** It has no database driver, no connection settings (its `.env` has no database variables) and no migrations. Everything it needs arrives in the request body, and its answer goes back in the response; the backend then decides what to store. Two reasons: the schema cannot drift because a second service changed it, and the AI service can only ever see what the backend chooses to send — for example hidden test inputs and expected outputs, or other students' code, are never reachable from it.
+
+Schema migrations are owned exclusively by `/backend`, via Flyway (`backend/src/main/resources/db/migration`), run automatically on Spring Boot startup. Nothing else runs migrations.
 
 See `docs/project-specifications.md` for the full specification.
 

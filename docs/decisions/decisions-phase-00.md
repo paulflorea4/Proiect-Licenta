@@ -114,3 +114,10 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Kept the file from PR #16** (human's instruction) and checked it against the repo: commands (`uv sync`, `uv run pytest`, ruff/black from 0.5b, run command), layout and conventions were accurate. File is valid UTF-8.
 - **Added only existing facts:** `uv.lock` is committed and CI uses `uv sync --locked` (so a dependency change must include the lock); the default uvicorn port matches `AI_SERVICE_URL`; the three env vars from `.env.example`; a note not to pre-create empty packages; and a short list of the root-Defaults rules that bind this service once code exists (provider interface + `GEMINI_MODEL`, untrusted student text in prompts, hidden tests never in prompts, constant-time unlogged token, named plagiarism constants incl. the `0.70` placeholder).
 - **Project layout (from the row):** the file documents the real layout (`src/ai_service/main.py`, `tests/`). Nothing further was invented — modules arrive with their tasks.
+
+## 0.6d — `frontend/CLAUDE.md`
+
+- **Kept the file from PR #16** (human's instruction) and checked it against the repo; it already described the 0.5c ESLint/Prettier setup, the Vitest setup and the "no real components yet" conventions section the row asks for. Valid UTF-8, Prettier-clean.
+- **Added only existing facts:** the dev server origin (`localhost:5173`, matches `CORS_ALLOWED_ORIGINS` in the backend `.env.example`); the TypeScript compiler options from `tsconfig.app.json` that affect how code must be written (`verbatimModuleSyntax`, `erasableSyntaxOnly`, unused-code errors) and that ESLint covers only `*.ts`/`*.tsx`; and the one `VITE_` variable that exists, `VITE_API_BASE_URL`.
+- **Component conventions (from the row): none invented** — as the row says, there are no real components yet, so the section states that.
+- This closes Phase 0's task list (0.6b–d were already created in PR #16; rows 0.6b–d are now each reviewed and marked Done in their own commits, which resolves the note in `docs/suggestions.md`).

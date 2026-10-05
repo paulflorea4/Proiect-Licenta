@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.6a — Review root `CLAUDE.md`: ground rules, gate policy, human-review-gate table, assumptions list
+- Next commit: 0.6b — `backend/CLAUDE.md`: Java/Spring Boot build & test commands, package conventions (file already exists from PR #16 — review and complete it)
 - In progress: —
-- Blocked: PR #21 (commit 0.5c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR for commit 0.6a awaiting review — checked just after opening, no response yet.

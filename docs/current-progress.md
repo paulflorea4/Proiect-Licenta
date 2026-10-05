@@ -1,4 +1,4 @@
 - Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
 - Next commit: 1.3a — Migration V10: `ai_feedback` table (id, submission_id FK, hint_level, content, created_at, reported, report_reason, reported_at)
 - In progress: —
-- Blocked: PR for commit 1.2i awaiting review — checked just after opening, no response yet.
+- Blocked: PR #36 (commit 1.2i) awaiting review — checked just after opening, no response yet.

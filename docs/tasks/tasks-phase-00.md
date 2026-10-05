@@ -20,7 +20,7 @@
 | 0.4c | `.github/workflows/frontend-ci.yml`: lint + test + build on every PR | Done | Same independence reasoning as 0.4a. |
 | 0.5a | `/backend`: Spotless config wired into the build | Done | If the human has no formatter preference on record, use palantir-java-format (4-space) and note the choice in decisions. |
 | 0.5b | `/ai-service`: ruff + black config in `pyproject.toml`, lint step in `ai-service-ci.yml` | Done | Closes any lint gap left by 0.4b. |
-| 0.5c | `/frontend`: ESLint + Prettier config | Not started | Set Prettier `endOfLine` to `"auto"` — on Windows, `core.autocrlf=true` checks files out as CRLF and Prettier's default `lf` makes `format:check` fail on a clean checkout. |
+| 0.5c | `/frontend`: ESLint + Prettier config | Done | Set Prettier `endOfLine` to `"auto"` — on Windows, `core.autocrlf=true` checks files out as CRLF and Prettier's default `lf` makes `format:check` fail on a clean checkout. |
 | 0.6a | Review root `CLAUDE.md`: ground rules, gate policy, human-review-gate table, assumptions list | Not started | Confirm the Defaults still match what Phase 0 actually produced (folder names, tools). |
 | 0.6b | `backend/CLAUDE.md`: Java/Spring Boot build & test commands, package conventions | Not started | Keep it short — commands and conventions only. |
 | 0.6c | `ai-service/CLAUDE.md`: Python build/test/lint commands, project layout | Not started | Keep it short — commands and conventions only. |

@@ -84,3 +84,14 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **CI:** `ai-service-ci.yml` now runs `ruff check .` and `black --check .` before the tests (lint failures show up fast); the "tests only" comment from 0.4b was removed.
 - Existing code already passed both tools unchanged, so there is no reformatting in this commit.
 - Line endings: black keeps whatever line ending a file already uses, so CRLF working copies on Windows and LF on Linux both pass.
+
+## 0.5c — ESLint + Prettier in `/frontend`
+
+- **Linter: ESLint replaces oxlint — the human's decision** (the row says ESLint, the template shipped oxlint; this was the gate raised in `docs/suggestions.md`). `oxlint` and `.oxlintrc.json` are removed; `npm run lint` is now `eslint .`, so the 0.4c CI step is unchanged.
+- **ESLint 10 flat config** (`eslint.config.js`, the shape Vite's own template uses for ESLint): `@eslint/js` recommended, `typescript-eslint` recommended (non-type-checked — fast, and `tsc -b` already type-checks), `eslint-plugin-react-hooks` (`rules-of-hooks`, same as oxlint had) and `eslint-plugin-react-refresh` (Vite preset, same as oxlint's `only-export-components`), `globals.browser`. Only `*.ts`/`*.tsx` are linted; `dist` is ignored.
+- **Prettier 3 with `eslint-config-prettier` last in the ESLint config**, so the two tools never disagree. ESLint does no formatting.
+- **Prettier options:** `semi: false`, `singleQuote: true` — the template's existing style, so no source files were reformatted. `endOfLine: "auto"` as the row requires (CRLF checkouts on Windows). `.prettierignore`: `dist`, `node_modules`, `package-lock.json`.
+- **Scripts:** `lint`, `format` (`prettier --write .`), `format:check` (`prettier --check .`). CI gets a Prettier check step between lint and test.
+- Only `frontend/CLAUDE.md` needed reformatting (blank lines after headings), which Prettier also covers.
+- **New dev dependencies** (the row asks for ESLint + Prettier; the plugins are what a working ESLint setup for React + TS needs): eslint, @eslint/js, typescript-eslint, eslint-plugin-react-hooks, eslint-plugin-react-refresh, globals, prettier, eslint-config-prettier. `typescript-eslint` supports TypeScript `<6.1`, which covers the project's `~6.0`.
+- Verified locally: lint passes on the code and fails on a deliberate unused variable; `format:check`, build and tests pass.

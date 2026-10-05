@@ -9,7 +9,7 @@
 
 ## Workflow
 - One commit = one row in a `tasks-phase-XX.md` file. Never batch multiple rows into one commit.
-- Flip a row's Status to Done in the same commit that finishes it.
+- Flip a row's Status to Done in the same commit that finishes it, and only once the tests of all three projects have been run and pass. If any test fails or wasn't run, the row is not Done: leave its Status unchanged and record the failing tests under `In progress` or `Blocked` in `docs/current-progress.md`.
 - Tests are part of the commit that adds the code. A task is considered finished only if all tests from all projects are passing. Even if you modify only one project, run tests from all projects before considering a task finished.
 - Update `docs/current-progress.md` after every commit, and whenever pausing mid-task or context is running low — even mid-commit. Format and real examples: `docs/current-progress-example.md`. Anything not covered by its four lines (a PR's own history, a non-obvious decision's rationale, a suggestion) goes in `docs/pr-history.md`, `docs/decisions/decisions-phase-XX.md` (the file for the current phase), or `docs/suggestions.md` instead — never back into `current-progress.md`.
 - Schema changes go through Flyway migrations only, never manual edits.
@@ -57,10 +57,20 @@ Write access only.
 
 All schema migrations live in `/backend` Flyway history.
 
+## Git safety
+- Never commit, push or merge on `main`/`master`. Before any commit or push, run `git branch --show-current`; if it says `main`, stop and create the task branch first.
+- Never force-push, never run `git reset --hard`, never run `gh pr merge`. Push only the task branch, by name (no `--all`/`--mirror`).
+- These rules are also enforced by `.claude/hooks/git-guard.mjs` (wired up in `.claude/settings.json`). If the hook blocks a command, don't look for a way around it — stop and tell the human.
+
 ## PR conventions
 - Branch: `phase-<NN>/<commit-id>-<short-slug>` (e.g. `phase-05/5.4a-rubric-scoring`).
 - One commit from task phase per branch, one PR per commit — open the PR right after pushing. A PR can have multiple commits only by resolving reviewer comments.
-- Wait for review before starting the next task: check the PR (`gh pr view <PR> --json comments,reviews`) immediately, then again every half an hour. The session will not be stopped in this time, but it will be idle.
+- Wait for review before starting the next task: check the PR immediately after opening, then again every half an hour. The session will not be stopped in this time, but it will be idle. Every check covers all three sources below — `gh pr view ... comments,reviews` alone misses inline code comments and CI results:
+  - Conversation comments and review verdicts: `gh pr view <PR> --json state,comments,reviews`
+  - Inline code comments (not included in the command above): `gh api repos/{owner}/{repo}/pulls/<PR>/comments`
+  - CI status: `gh pr checks <PR>`. A failing check is a blocker, handled like a review comment: fix it with a new commit on the same branch.
+  - Never report "no comments" or "waiting" before all three were checked.
+- Bot comments (GitGuardian, CI bots) are not review comments: don't reply to them on the PR. Note them in `docs/suggestions.md` and mention them when reporting status.
 - Address review comments with a new commit on the same branch, then repeat the polling process again.
 - On a PR, the human writes the review comments and questions. Only answer them (in the PR thread or with a fix commit) — never add your own review comments, suggestions or approvals there. Anything you notice on your own goes in `docs/suggestions.md`.
 - About every 30 minutes of work or waiting (and at every PR poll), re-read the current task's row in its `tasks-phase-XX.md` and `docs/current-progress.md` so the goal doesn't drift as context fills up.

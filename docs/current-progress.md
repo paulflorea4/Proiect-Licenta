@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
 - Next commit: 0.6d — `frontend/CLAUDE.md`: React build/test/lint commands, component conventions (file already exists from PR #16 — review and complete it)
 - In progress: —
-- Blocked: PR for commit 0.6c awaiting review — checked just after opening, no response yet.
+- Blocked: PR #24 (commit 0.6c) awaiting review — checked just after opening, no response yet.

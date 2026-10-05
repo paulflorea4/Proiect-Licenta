@@ -1,4 +1,4 @@
 - Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
-- Next commit: 1.2d — Migration V4: `assignments` table (id, course_id FK, title, description, language, deadline, max_attempts, time_limit_ms, memory_limit_mb, starter_code, published, created_at, updated_at)
+- Next commit: 1.2e — Migration V5: `rubric_criteria` table (id, assignment_id FK, name, type, weight, config JSONB)
 - In progress: —
-- Blocked: PR #30 (commit 1.2c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #31 (commit 1.2d) awaiting review — checked just after opening, no response yet.

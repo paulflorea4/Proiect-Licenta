@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.5c — `/frontend`: ESLint + Prettier config
+- Next commit: 0.6a — Review root `CLAUDE.md`: ground rules, gate policy, human-review-gate table, assumptions list
 - In progress: —
-- Blocked: PR #20 (commit 0.5b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR for commit 0.5c awaiting review — checked just after opening, no response yet.

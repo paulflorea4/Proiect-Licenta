@@ -95,3 +95,9 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - Only `frontend/CLAUDE.md` needed reformatting (blank lines after headings), which Prettier also covers.
 - **New dev dependencies** (the row asks for ESLint + Prettier; the plugins are what a working ESLint setup for React + TS needs): eslint, @eslint/js, typescript-eslint, eslint-plugin-react-hooks, eslint-plugin-react-refresh, globals, prettier, eslint-config-prettier. `typescript-eslint` supports TypeScript `<6.1`, which covers the project's `~6.0`.
 - Verified locally: lint passes on the code and fails on a deliberate unused variable; `format:check`, build and tests pass.
+
+## 0.6a — review of root `CLAUDE.md`
+
+- **Reviewed against the repo after 0.1–0.5:** layout (`/backend`, `/ai-service`, `/frontend`, `/infra`), progress-file format, gates table, Git safety (hook and `.claude/settings.json` deny rules both exist and match the text), PR conventions and the per-service file list all match what Phase 0 produced. No rule was changed.
+- **Two additions only, both descriptive of what now exists:** a Workflow bullet that lint/format checks count as part of "passing" (CI enforces them since 0.4–0.5), and a Defaults "Tooling" bullet naming each project's toolchain and the three CI workflows. The Defaults rows (auth, roles, sandbox, scoring, AI, …) concern later phases and were left untouched.
+- Nothing was added about Flyway/Spring profiles/pydantic-settings yet: they do not exist in the repo until Phases 1 and 6.

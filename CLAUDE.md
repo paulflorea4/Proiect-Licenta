@@ -11,6 +11,7 @@
 - One commit = one row in a `tasks-phase-XX.md` file. Never batch multiple rows into one commit.
 - Flip a row's Status to Done in the same commit that finishes it, and only once the tests of all three projects have been run and pass. If any test fails or wasn't run, the row is not Done: leave its Status unchanged and record the failing tests under `In progress` or `Blocked` in `docs/current-progress.md`.
 - Tests are part of the commit that adds the code. A task is considered finished only if all tests from all projects are passing. Even if you modify only one project, run tests from all projects before considering a task finished.
+- Lint and format checks are part of "passing": CI runs them on every PR and a failure blocks the PR. Run them locally before committing — the exact commands are in each service's `CLAUDE.md`.
 - Update `docs/current-progress.md` after every commit, and whenever pausing mid-task or context is running low — even mid-commit. Format and real examples: `docs/current-progress-example.md`. Anything not covered by its four lines (a PR's own history, a non-obvious decision's rationale, a suggestion) goes in `docs/pr-history.md`, `docs/decisions/decisions-phase-XX.md` (the file for the current phase), or `docs/suggestions.md` instead — never back into `current-progress.md`.
 - Schema changes go through Flyway migrations only, never manual edits.
 
@@ -27,6 +28,12 @@ Reserved for decisions the agent genuinely cannot make on its own.
 
 ## Defaults (do not change without being asked)
 - Layout: `/backend` (Spring Boot), `/ai-service` (Python), `/frontend` (React), `/infra`.
+- Tooling (set up in Phase 0; add or swap any of it only through a task):
+  - `/backend`: Java 17, Maven wrapper (`./mvnw`), Spotless with palantir-java-format (`spotless:check` runs in `verify`).
+  - `/ai-service`: Python 3.12, `uv`, ruff (lint) + black (format), pytest.
+  - `/frontend`: Node 24, npm, Vite + Vitest, ESLint (flat config) + Prettier.
+  - `/infra`: `docker-compose.yml` with Postgres 16 for local development.
+  - CI: `.github/workflows/{backend,ai-service,frontend}-ci.yml`, one independent workflow per service, each triggered on every PR (no path filters).
 - Migrations: Flyway, plain SQL.
 - Auth: Spring Security + JWT, no OAuth.
 - Roles: `STUDENT`, `TEACHER`, `ADMIN`. Signup always creates a `STUDENT`; only an admin can promote a user to `TEACHER`.

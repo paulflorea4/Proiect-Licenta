@@ -1,4 +1,4 @@
-- Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.6d — `frontend/CLAUDE.md`: React build/test/lint commands, component conventions (file already exists from PR #16 — review and complete it)
+- Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
+- Next commit: 1.1a — Add Data JPA, the PostgreSQL driver and Flyway to `/backend`, with Testcontainers-backed migration test
 - In progress: —
-- Blocked: PR #24 (commit 0.6c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR for commit 0.6d (last of Phase 0) awaiting review — checked just after opening, no response yet.

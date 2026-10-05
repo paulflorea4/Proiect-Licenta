@@ -67,3 +67,11 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Node 24** — matches the dev machine (v24.19) and `@types/node` `^24`; satisfies Vite 8's minimum. npm cache keyed on `package-lock.json`.
 - **Action added:** `actions/setup-node@v6` (GitHub first-party, major tag, like the other workflows).
 - Verified locally with `npm run lint`, `npm test` and `npm run build`; the workflow itself is first exercised by this PR's check run.
+
+## 0.5a — Spotless in `/backend`
+
+- **Formatter: palantir-java-format, 4-space** — the row's default; no formatter preference is on record. `removeUnusedImports` is also enabled (no effect on current code).
+- **Versions pinned:** `spotless-maven-plugin` 3.10.3 and palantir-java-format 2.102.0 (latest on Maven Central at the time). Spring Boot's parent POM does not manage either.
+- **Wired in as `check` on the `verify` phase**, not `apply`: CI (`./mvnw -B verify`) fails on unformatted code instead of silently rewriting it, and the check runs after the tests. Developers run `./mvnw spotless:apply`; documented in `backend/CLAUDE.md`. Because it is in `verify`, no change to `backend-ci.yml` was needed.
+- **Line endings:** Spotless's default (`GIT_ATTRIBUTES`) follows git's settings, so CRLF working copies on Windows (`core.autocrlf=true`) and LF on Linux CI both pass without a `.gitattributes` change. Verified locally on Windows; the Linux run is the PR's CI check.
+- The two existing Java files were reformatted (tabs → 4 spaces, empty test body collapsed to `{}`); no behaviour change.

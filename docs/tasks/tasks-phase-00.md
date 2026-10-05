@@ -17,7 +17,7 @@
 | 0.3d | Document the env-loading convention per service in the root README | Done | Spring profiles vs. a Python dotenv library vs. Vite's built-in env handling — write down which, so later phases don't reinvent it. |
 | 0.4a | `.github/workflows/backend-ci.yml`: build + test on every PR | Done | Independent job so a Python or frontend failure never blocks a backend-only PR. GitHub-hosted Ubuntu runners include Docker, which Phase 4's sandbox tests will need. |
 | 0.4b | `.github/workflows/ai-service-ci.yml`: lint + test on every PR | Done | Same independence reasoning as 0.4a. If no linter is configured yet (0.5b), run tests only and say so. |
-| 0.4c | `.github/workflows/frontend-ci.yml`: lint + test + build on every PR | Not started | Same independence reasoning as 0.4a. |
+| 0.4c | `.github/workflows/frontend-ci.yml`: lint + test + build on every PR | Done | Same independence reasoning as 0.4a. |
 | 0.5a | `/backend`: Spotless config wired into the build | Not started | If the human has no formatter preference on record, use palantir-java-format (4-space) and note the choice in decisions. |
 | 0.5b | `/ai-service`: ruff + black config in `pyproject.toml`, lint step in `ai-service-ci.yml` | Not started | Closes any lint gap left by 0.4b. |
 | 0.5c | `/frontend`: ESLint + Prettier config | Not started | Set Prettier `endOfLine` to `"auto"` — on Windows, `core.autocrlf=true` checks files out as CRLF and Prettier's default `lf` makes `format:check` fail on a clean checkout. |

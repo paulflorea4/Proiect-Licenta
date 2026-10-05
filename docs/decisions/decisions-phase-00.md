@@ -59,3 +59,11 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Python 3.12** to match `requires-python` and the project default; the dev machine runs a newer interpreter.
 - **`uv sync --locked`** so CI fails if `uv.lock` is out of date instead of silently re-resolving; then `uv run pytest`. pip cache is keyed on `uv.lock`.
 - Verified locally with `uv sync --locked` + `uv run pytest`; the workflow itself is first exercised by this PR's own check run.
+
+## 0.4c — `.github/workflows/frontend-ci.yml`
+
+- **Same shape as 0.4a/0.4b:** every `pull_request`, no path filter, `permissions: contents: read`, own workflow file.
+- **Steps: `npm ci`, `npm run lint`, `npm test`, `npm run build`** — the existing scripts, so CI and local use cannot drift. `npm run lint` currently runs oxlint; the oxlint-vs-ESLint gate belongs to 0.5c and CI follows whatever the script does.
+- **Node 24** — matches the dev machine (v24.19) and `@types/node` `^24`; satisfies Vite 8's minimum. npm cache keyed on `package-lock.json`.
+- **Action added:** `actions/setup-node@v6` (GitHub first-party, major tag, like the other workflows).
+- Verified locally with `npm run lint`, `npm test` and `npm run build`; the workflow itself is first exercised by this PR's check run.

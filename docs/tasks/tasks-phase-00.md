@@ -23,5 +23,5 @@
 | 0.5c | `/frontend`: ESLint + Prettier config | Done | Set Prettier `endOfLine` to `"auto"` — on Windows, `core.autocrlf=true` checks files out as CRLF and Prettier's default `lf` makes `format:check` fail on a clean checkout. |
 | 0.6a | Review root `CLAUDE.md`: ground rules, gate policy, human-review-gate table, assumptions list | Done | Confirm the Defaults still match what Phase 0 actually produced (folder names, tools). |
 | 0.6b | `backend/CLAUDE.md`: Java/Spring Boot build & test commands, package conventions | Done | Keep it short — commands and conventions only. |
-| 0.6c | `ai-service/CLAUDE.md`: Python build/test/lint commands, project layout | Not started | Keep it short — commands and conventions only. |
+| 0.6c | `ai-service/CLAUDE.md`: Python build/test/lint commands, project layout | Done | Keep it short — commands and conventions only. |
 | 0.6d | `frontend/CLAUDE.md`: React build/test/lint commands, component conventions | Not started | No real components yet, so the conventions section should say so rather than inventing one. |

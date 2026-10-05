@@ -1,9 +1,13 @@
 name: Backend CI
 
 # Independent of the ai-service and frontend workflows, so a failure there never blocks a
-# backend-only PR. No path filter: it runs on every PR, so the check is always reported.
+# backend-only PR. Runs only when the PR touches backend/ or this workflow file; a PR that
+# touches neither gets no backend check at all (that is expected, not a missing check).
 on:
   pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
 
 permissions:
   contents: read

@@ -11,7 +11,7 @@
 - One commit = one row in a `tasks-phase-XX.md` file. Never batch multiple rows into one commit.
 - Flip a row's Status to Done in the same commit that finishes it, and only once the tests of all three projects have been run and pass. If any test fails or wasn't run, the row is not Done: leave its Status unchanged and record the failing tests under `In progress` or `Blocked` in `docs/current-progress.md`.
 - Tests are part of the commit that adds the code. A task is considered finished only if all tests from all projects are passing. Even if you modify only one project, run tests from all projects before considering a task finished.
-- Lint and format checks are part of "passing": CI runs them on every PR and a failure blocks the PR. Run them locally before committing — the exact commands are in each service's `CLAUDE.md`.
+- Lint and format checks are part of "passing": CI runs them on PRs that touch the service and a failure blocks the PR. Run them locally before committing — the exact commands are in each service's `CLAUDE.md`.
 - Update `docs/current-progress.md` after every commit, and whenever pausing mid-task or context is running low — even mid-commit. Format and real examples: `docs/current-progress-example.md`. Anything not covered by its four lines (a PR's own history, a non-obvious decision's rationale, a suggestion) goes in `docs/pr-history.md`, `docs/decisions/decisions-phase-XX.md` (the file for the current phase), or `docs/suggestions.md` instead — never back into `current-progress.md`.
 - Schema changes go through Flyway migrations only, never manual edits.
 
@@ -33,7 +33,7 @@ Reserved for decisions the agent genuinely cannot make on its own.
   - `/ai-service`: Python 3.12, `uv`, ruff (lint) + black (format), pytest.
   - `/frontend`: Node 24, npm, Vite + Vitest, ESLint (flat config) + Prettier.
   - `/infra`: `docker-compose.yml` with Postgres 16 for local development.
-  - CI: `.github/workflows/{backend,ai-service,frontend}-ci.yml`, one independent workflow per service, each triggered on every PR (no path filters).
+  - CI: `.github/workflows/{backend,ai-service,frontend}-ci.yml`, one independent workflow per service, each triggered on a PR only when it touches that service's directory or its own workflow file (path filters), so a PR that touches none of them — docs only, say — gets no service checks. Absent checks are expected; only GitGuardian reports then.
 - Migrations: Flyway, plain SQL.
 - Auth: Spring Security + JWT, no OAuth.
 - Roles: `STUDENT`, `TEACHER`, `ADMIN`. Signup always creates a `STUDENT`; only an admin can promote a user to `TEACHER`.

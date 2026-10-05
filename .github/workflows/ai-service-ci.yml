@@ -1,9 +1,13 @@
 name: AI Service CI
 
 # Independent of the backend and frontend workflows, so a failure there never blocks an
-# ai-service-only PR. No path filter: it runs on every PR, so the check is always reported.
+# ai-service-only PR. Runs only when the PR touches ai-service/ or this workflow file; a PR that
+# touches neither gets no ai-service check at all (that is expected, not a missing check).
 on:
   pull_request:
+    paths:
+      - "ai-service/**"
+      - ".github/workflows/ai-service-ci.yml"
 
 permissions:
   contents: read

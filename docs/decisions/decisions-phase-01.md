@@ -34,3 +34,12 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **No `ON DELETE` clause (default `NO ACTION`):** nothing in the tasks deletes users or courses, so deleting a teacher who owns courses is refused rather than cascading away graded work. Revisit if a delete feature appears.
 - **Explicit index `idx_courses_teacher_id`:** Postgres does not index foreign keys, and "a teacher's courses" is a core query. Not in the row; added as a small convention (recorded in `backend/CLAUDE.md`): FKs get an index unless already covered by a PK/unique constraint's leading column. Later migrations (1.2c onward) should follow it.
 - **Tests (`CoursesMigrationTests`):** V2 applied; generated id and `created_at`; optional description; duplicate `enroll_code` rejected; unknown `teacher_id` rejected; `title`, `teacher_id`, `enroll_code` each required (one test per column, as in 1.2a).
+
+## 1.2c — Migration V3: `enrollments`
+
+- **File:** `V3__create_enrollments.sql`. Composite `PRIMARY KEY (course_id, student_id)`, both `NOT NULL REFERENCES` (`courses (id)`, `users (id)`), no surrogate `id`, as the row says. The primary key is what stops a student enrolling twice.
+- **`enrolled_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`** — same timestamp convention as `created_at`.
+- **Index:** only `idx_enrollments_student_id` is added. Per the FK-index convention from 1.2b, `course_id` needs none (it is the leading column of the primary key), while `student_id` is second and so cannot be served by it — "a student's courses" needs its own index.
+- **No check that `student_id` belongs to a `STUDENT`:** roles are validated in the application layer (1.2a), so the DB cannot and should not enforce it; the enrollment endpoint (3.x) does.
+- **No `ON DELETE`**, consistent with 1.2b.
+- **Tests (`EnrollmentsMigrationTests`):** V3 applied; `enrolled_at` defaulted; second enrollment of the same student in the same course rejected; unknown course and unknown student rejected; each column required (one test per column).

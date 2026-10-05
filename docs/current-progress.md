@@ -1,4 +1,4 @@
 - Phase: Phase 0 — `docs/tasks/tasks-phase-00.md`
-- Next commit: 0.6b — `backend/CLAUDE.md`: Java/Spring Boot build & test commands, package conventions (file already exists from PR #16 — review and complete it)
+- Next commit: 0.6c — `ai-service/CLAUDE.md`: Python build/test/lint commands, project layout (file already exists from PR #16 — review and complete it)
 - In progress: —
-- Blocked: PR #22 (commit 0.6a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #23 (commit 0.6b) awaiting review — checked just after opening, no response yet.

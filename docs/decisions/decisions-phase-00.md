@@ -101,3 +101,10 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Reviewed against the repo after 0.1–0.5:** layout (`/backend`, `/ai-service`, `/frontend`, `/infra`), progress-file format, gates table, Git safety (hook and `.claude/settings.json` deny rules both exist and match the text), PR conventions and the per-service file list all match what Phase 0 produced. No rule was changed.
 - **Two additions only, both descriptive of what now exists:** a Workflow bullet that lint/format checks count as part of "passing" (CI enforces them since 0.4–0.5), and a Defaults "Tooling" bullet naming each project's toolchain and the three CI workflows. The Defaults rows (auth, roles, sandbox, scoring, AI, …) concern later phases and were left untouched.
 - Nothing was added about Flyway/Spring profiles/pydantic-settings yet: they do not exist in the repo until Phases 1 and 6.
+
+## 0.6b — `backend/CLAUDE.md`
+
+- **Kept the file from PR #16** (human's instruction: keep what exists, add what is necessary) and reviewed it against the repo; commands, layout and test notes were all accurate.
+- **Fixed a bug of mine from 0.5a:** the Spotless line in this file contained a Windows-1252 em dash byte (invalid UTF-8, rendered as `�`) because the edit script ran without `encoding='utf-8'`. Replaced with a proper `—`. All other tracked docs were checked and are valid UTF-8.
+- **Added only facts that already exist in the repo or the root `CLAUDE.md`:** Spring profiles (`dev`/`prod`, per the README) and that none are configured yet; where migrations and dev seed data will live (plus that the directories don't exist yet); the env var list from `backend/.env.example`; and a one-line pointer to the backend-relevant Defaults (Flyway only, Spring Security + JWT, `SandboxRunner`, no AI calls inside a transaction).
+- **"Package conventions" (from the row): none invented.** Only the base package exists. The row asks for conventions, but a package layout has no default in any `*.md` file, so it is left to the task that adds the first class of each kind, as the file already said; the wording now makes that explicit.

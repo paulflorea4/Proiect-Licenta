@@ -11,3 +11,9 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Migration test:** `FlywayMigrationTests` asserts `flyway_schema_history` exists after startup. Verified it can fail: with `SPRING_FLYWAY_ENABLED=false` it fails ("Expecting value to be true but was false"). Flyway creates the history table even with zero migrations, so no placeholder migration was needed; `db/migration/.gitkeep` keeps the (empty) location in git until V1 in 1.2a.
 - **Local requirement:** Docker must be running. Docker Desktop was stopped at the start of this session, so I started it (installed app, no config change).
 - Backend CI needs no change: `./mvnw -B verify` already runs on a runner with Docker (0.4a).
+
+## 1.1b — README: the AI service never touches the database
+
+- **The README already said it** (one sentence inside the Flyway paragraph, from the original docs set). Rather than leave the row a no-op, the statement was promoted to its own bold paragraph right under "Database: PostgreSQL", and the duplicate sentence in the Flyway paragraph was trimmed to "Nothing else runs migrations."
+- **Content is limited to facts that hold today or are fixed in the root `CLAUDE.md`:** no DB driver (`ai-service/pyproject.toml` has only `fastapi`/`uvicorn`), no DB variables in `ai-service/.env.example`, no migrations; data arrives in the request body and the backend persists results. The "why" restates the row's rationale plus the root rule that hidden test inputs/expected outputs never leave the backend.
+- Docs-only change; no code touched. All three projects' tests were still run before marking the row Done.

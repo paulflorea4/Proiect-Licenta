@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.2a — Confirm Flyway runs on startup under the `dev` and `prod` profiles against the Phase 1 schema
+- Next commit: 2.2b — `GET /health`: 200 + DB connectivity check
 - In progress: —
-- Blocked: PR #43 (commit 2.1b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #44 (commit 2.2a) awaiting review — CI failure (test-order dependency) fixed in a follow-up commit and review question answered; re-check CI, then wait for merge.

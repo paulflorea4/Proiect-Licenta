@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.1b — Package structure for controllers/services/repositories/entities
+- Next commit: 2.2a — Confirm Flyway runs on startup under the `dev` and `prod` profiles against the Phase 1 schema
 - In progress: —
-- Blocked: PR #42 (commit 2.1a) awaiting review — CI green, one review question answered in the thread (no code change), waiting for merge.
+- Blocked: PR #43 (commit 2.1b) awaiting review — checked just after opening, no response yet.

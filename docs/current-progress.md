@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.3c — Validation: reject duplicate email, reject weak password (min length) — also handle the two 500s noted in decisions-phase-02.md (duplicate email, password over 72 bytes)
+- Next commit: 2.4a — `POST /auth/signin`: verify password, issue JWT (reuse `AuthService.normalizeEmail`; JWT expiry and token-in-body-vs-cookie are decisions to record)
 - In progress: —
-- Blocked: PR #47 (commit 2.3b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #48 (commit 2.3c) awaiting review — checked just after opening, no response yet.

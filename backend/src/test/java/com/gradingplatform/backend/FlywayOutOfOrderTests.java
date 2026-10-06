@@ -11,16 +11,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * 2.2a: why the `dev` profile enables Flyway's out-of-order mode. Kept in its own class because the
- * probe migration it applies changes the database, and a context (with its database) is shared by
- * every test of a class.
+ * 2.2a: why the `dev` profile enables Flyway's out-of-order mode. The probe migration it applies
+ * changes the database, and Spring caches a test context (and so its Testcontainers database)
+ * across every test class with the same configuration, including {@link FlywayDevProfileTests}.
+ * `@DirtiesContext` discards this class's context afterwards, so no other class can see the probe,
+ * whatever order the classes run in.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @ActiveProfiles("dev")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class FlywayOutOfOrderTests {
 
     private static final String SCHEMA = "classpath:db/migration";

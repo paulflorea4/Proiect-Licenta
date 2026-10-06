@@ -2,6 +2,8 @@ package com.gradingplatform.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.gradingplatform.backend.entity.Role;
+import com.gradingplatform.backend.repository.UserRepository;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -22,7 +24,20 @@ class DevSeedUsersTests {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    UserRepository users;
+
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
+    @Test
+    void theUserRepositoryReadsTheSeededRolesBack() {
+        assertThat(users.findByEmail("admin@dev.example.com").orElseThrow().getRole())
+                .isEqualTo(Role.ADMIN);
+        assertThat(users.findByEmail("teacher@dev.example.com").orElseThrow().getRole())
+                .isEqualTo(Role.TEACHER);
+        assertThat(users.findByEmail("student1@dev.example.com").orElseThrow().getRole())
+                .isEqualTo(Role.STUDENT);
+    }
 
     @Test
     void seedMigrationWasAppliedAfterTheSchemaMigrations() {

@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.3a — `User` JPA entity + repository matching the `users` table from 1.2a, with a `Role` enum
+- Next commit: 2.3b — `POST /auth/signup`: hash password with BCrypt, persist user as `STUDENT`
 - In progress: —
-- Blocked: PR #45 (commit 2.2b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #46 (commit 2.3a) awaiting review — checked just after opening, no response yet.

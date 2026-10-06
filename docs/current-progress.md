@@ -1,4 +1,4 @@
 - Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
-- Next commit: 1.4a — Seed fixture (dev profile only): 1 admin, 1 teacher, 2 students
+- Next commit: 1.4b — Seed fixture: 1 course with both students enrolled, 2 published assignments (Java, Python) with rubric and public + hidden tests
 - In progress: —
-- Blocked: PR #38 (commit 1.3a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #39 (commit 1.4a) awaiting review — checked just after opening, no response yet.

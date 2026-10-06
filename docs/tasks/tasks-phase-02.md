@@ -5,7 +5,7 @@
 | 2.1a | `application.yml` with `dev`/`prod` profiles, DB connection from env vars | Done | Reads the vars defined in `backend/.env.example` (0.3a). `dev` may fall back to the local compose credentials; `prod` must not, so a missing var fails fast. Delete the `application.properties` left by 1.1a so there is one config source. |
 | 2.1b | Package structure for controllers/services/repositories/entities | Done | Establish this before 2.3 adds the first real entity, so it isn't retrofitted. Leave room for a `sandbox` and an `ai` package (Phases 4 and 7). |
 | 2.2a | Confirm Flyway runs on startup under the `dev` and `prod` profiles against the Phase 1 schema | Done | If this fails, check the DB connection vars before assuming the migrations are wrong. The dev-only seed location from 1.4a is enabled here for the `dev` profile only. |
-| 2.2b | `GET /health`: 200 + DB connectivity check | Not started | First endpoint that proves the service and DB are both actually up. |
+| 2.2b | `GET /health`: 200 + DB connectivity check | Done | First endpoint that proves the service and DB are both actually up. |
 | 2.3a | `User` JPA entity + repository matching the `users` table from 1.2a, with a `Role` enum | Not started | Field names must match the migration exactly — no auto-DDL, Flyway is the source of truth. |
 | 2.3b | `POST /auth/signup`: hash password with BCrypt, persist user as `STUDENT` | Not started | The request body must not be able to set the role — ignore or reject a `role` field. |
 | 2.3c | Validation: reject duplicate email, reject weak password (min length) | Not started | Duplicate-email check needs a DB round-trip or a unique-constraint catch — pick one and be consistent. |

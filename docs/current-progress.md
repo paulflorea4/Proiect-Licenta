@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.1a — `application.yml` with `dev`/`prod` profiles, DB connection from env vars
+- Next commit: 2.1b — Package structure for controllers/services/repositories/entities
 - In progress: —
-- Blocked: PR #41 (commit 1.4c, last of Phase 1) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #42 (commit 2.1a) awaiting review — checked just after opening, no response yet.

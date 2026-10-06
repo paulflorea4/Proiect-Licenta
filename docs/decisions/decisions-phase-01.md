@@ -1,6 +1,9 @@
-# Decisions / Assumptions — Phase 1 (`docs/tasks/tasks-phase-01.md`)
-
-Historical, append-only. One entry per commit where a non-obvious call was made — a gap in the task spec, a gate resolution, a formatter/tool choice, a bug found and fixed. Not read every session — see the note in root `CLAUDE.md`. Load this only when auditing past work or tracing why something is the way it is. Covers Phase 0 only — see the sibling `docs/decisions/decisions-phase-XX.md` files for other phases.
+# Decisions / Assumptions — Phase 1 (`docs/tasks/tasks-phase-01.md`)
+
+
+
+Historical, append-only. One entry per commit where a non-obvious call was made — a gap in the task spec, a gate resolution, a formatter/tool choice, a bug found and fixed. Not read every session — see the note in root `CLAUDE.md`. Load this only when auditing past work or tracing why something is the way it is. Covers Phase 0 only — see the sibling `docs/decisions/decisions-phase-XX.md` files for other phases.
+
 
 ## 1.1a — Data JPA, PostgreSQL driver, Flyway, Testcontainers in `/backend`
 
@@ -107,3 +110,10 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Caveat for the human:** if branch protection is ever set to *require* these checks, a path-filtered workflow that did not run leaves its required check "pending" forever and blocks the merge. Either don't require them, or switch to an always-run aggregator job at that point.
 - **Not filtered:** `infra/` (compose file) changes trigger nothing — backend tests use Testcontainers, not the compose database. Shared files (root `CLAUDE.md`, README, `docs/`) trigger nothing, as intended.
 - **Local rule unchanged:** the tests of all three projects must still pass before a task row counts as Done; the filters only change what CI runs automatically.
+
+## 1.3a — Migration V10: `ai_feedback`
+
+- **Columns as the row lists them:** `hint_level INTEGER NOT NULL` (1–3 validated in the service, no `CHECK`, consistent with 1.2d/1.2e), `content TEXT NOT NULL`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`, `reported BOOLEAN NOT NULL DEFAULT FALSE`, `report_reason TEXT` and `reported_at TIMESTAMPTZ` nullable (set only when the student flags the hint, 7.4b). Project-default identity `id`.
+- **`UNIQUE (submission_id, hint_level)`** as the row specifies; its index also serves lookups by `submission_id`, so no separate FK index. No hint counter column: hints used = row count.
+- **Tests (`AiFeedbackMigrationTests`):** V10 applied; defaults (`created_at` set, `reported` false, reason/time null); report fields settable; all three levels coexist for one submission; a repeated level rejected; unknown submission rejected; each required column enforced, one test per column.
+- **Environment:** the first `verify` run failed all 105 tests because Docker Desktop's daemon was not running ("Could not find a valid Docker environment"), not because of the migration. Started Docker Desktop, re-ran: all green.

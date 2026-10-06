@@ -1,4 +1,4 @@
 - Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
-- Next commit: 1.3a — Migration V10: `ai_feedback` table (id, submission_id FK, hint_level, content, created_at, reported, report_reason, reported_at)
+- Next commit: 1.4a — Seed fixture (dev profile only): 1 admin, 1 teacher, 2 students
 - In progress: —
-- Blocked: PR #37 (`chore/ci-path-filters`, CI path filters requested by the human) awaiting review — checked just after opening, no response yet. Next task row is unchanged.
+- Blocked: PR #38 (commit 1.3a) awaiting review — checked just after opening, no response yet.

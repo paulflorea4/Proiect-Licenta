@@ -2,7 +2,7 @@
 
 | Commit | Task | Status | Notes |
 | --- | --- | --- | --- |
-| 2.1a | `application.yml` with `dev`/`prod` profiles, DB connection from env vars | Not started | Reads the vars defined in `backend/.env.example` (0.3a). `dev` may fall back to the local compose credentials; `prod` must not, so a missing var fails fast. Delete the `application.properties` left by 1.1a so there is one config source. |
+| 2.1a | `application.yml` with `dev`/`prod` profiles, DB connection from env vars | Done | Reads the vars defined in `backend/.env.example` (0.3a). `dev` may fall back to the local compose credentials; `prod` must not, so a missing var fails fast. Delete the `application.properties` left by 1.1a so there is one config source. |
 | 2.1b | Package structure for controllers/services/repositories/entities | Not started | Establish this before 2.3 adds the first real entity, so it isn't retrofitted. Leave room for a `sandbox` and an `ai` package (Phases 4 and 7). |
 | 2.2a | Confirm Flyway runs on startup under the `dev` and `prod` profiles against the Phase 1 schema | Not started | If this fails, check the DB connection vars before assuming the migrations are wrong. The dev-only seed location from 1.4a is enabled here for the `dev` profile only. |
 | 2.2b | `GET /health`: 200 + DB connectivity check | Not started | First endpoint that proves the service and DB are both actually up. |

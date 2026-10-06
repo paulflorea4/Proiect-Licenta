@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.3b — `POST /auth/signup`: hash password with BCrypt, persist user as `STUDENT`
+- Next commit: 2.3c — Validation: reject duplicate email, reject weak password (min length) — also handle the two 500s noted in decisions-phase-02.md (duplicate email, password over 72 bytes)
 - In progress: —
-- Blocked: PR #46 (commit 2.3a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #47 (commit 2.3b) awaiting review — checked just after opening, no response yet.

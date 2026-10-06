@@ -6,6 +6,10 @@ spring:
       # Schema changes go through Flyway migrations only. Hibernate just verifies the entities
       # match what the migrations created and never alters the schema.
       ddl-auto: validate
+  flyway:
+    # The production migration path, stated explicitly: dev-only seed data (db/dev-seed) must
+    # never be added here, only by the `dev` profile below.
+    locations: classpath:db/migration
 
 # Datasource: the SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD environment variables bind
 # straight to spring.datasource.* (relaxed binding, see backend/.env.example) and always win over
@@ -21,6 +25,13 @@ spring:
     # The password has no fallback on purpose: compose requires you to choose one.
     url: jdbc:postgresql://localhost:5432/grading
     username: grading
+  flyway:
+    # Schema migrations plus the dev-only seed data. Seed versions start at 1000, so a database
+    # that already ran them would reject a schema migration added later (say V11) as "resolved
+    # migration not applied". Out-of-order lets that migration still apply. It is limited to dev
+    # on purpose: production has no seed rows, so there migrations stay strictly in order.
+    locations: classpath:db/migration,classpath:db/dev-seed
+    out-of-order: true
 ---
 spring:
   config:

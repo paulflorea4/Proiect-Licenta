@@ -1,4 +1,4 @@
-- Phase: Phase 1 — `docs/tasks/tasks-phase-01.md`
-- Next commit: 1.4c — Seed fixture: a handful of submissions with `test_results`, `grades`, and `criterion_scores`
+- Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
+- Next commit: 2.1a — `application.yml` with `dev`/`prod` profiles, DB connection from env vars
 - In progress: —
-- Blocked: PR #40 (commit 1.4b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #41 (commit 1.4c, last of Phase 1) awaiting review — checked just after opening, no response yet.

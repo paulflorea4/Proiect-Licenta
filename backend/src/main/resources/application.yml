@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: backend
+  jpa:
+    hibernate:
+      # Schema changes go through Flyway migrations only. Hibernate just verifies the entities
+      # match what the migrations created and never alters the schema.
+      ddl-auto: validate
+
+# Datasource: the SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD environment variables bind
+# straight to spring.datasource.* (relaxed binding, see backend/.env.example) and always win over
+# anything below. No profile is active by default: choose one with SPRING_PROFILES_ACTIVE.
+# (Tests run with no profile; they get their database from Testcontainers.)
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    # Fallbacks matching the compose database in /infra, so `dev` only needs the password.
+    # The password has no fallback on purpose: compose requires you to choose one.
+    url: jdbc:postgresql://localhost:5432/grading
+    username: grading
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+# Deliberately no datasource keys: a missing SPRING_DATASOURCE_* variable must stop the
+# application at startup ("Failed to configure a DataSource"), never fall back to a local database.

@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.gradingplatform.backend.controller.HealthController;
+import com.gradingplatform.backend.security.JwtService;
 import com.gradingplatform.backend.security.SecurityConfig;
 import com.gradingplatform.backend.service.HealthService;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,10 @@ class HealthEndpointDownTests {
 
     @MockitoBean
     HealthService healthService;
+
+    /** The security chain's JWT filter needs one; these requests carry no token, so it is never used. */
+    @MockitoBean
+    JwtService jwtService;
 
     @Test
     void returns503DownWhenTheDatabaseCheckFails() throws Exception {

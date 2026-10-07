@@ -116,6 +116,98 @@ class JwtServiceTests {
     }
 
     @Test
+    void parseReturnsTheUserAnIssuedTokenDescribes() {
+        String token = service.issue(user(42L, "ada@example.com", Role.TEACHER)).value();
+
+        assertThat(service.parse(token)).contains(new AuthenticatedUser(42L, "ada@example.com", Role.TEACHER));
+    }
+
+    @Test
+    void parseRefusesATokenOnceItHasExpired() {
+        String token = service.issue(user(1L, "a@example.com", Role.STUDENT)).value();
+        Clock later = Clock.fixed(NOW.plus(Duration.ofHours(24)).plusSeconds(1), ZoneOffset.UTC);
+        JwtService laterService = new JwtService(new JwtProperties(SECRET, Duration.ofHours(24)), later);
+
+        assertThat(laterService.parse(token)).isEmpty();
+    }
+
+    @Test
+    void parseAcceptsATokenUntilItsLastSecond() {
+        String token = service.issue(user(1L, "a@example.com", Role.STUDENT)).value();
+        Clock justBefore = Clock.fixed(NOW.plus(Duration.ofHours(24)).minusSeconds(1), ZoneOffset.UTC);
+        JwtService laterService = new JwtService(new JwtProperties(SECRET, Duration.ofHours(24)), justBefore);
+
+        assertThat(laterService.parse(token)).isPresent();
+    }
+
+    @Test
+    void parseRefusesATokenSignedWithAnotherSecret() {
+        JwtService other = new JwtService(
+                new JwtProperties("a-different-secret-0123456789abcdef0123456789abcdef", Duration.ofHours(24)), CLOCK);
+
+        assertThat(service.parse(
+                        other.issue(user(1L, "a@example.com", Role.ADMIN)).value()))
+                .isEmpty();
+    }
+
+    @Test
+    void parseRefusesATamperedPayload() {
+        String[] parts =
+                service.issue(user(1L, "a@example.com", Role.STUDENT)).value().split("\\.");
+        String forgedPayload = java.util.Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString("{\"sub\":\"1\",\"email\":\"a@example.com\",\"role\":\"ADMIN\"}"
+                        .getBytes(StandardCharsets.UTF_8));
+
+        assertThat(service.parse(parts[0] + "." + forgedPayload + "." + parts[2]))
+                .isEmpty();
+    }
+
+    @Test
+    void parseRefusesAnUnsignedToken() {
+        String unsigned = Jwts.builder()
+                .subject("1")
+                .claim("email", "a@example.com")
+                .claim("role", "ADMIN")
+                .expiration(java.util.Date.from(NOW.plus(Duration.ofHours(1))))
+                .compact();
+
+        assertThat(service.parse(unsigned)).isEmpty();
+    }
+
+    @Test
+    void parseRefusesATokenSignedWithADifferentAlgorithm() {
+        String hs512 = Jwts.builder()
+                .subject("1")
+                .claim("email", "a@example.com")
+                .claim("role", "STUDENT")
+                .expiration(java.util.Date.from(NOW.plus(Duration.ofHours(1))))
+                .signWith(Keys.hmacShaKeyFor((SECRET + SECRET).getBytes(StandardCharsets.UTF_8)), Jwts.SIG.HS512)
+                .compact();
+
+        assertThat(service.parse(hs512)).isEmpty();
+    }
+
+    @Test
+    void parseRefusesMissingBlankAndMalformedInput() {
+        assertThat(service.parse(null)).isEmpty();
+        assertThat(service.parse("")).isEmpty();
+        assertThat(service.parse("   ")).isEmpty();
+        assertThat(service.parse("not-a-jwt")).isEmpty();
+        assertThat(service.parse("a.b.c")).isEmpty();
+    }
+
+    @Test
+    void parseRefusesASignedTokenWithAMissingOrInvalidClaim() {
+        assertThat(service.parse(signed(null, "a@example.com", "STUDENT"))).isEmpty();
+        assertThat(service.parse(signed("1", null, "STUDENT"))).isEmpty();
+        assertThat(service.parse(signed("1", "a@example.com", null))).isEmpty();
+        assertThat(service.parse(signed("1", "a@example.com", "SUPERUSER"))).isEmpty();
+        assertThat(service.parse(signed("one", "a@example.com", "STUDENT"))).isEmpty();
+        assertThat(service.parse(signed("1", "a@example.com", "STUDENT"))).isPresent();
+    }
+
+    @Test
     void theTokenNeverContainsThePasswordHash() {
         User user = new User("a@example.com", "$2a$10$SECRETHASH", "A", Role.STUDENT);
         setId(user, 1L);
@@ -140,6 +232,17 @@ class JwtServiceTests {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    /** A token signed with our secret and a valid expiry, with the given (possibly missing) claims. */
+    private static String signed(String subject, String email, String role) {
+        return Jwts.builder()
+                .subject(subject)
+                .claim("email", email)
+                .claim("role", role)
+                .expiration(java.util.Date.from(NOW.plus(Duration.ofHours(1))))
+                .signWith(key(SECRET))
+                .compact();
     }
 
     private static User user(Long id, String email, Role role) {

@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.4b — Spring Security config: JWT filter, stateless sessions, public-vs-protected matcher (replaces the stand-in `SecurityConfig`: keep `/health`, `/auth/signup`, `/auth/signin` and `/error` public; token is Bearer-header only, so CSRF can be off)
-- In progress: —
-- Blocked: PR #49 (commit 2.4a) awaiting review — checked just after opening, no response yet.
+- Next commit: 2.4c — `GET /auth/me`: current user from the JWT
+- In progress: 2.4b — code, docs and all three projects' tests are done and committed; PR not opened yet.
+- Blocked: —

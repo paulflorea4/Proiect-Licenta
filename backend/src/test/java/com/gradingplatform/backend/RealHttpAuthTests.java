@@ -103,8 +103,8 @@ class RealHttpAuthTests {
     }
 
     @Test
-    void aProtectedPathWithoutATokenIsRefused() throws Exception {
-        assertThat(get("/courses").statusCode()).isEqualTo(403);
+    void aProtectedPathWithoutATokenIs401() throws Exception {
+        assertThat(get("/courses").statusCode()).isEqualTo(401);
     }
 
     @Test

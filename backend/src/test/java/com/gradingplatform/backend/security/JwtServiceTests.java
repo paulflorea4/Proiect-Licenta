@@ -73,6 +73,7 @@ class JwtServiceTests {
 
         assertThat(Jwts.parser()
                         .verifyWith(key(SECRET))
+                        .clock(() -> java.util.Date.from(NOW))
                         .build()
                         .parseSignedClaims(token)
                         .getHeader()

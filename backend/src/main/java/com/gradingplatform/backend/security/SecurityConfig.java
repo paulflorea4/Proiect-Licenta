@@ -3,15 +3,14 @@ package com.gradingplatform.backend.security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The JWT filter chain (2.4b). Stateless: no session, no cookie, no login form; each request
@@ -36,7 +35,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService, JsonMapper jsonMapper)
+            throws Exception {
+        var writer = new JsonErrorWriter(jsonMapper);
         http.csrf(AbstractHttpConfigurer::disable)
                 // Uses the `corsConfigurationSource` bean (config/CorsConfig). It answers preflight
                 // requests itself, ahead of the authentication filter.
@@ -46,10 +47,11 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
                 .requestCache(cache -> cache.disable())
-                // No token, or one that does not verify: a plain 401 with no body, no redirect to a
-                // login page and no `WWW-Authenticate` challenge. A wrong role stays 403.
-                .exceptionHandling(
-                        errors -> errors.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                // No token, or one that does not verify: 401, no redirect to a login page and no
+                // `WWW-Authenticate` challenge. A wrong role is 403. Both carry the standard error
+                // body (2.6a), written here because these answers never reach the MVC handler.
+                .exceptionHandling(errors -> errors.authenticationEntryPoint(new JsonAuthenticationEntryPoint(writer))
+                        .accessDeniedHandler(new JsonAccessDeniedHandler(writer)))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(requests -> requests
                         // Spring MVC reports an error status (400, 401, 409...) by forwarding to

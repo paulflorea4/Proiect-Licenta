@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.7c — Integration test: duplicate signup rejected, wrong password rejected
+- Next commit: 2.7d — Integration test: role matrix (student/teacher 403 on admin endpoints, unauthenticated 401, signup cannot create a teacher)
 - In progress: —
-- Blocked: PR #58 (commit 2.7b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #59 (commit 2.7c) awaiting review — checked just after opening, no response yet.

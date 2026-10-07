@@ -1,4 +1,4 @@
-- Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.7d — Integration test: role matrix (student/teacher 403 on admin endpoints, unauthenticated 401, signup cannot create a teacher)
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (Phase 2 finished with 2.7d)
+- Next commit: 3.1a — `POST /courses` (teacher): create a course, generate a unique enrollment code
 - In progress: —
-- Blocked: PR #59 (commit 2.7c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #60 (commit 2.7d) awaiting review — checked just after opening, no response yet.

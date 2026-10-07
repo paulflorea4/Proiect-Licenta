@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -19,11 +20,19 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <p>Public: `GET /health`, `POST /auth/signup`, `POST /auth/signin` and Spring's `/error` page.
  * Everything else needs a valid token; later tasks add role rules on top.
  *
+ * <p>Who may call what (2.5a): the chain only decides signed in or not. The role rule of an
+ * endpoint is a `@PreAuthorize` on its controller method, e.g. `@PreAuthorize("hasRole('ADMIN')")`
+ * or `@PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")`, so the rule sits next to the code it guards.
+ * Roles are listed explicitly: there is no role hierarchy, `ADMIN` does not imply `TEACHER`. A
+ * signed-in caller with the wrong role gets 403, an anonymous one 401. Do not add URL matchers by
+ * role here.
+ *
  * <p>CSRF protection is off. It defends against a browser attaching ambient credentials (a session
  * or cookie) to a forged request; the token here is only ever sent by our own client code in a
  * header, never as a cookie (2.4a), so there is nothing for a forged request to ride on.
  */
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean

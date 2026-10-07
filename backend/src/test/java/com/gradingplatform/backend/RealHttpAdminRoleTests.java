@@ -4,11 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
-import com.gradingplatform.backend.repository.UserRepository;
-import com.gradingplatform.backend.security.JwtService;
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
@@ -17,42 +14,18 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /** 2.5b: `PATCH /admin/users/{id}/role` over a real HTTP connection. */
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class RealHttpAdminRoleTests {
-
-    @LocalServerPort
-    int port;
-
-    @Autowired
-    UserRepository users;
-
-    @Autowired
-    JwtService jwtService;
+class RealHttpAdminRoleTests extends RealHttpTestBase {
 
     @Autowired
     JdbcTemplate jdbc;
-
-    private final HttpClient http = HttpClient.newHttpClient();
-
-    @BeforeEach
-    @AfterEach
-    void emptyUsersTable() {
-        users.deleteAll();
-    }
 
     // --- who may call it -------------------------------------------------------------------
 
@@ -280,14 +253,6 @@ class RealHttpAdminRoleTests {
 
     // --- helpers ---------------------------------------------------------------------------
 
-    private User saved(String email, Role role) {
-        return users.save(new User(email, "hash", "Name", role));
-    }
-
-    private String tokenFor(User user) {
-        return jwtService.issue(user).value();
-    }
-
     private static String tokenFrom(String signinBody) {
         return signinBody.replaceAll(".*\"token\":\"([^\"]+)\".*", "$1");
     }
@@ -298,25 +263,6 @@ class RealHttpAdminRoleTests {
 
     private HttpResponse<String> setRole(long id, String role, String token) throws IOException, InterruptedException {
         return patch("/admin/users/" + id + "/role", "{\"role\":\"" + role + "\"}", token);
-    }
-
-    private HttpResponse<String> patch(String path, String json, String token)
-            throws IOException, InterruptedException {
-        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
-                .header("Content-Type", "application/json")
-                .method("PATCH", HttpRequest.BodyPublishers.ofString(json));
-        if (token != null) {
-            request.header("Authorization", "Bearer " + token);
-        }
-        return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
-    }
-
-    private HttpResponse<String> get(String path, String token) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
-                .header("Authorization", "Bearer " + token)
-                .GET()
-                .build();
-        return http.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private HttpResponse<String> post(String path, String json) throws IOException, InterruptedException {

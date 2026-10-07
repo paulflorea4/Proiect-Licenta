@@ -4,53 +4,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
-import com.gradingplatform.backend.repository.UserRepository;
-import com.gradingplatform.backend.security.JwtService;
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 
 /**
  * 2.4d: CORS over a real HTTP connection, through the whole security chain. A preflight carries no
  * token, so these also prove CORS is answered ahead of authentication.
  */
-@Import(TestcontainersConfiguration.class)
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "cors.allowed-origins=http://localhost:5173,https://app.example.com")
-class RealHttpCorsTests {
+class RealHttpCorsTests extends RealHttpTestBase {
 
     private static final String ALLOWED = "http://localhost:5173";
     private static final String ALLOWED_TOO = "https://app.example.com";
     private static final String ALLOW_ORIGIN = "Access-Control-Allow-Origin";
-
-    @LocalServerPort
-    int port;
-
-    @Autowired
-    UserRepository users;
-
-    @Autowired
-    JwtService jwtService;
-
-    private final HttpClient http = HttpClient.newHttpClient();
-
-    @BeforeEach
-    @AfterEach
-    void emptyUsersTable() {
-        users.deleteAll();
-    }
 
     // --- preflight -------------------------------------------------------------------------
 

@@ -1,20 +1,23 @@
 package com.gradingplatform.backend;
 
+import org.springframework.boot.jdbc.autoconfigure.JdbcConnectionDetails;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * The only database tests ever use: a throwaway Postgres container, never the compose database
- * or a CI service container. Match the major version of infra/docker-compose.yml.
+ * The only database tests ever use (2.7a): `@Import(TestcontainersConfiguration.class)` on a
+ * `@SpringBootTest` gives that test's context its own empty database inside the one shared Postgres
+ * container, see {@link SharedPostgres}. Spring Boot's datasource and Flyway pick up the connection
+ * details bean ahead of any `spring.datasource.*` property or `SPRING_DATASOURCE_*` environment
+ * variable, so a developer's own settings never reach a test.
+ *
+ * <p>Real-HTTP tests extend {@link RealHttpTestBase}, which already imports this.
  */
 @TestConfiguration(proxyBeanMethods = false)
 class TestcontainersConfiguration {
 
     @Bean
-    @ServiceConnection
-    PostgreSQLContainer postgresContainer() {
-        return new PostgreSQLContainer("postgres:16");
+    JdbcConnectionDetails testDatabase() {
+        return SharedPostgres.newDatabase();
     }
 }

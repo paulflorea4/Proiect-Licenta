@@ -4,53 +4,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
-import com.gradingplatform.backend.repository.UserRepository;
-import com.gradingplatform.backend.security.JwtService;
 import com.jayway.jsonpath.JsonPath;
-import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 
 /** 2.5c: `GET /admin/users` over a real HTTP connection. */
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class RealHttpAdminUserListTests {
-
-    @LocalServerPort
-    int port;
-
-    @Autowired
-    UserRepository users;
-
-    @Autowired
-    JwtService jwtService;
-
-    private final HttpClient http = HttpClient.newHttpClient();
+class RealHttpAdminUserListTests extends RealHttpTestBase {
 
     private String adminToken;
 
     @BeforeEach
     void startWithOneAdmin() {
-        users.deleteAll();
         adminToken = tokenFor(saved("admin@example.com", Role.ADMIN));
-    }
-
-    @AfterEach
-    void emptyUsersTable() {
-        users.deleteAll();
     }
 
     @Test
@@ -184,22 +156,5 @@ class RealHttpAdminUserListTests {
         for (int i = 0; i < count; i++) {
             saved("student" + i + "@example.com", Role.STUDENT);
         }
-    }
-
-    private User saved(String email, Role role) {
-        return users.save(new User(email, "hash", "Name", role));
-    }
-
-    private String tokenFor(User user) {
-        return jwtService.issue(user).value();
-    }
-
-    private HttpResponse<String> get(String path, String token) throws IOException, InterruptedException {
-        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
-                .GET();
-        if (token != null) {
-            request.header("Authorization", "Bearer " + token);
-        }
-        return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 }

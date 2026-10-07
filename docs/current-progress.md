@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
 - Next commit: 2.4d — CORS configuration: allow the frontend origin from `CORS_ALLOWED_ORIGINS` (no cookies were chosen at 2.4a, so no credentials)
-- In progress: 2.4c — code, docs and all three projects' tests are done and committed; PR not opened yet.
-- Blocked: —
+- In progress: —
+- Blocked: PR #51 (commit 2.4c) awaiting review — checked just after opening, no response yet.

@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
 - Next commit: 2.4c — `GET /auth/me`: current user from the JWT
-- In progress: 2.4b — code, docs and all three projects' tests are done and committed; PR not opened yet.
-- Blocked: —
+- In progress: —
+- Blocked: PR #50 (commit 2.4b) awaiting review — checked just after opening, no response yet.

@@ -1,17 +1,16 @@
 package com.gradingplatform.backend.service;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import com.gradingplatform.backend.dto.ApiException;
+import com.gradingplatform.backend.dto.ErrorCode;
 
 /**
  * The change would leave the system with no admin, and nobody could promote a teacher any more:
- * 409 Conflict. The status is declared here for now; 2.6a's global exception handler will give
- * every error one JSON shape.
+ * 409 Conflict. Status, code and message come from
+ * {@link ErrorCode#LAST_ADMIN}.
  */
-@ResponseStatus(HttpStatus.CONFLICT)
-public class LastAdminException extends RuntimeException {
+public class LastAdminException extends ApiException {
 
     public LastAdminException() {
-        super("The last remaining admin cannot be demoted");
+        super(ErrorCode.LAST_ADMIN);
     }
 }

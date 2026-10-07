@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.6a — `@ControllerAdvice` global exception handler: validation, 404, 401/403, 500 → one consistent JSON error shape
+- Next commit: 2.7a — Shared Testcontainers Postgres base class/config for all integration tests
 - In progress: —
-- Blocked: PR #55 (commit 2.5c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #56 (commit 2.6a) awaiting review — CI passes; GitGuardian red on a false positive in the PR's first commit (needs dismissing on its dashboard, see `docs/suggestions.md`).

@@ -1,17 +1,16 @@
 package com.gradingplatform.backend.service;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import com.gradingplatform.backend.dto.ApiException;
+import com.gradingplatform.backend.dto.ErrorCode;
 
 /**
  * Signin failed: 401 Unauthorized. One exception and one message for "no such email" and "wrong
- * password", so the response never says which. The status is declared here for now; 2.6a's global
- * exception handler will give every error one JSON shape.
+ * password", so the response never says which. Status, code and message come from
+ * {@link ErrorCode#INVALID_CREDENTIALS}.
  */
-@ResponseStatus(HttpStatus.UNAUTHORIZED)
-public class InvalidCredentialsException extends RuntimeException {
+public class InvalidCredentialsException extends ApiException {
 
     public InvalidCredentialsException() {
-        super("Invalid email or password");
+        super(ErrorCode.INVALID_CREDENTIALS);
     }
 }

@@ -1,16 +1,15 @@
 package com.gradingplatform.backend.service;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import com.gradingplatform.backend.dto.ApiException;
+import com.gradingplatform.backend.dto.ErrorCode;
 
 /**
- * An account with this email already exists: 409 Conflict. The status is declared here for now;
- * 2.6a's global exception handler will give every error one JSON shape.
+ * An account with this email already exists: 409 Conflict. Status, code and message come from
+ * {@link ErrorCode#EMAIL_ALREADY_USED}.
  */
-@ResponseStatus(HttpStatus.CONFLICT)
-public class EmailAlreadyUsedException extends RuntimeException {
+public class EmailAlreadyUsedException extends ApiException {
 
     public EmailAlreadyUsedException() {
-        super("An account with this email already exists");
+        super(ErrorCode.EMAIL_ALREADY_USED);
     }
 }

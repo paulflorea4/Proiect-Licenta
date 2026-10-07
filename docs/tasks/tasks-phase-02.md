@@ -16,7 +16,7 @@
 | 2.5a | Enable method-level security and add a role-checking convention (`@PreAuthorize`) | Done | Pick one convention (method annotations vs. URL matchers) and use it everywhere — Phase 3 onward depends on this. Role check alone is not enough for course data; ownership checks come in 3.1c. |
 | 2.5b | `PATCH /admin/users/{id}/role`: admin promotes/demotes a user | Done | The only way a `TEACHER` or `ADMIN` is created in the running system. An admin must not be able to demote the last remaining admin. |
 | 2.5c | `GET /admin/users`: paginated user list (admin only) | Done | Needed so an admin can find whom to promote; email and role only. |
-| 2.6a | `@ControllerAdvice` global exception handler: validation, 404, 401/403, 500 → one consistent JSON error shape | Not started | Do this before Phase 8 starts writing frontend error handling against inconsistent shapes. |
+| 2.6a | `@ControllerAdvice` global exception handler: validation, 404, 401/403, 500 → one consistent JSON error shape | Done | Do this before Phase 8 starts writing frontend error handling against inconsistent shapes. |
 | 2.7a | Shared Testcontainers Postgres base class/config for all integration tests (consolidating the setup from 1.1a) | Not started | One shared config here saves every later phase from re-solving this. Refactor 1.1a's setup into it — don't add a second mechanism. |
 | 2.7b | Integration test: signup → signin → access a protected endpoint with the JWT | Not started | This is the test that actually proves 2.3–2.4 work together, not just individually. |
 | 2.7c | Integration test: duplicate signup rejected, wrong password rejected | Not started |  |

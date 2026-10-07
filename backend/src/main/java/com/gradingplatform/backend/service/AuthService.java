@@ -93,4 +93,14 @@ public class AuthService {
         }
         return new SigninResult(user, jwtService.issue(user));
     }
+
+    /**
+     * The current state of the user a token was issued to. Read from the database rather than the
+     * token's claims, so a changed name or role shows up at once.
+     *
+     * @throws AccountNoLongerExistsException if the user has been deleted since the token was issued
+     */
+    public User currentUser(long userId) {
+        return users.findById(userId).orElseThrow(AccountNoLongerExistsException::new);
+    }
 }

@@ -20,4 +20,4 @@
 | 2.7a | Shared Testcontainers Postgres base class/config for all integration tests (consolidating the setup from 1.1a) | Done | One shared config here saves every later phase from re-solving this. Refactor 1.1a's setup into it — don't add a second mechanism. |
 | 2.7b | Integration test: signup → signin → access a protected endpoint with the JWT | Done | This is the test that actually proves 2.3–2.4 work together, not just individually. |
 | 2.7c | Integration test: duplicate signup rejected, wrong password rejected | Done |  |
-| 2.7d | Integration test: role matrix — a student gets 403 on admin endpoints, a teacher gets 403 on admin endpoints, an unauthenticated call gets 401 | Not started | Also asserts signup cannot create a teacher. Every later phase adds its endpoints to this style of test. |
+| 2.7d | Integration test: role matrix — a student gets 403 on admin endpoints, a teacher gets 403 on admin endpoints, an unauthenticated call gets 401 | Done | Also asserts signup cannot create a teacher. Every later phase adds its endpoints to this style of test. |

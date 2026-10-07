@@ -17,7 +17,7 @@
 | 2.5b | `PATCH /admin/users/{id}/role`: admin promotes/demotes a user | Done | The only way a `TEACHER` or `ADMIN` is created in the running system. An admin must not be able to demote the last remaining admin. |
 | 2.5c | `GET /admin/users`: paginated user list (admin only) | Done | Needed so an admin can find whom to promote; email and role only. |
 | 2.6a | `@ControllerAdvice` global exception handler: validation, 404, 401/403, 500 → one consistent JSON error shape | Done | Do this before Phase 8 starts writing frontend error handling against inconsistent shapes. |
-| 2.7a | Shared Testcontainers Postgres base class/config for all integration tests (consolidating the setup from 1.1a) | Not started | One shared config here saves every later phase from re-solving this. Refactor 1.1a's setup into it — don't add a second mechanism. |
+| 2.7a | Shared Testcontainers Postgres base class/config for all integration tests (consolidating the setup from 1.1a) | Done | One shared config here saves every later phase from re-solving this. Refactor 1.1a's setup into it — don't add a second mechanism. |
 | 2.7b | Integration test: signup → signin → access a protected endpoint with the JWT | Not started | This is the test that actually proves 2.3–2.4 work together, not just individually. |
 | 2.7c | Integration test: duplicate signup rejected, wrong password rejected | Not started |  |
 | 2.7d | Integration test: role matrix — a student gets 403 on admin endpoints, a teacher gets 403 on admin endpoints, an unauthenticated call gets 401 | Not started | Also asserts signup cannot create a teacher. Every later phase adds its endpoints to this style of test. |

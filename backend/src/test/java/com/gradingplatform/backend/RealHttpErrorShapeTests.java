@@ -3,26 +3,16 @@ package com.gradingplatform.backend;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gradingplatform.backend.entity.Role;
-import com.gradingplatform.backend.entity.User;
-import com.gradingplatform.backend.repository.UserRepository;
-import com.gradingplatform.backend.security.JwtService;
 import com.jayway.jsonpath.JsonPath;
-import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,9 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  * 2.6a: every kind of error over a real HTTP connection has the one shape
  * `{status, code, message[, fieldErrors]}`, and none of it leaks internals.
  */
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class RealHttpErrorShapeTests {
+class RealHttpErrorShapeTests extends RealHttpTestBase {
 
     /** Nested in a test class, so component scanning skips it; see RealHttpRoleSecurityTests. */
     @Controller
@@ -55,28 +43,11 @@ class RealHttpErrorShapeTests {
         }
     }
 
-    @LocalServerPort
-    int port;
-
-    @Autowired
-    UserRepository users;
-
-    @Autowired
-    JwtService jwtService;
-
-    private final HttpClient http = HttpClient.newHttpClient();
-
     private String adminToken;
 
     @BeforeEach
     void startWithOneAdmin() {
-        users.deleteAll();
         adminToken = tokenFor(saved("admin@example.com", Role.ADMIN));
-    }
-
-    @AfterEach
-    void emptyUsersTable() {
-        users.deleteAll();
     }
 
     // --- security --------------------------------------------------------------------------
@@ -250,28 +221,5 @@ class RealHttpErrorShapeTests {
         assertThat(JsonPath.<Integer>read(response.body(), "$.status")).isEqualTo(status);
         assertThat(JsonPath.<String>read(response.body(), "$.code")).isEqualTo(code);
         assertThat(JsonPath.<String>read(response.body(), "$.message")).isNotBlank();
-    }
-
-    private User saved(String email, Role role) {
-        return users.save(new User(email, "hash", "Name", role));
-    }
-
-    private String tokenFor(User user) {
-        return jwtService.issue(user).value();
-    }
-
-    private HttpResponse<String> send(String method, String path, String token, String json)
-            throws IOException, InterruptedException {
-        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
-                .method(
-                        method,
-                        json == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(json));
-        if (json != null) {
-            request.header("Content-Type", "application/json");
-        }
-        if (token != null) {
-            request.header("Authorization", "Bearer " + token);
-        }
-        return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 }

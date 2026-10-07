@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.5a — Enable method-level security and add a role-checking convention (`@PreAuthorize`)
+- Next commit: 2.5b — `PATCH /admin/users/{id}/role`: admin promotes/demotes a user
 - In progress: —
-- Blocked: PR #52 (commit 2.4d) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #53 (commit 2.5a) awaiting review — checked just after opening, no response yet.

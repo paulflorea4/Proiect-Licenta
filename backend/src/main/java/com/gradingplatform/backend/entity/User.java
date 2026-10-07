@@ -73,4 +73,8 @@ public class User {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
 }

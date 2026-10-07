@@ -1,9 +1,11 @@
 package com.gradingplatform.backend.service;
 
+import com.gradingplatform.backend.dto.SigninRequest;
 import com.gradingplatform.backend.dto.SignupRequest;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
 import com.gradingplatform.backend.repository.UserRepository;
+import com.gradingplatform.backend.security.JwtService;
 import java.util.Locale;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,12 +19,21 @@ public class AuthService {
     /** The unique constraint on `users.email` (Postgres' default name for V1's `UNIQUE`). */
     static final String EMAIL_UNIQUE_CONSTRAINT = "users_email_key";
 
+    /** A successful signin: who signed in and the token issued for them. */
+    public record SigninResult(User user, JwtService.IssuedToken token) {}
+
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public AuthService(UserRepository users, PasswordEncoder passwordEncoder) {
+    /** A real hash to compare against when the email is unknown, so that case costs the same time. */
+    private final String unknownUserHash;
+
+    public AuthService(UserRepository users, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.unknownUserHash = passwordEncoder.encode("not-the-password-of-any-account");
     }
 
     /**
@@ -63,5 +74,23 @@ public class AuthService {
             }
         }
         return false;
+    }
+
+    /**
+     * Checks the credentials and issues a JWT. Deliberately not `@Transactional`: the BCrypt check
+     * takes about 100 ms and must not hold a database connection while it runs.
+     *
+     * @throws InvalidCredentialsException for an unknown email and for a wrong password alike
+     */
+    public SigninResult signin(SigninRequest request) {
+        User user = users.findByEmail(normalizeEmail(request.email())).orElse(null);
+        // Always run one BCrypt comparison, even for an unknown email: otherwise the response time
+        // would tell an attacker which emails have an account.
+        String hash = user != null ? user.getPasswordHash() : unknownUserHash;
+        boolean passwordMatches = passwordEncoder.matches(request.password(), hash);
+        if (user == null || !passwordMatches) {
+            throw new InvalidCredentialsException();
+        }
+        return new SigninResult(user, jwtService.issue(user));
     }
 }

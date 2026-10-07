@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.4a — `POST /auth/signin`: verify password, issue JWT (reuse `AuthService.normalizeEmail`; JWT expiry and token-in-body-vs-cookie are decisions to record)
+- Next commit: 2.4b — Spring Security config: JWT filter, stateless sessions, public-vs-protected matcher (replaces the stand-in `SecurityConfig`: keep `/health`, `/auth/signup`, `/auth/signin` and `/error` public; token is Bearer-header only, so CSRF can be off)
 - In progress: —
-- Blocked: PR #48 (commit 2.3c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #49 (commit 2.4a) awaiting review — checked just after opening, no response yet.

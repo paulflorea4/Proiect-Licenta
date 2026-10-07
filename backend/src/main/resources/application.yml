@@ -11,6 +11,11 @@ spring:
     # never be added here, only by the `dev` profile below.
     locations: classpath:db/migration
 
+# JWT: `jwt.secret` is bound from the JWT_SECRET environment variable and deliberately has no
+# default in any profile (a missing or short secret stops the application at startup).
+jwt:
+  expiration: 24h
+
 # Datasource: the SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD environment variables bind
 # straight to spring.datasource.* (relaxed binding, see backend/.env.example) and always win over
 # anything below. No profile is active by default: choose one with SPRING_PROFILES_ACTIVE.

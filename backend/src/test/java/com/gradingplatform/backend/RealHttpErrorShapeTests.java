@@ -142,14 +142,14 @@ class RealHttpErrorShapeTests {
     @Test
     void invalidFieldsAreListedWithoutTheRejectedValues() throws Exception {
         HttpResponse<String> response = send(
-                "POST", "/auth/signup", null, "{\"email\":\"not-an-email\",\"password\":\"x1y2z3\",\"fullName\":\"\"}");
+                "POST", "/auth/signup", null, "{\"email\":\"not-an-email\",\"password\":\"short\",\"fullName\":\"\"}");
 
         assertError(response, 400, "VALIDATION_FAILED");
         List<String> fields = JsonPath.read(response.body(), "$.fieldErrors[*].field");
         assertThat(fields).contains("email", "password", "fullName");
         assertThat(JsonPath.<List<String>>read(response.body(), "$.fieldErrors[*].message"))
                 .allSatisfy(message -> assertThat(message).isNotBlank());
-        assertThat(response.body()).doesNotContain("x1y2z3").doesNotContain("not-an-email");
+        assertThat(response.body()).doesNotContain("short").doesNotContain("not-an-email");
     }
 
     @Test

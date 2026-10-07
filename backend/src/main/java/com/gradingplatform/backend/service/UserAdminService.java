@@ -4,6 +4,8 @@ import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
 import com.gradingplatform.backend.repository.UserRepository;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,5 +40,11 @@ public class UserAdminService {
         }
         user.setRole(newRole);
         return user;
+    }
+
+    /** One page of all users, in the order the caller's {@code pageable} asks for (the controller fixes it by id). */
+    @Transactional(readOnly = true)
+    public Page<User> listUsers(Pageable pageable) {
+        return users.findAll(pageable);
     }
 }

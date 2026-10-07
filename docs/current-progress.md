@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.4d — CORS configuration: allow the frontend origin from `CORS_ALLOWED_ORIGINS` (no cookies were chosen at 2.4a, so no credentials)
+- Next commit: 2.5a — Enable method-level security and add a role-checking convention (`@PreAuthorize`)
 - In progress: —
-- Blocked: PR #51 (commit 2.4c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #52 (commit 2.4d) awaiting review — checked just after opening, no response yet.

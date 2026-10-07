@@ -44,6 +44,23 @@ class AuthServiceTests {
         service = new AuthService(users, passwordEncoder, jwtService);
     }
 
+    // --- current user (2.4c) -----------------------------------------------------------------
+
+    @Test
+    void currentUserIsLoadedFromTheDatabaseById() {
+        User stored = new User("ada@example.com", "hash", "Ada", Role.TEACHER);
+        when(users.findById(7L)).thenReturn(Optional.of(stored));
+
+        assertThat(service.currentUser(7L)).isSameAs(stored);
+    }
+
+    @Test
+    void currentUserOfADeletedAccountIsRefused() {
+        when(users.findById(7L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.currentUser(7L)).isInstanceOf(AccountNoLongerExistsException.class);
+    }
+
     // --- signup: duplicate email -------------------------------------------------------------
 
     @Test

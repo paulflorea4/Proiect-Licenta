@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.4c — `GET /auth/me`: current user from the JWT
+- Next commit: 2.4d — CORS configuration: allow the frontend origin from `CORS_ALLOWED_ORIGINS` (no cookies were chosen at 2.4a, so no credentials)
 - In progress: —
-- Blocked: PR #50 (commit 2.4b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #51 (commit 2.4c) awaiting review — checked just after opening, no response yet.

@@ -4,9 +4,12 @@ import com.gradingplatform.backend.dto.SigninRequest;
 import com.gradingplatform.backend.dto.SigninResponse;
 import com.gradingplatform.backend.dto.SignupRequest;
 import com.gradingplatform.backend.dto.UserResponse;
+import com.gradingplatform.backend.security.AuthenticatedUser;
 import com.gradingplatform.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +30,12 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse signup(@Valid @RequestBody SignupRequest request) {
         return UserResponse.from(authService.signup(request));
+    }
+
+    /** The signed-in user, from the token's subject. Needs a valid token (the chain's default rule). */
+    @GetMapping("/me")
+    public UserResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return UserResponse.from(authService.currentUser(principal.id()));
     }
 
     @PostMapping("/signin")

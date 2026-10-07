@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.7b — Integration test: signup → signin → access a protected endpoint with the JWT
+- Next commit: 2.7c — Integration test: duplicate signup rejected, wrong password rejected
 - In progress: —
-- Blocked: PR #57 (commit 2.7a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #58 (commit 2.7b) awaiting review — checked just after opening, no response yet.

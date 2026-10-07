@@ -1,4 +1,4 @@
 - Phase: Phase 2 — `docs/tasks/tasks-phase-02.md`
-- Next commit: 2.5b — `PATCH /admin/users/{id}/role`: admin promotes/demotes a user
+- Next commit: 2.5c — `GET /admin/users`: paginated user list (admin only)
 - In progress: —
-- Blocked: PR #53 (commit 2.5a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #54 (commit 2.5b) awaiting review — checked just after opening, no response yet.

@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 3.1a: how `CourseService.create` copes with the database's constraints. Runs against the real
@@ -42,6 +44,9 @@ class CourseServiceTests {
 
     @Autowired
     UserRepository users;
+
+    @Autowired
+    PlatformTransactionManager transactionManager;
 
     private final EnrollCodeGenerator generator = mock(EnrollCodeGenerator.class);
 
@@ -143,6 +148,24 @@ class CourseServiceTests {
                 .isNotInstanceOf(IllegalStateException.class);
 
         verify(generator, times(1)).next();
+    }
+
+    /** An update query needs a transaction; in production the service method provides it. */
+    private void inTransaction(Runnable work) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> work.run());
+    }
+
+    @Test
+    void theEnrollmentConstraintNamesAreTheOnesPostgresReports() {
+        Course course = courses.save(new Course("Existing", null, teacher.getId(), "TAKEN234"));
+        long goneUser = teacher.getId() + 1_000_000;
+        long goneCourse = course.getId() + 1_000_000;
+
+        // A native insert, as EnrollmentRepository.insertIfAbsent does; each fails on one key.
+        assertThatThrownBy(() -> inTransaction(() -> enrollments.insertIfAbsent(course.getId(), goneUser)))
+                .matches(e -> Constraints.isViolationOf(e, EnrollmentService.STUDENT_FOREIGN_KEY));
+        assertThatThrownBy(() -> inTransaction(() -> enrollments.insertIfAbsent(goneCourse, teacher.getId())))
+                .matches(e -> Constraints.isViolationOf(e, EnrollmentService.COURSE_FOREIGN_KEY));
     }
 
     @Test

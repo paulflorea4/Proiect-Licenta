@@ -29,15 +29,16 @@ import org.springframework.context.annotation.Import;
 
 /**
  * 2.4b: the JWT filter and the public-vs-protected rules, over a real HTTP connection (see
- * {@link RealHttpAuthTests} for why `MockMvc` is not enough). No controller needs a login yet, so
- * a protected path that has no handler (`/courses`) stands in: an authenticated caller gets
- * Spring's 404 for it, an anonymous one is turned away with 401 before routing.
+ * {@link RealHttpAuthTests} for why `MockMvc` is not enough). A protected path that has no
+ * handler stands in for "a path that needs a login": an authenticated caller gets Spring's 404 for
+ * it, an anonymous one is turned away with 401 before routing. It was `/courses` until 3.1a gave
+ * that path a handler, so it is now a name no controller will ever map.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class RealHttpJwtFilterTests {
 
-    private static final String PROTECTED = "/courses";
+    private static final String PROTECTED = "/no-handler-is-ever-mapped-here";
 
     @LocalServerPort
     int port;

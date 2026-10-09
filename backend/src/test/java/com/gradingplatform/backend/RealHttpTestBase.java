@@ -2,6 +2,7 @@ package com.gradingplatform.backend;
 
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
+import com.gradingplatform.backend.repository.CourseRepository;
 import com.gradingplatform.backend.repository.UserRepository;
 import com.gradingplatform.backend.security.JwtService;
 import java.io.IOException;
@@ -21,8 +22,8 @@ import org.springframework.context.annotation.Import;
  * on a random port, with its own empty database from the shared Postgres
  * ({@link TestcontainersConfiguration}). It is what 2.7b and the tests of every later phase extend.
  *
- * <p>What it gives a test: {@link #port}, the repository and token service, an empty `users` table
- * before and after every test, {@link #saved} and {@link #tokenFor} to create a caller, and
+ * <p>What it gives a test: {@link #port}, the repositories and token service, empty `users` and
+ * `courses` tables before and after every test, {@link #saved} and {@link #tokenFor} to create a caller, and
  * {@link #send} (with {@link #get}, {@link #post}, {@link #patch}) to make a request as that caller.
  * A subclass that needs another configuration repeats {@code @SpringBootTest} with its own
  * properties; Spring builds (and caches) a separate context for it, still on the shared container.
@@ -41,14 +42,22 @@ abstract class RealHttpTestBase {
     protected UserRepository users;
 
     @Autowired
+    protected CourseRepository courses;
+
+    @Autowired
     protected JwtService jwtService;
 
     protected final HttpClient http = HttpClient.newHttpClient();
 
-    /** Tests in one context share a database, so each starts and ends without users. */
+    /**
+     * Tests in one context share a database, so each starts and ends without users or courses.
+     * Rows that reference another table go first (a course references its teacher); a phase that
+     * adds a table referencing these must delete from it here, ahead of the tables it references.
+     */
     @BeforeEach
     @AfterEach
-    void emptyUsersTable() {
+    void emptyTables() {
+        courses.deleteAll();
         users.deleteAll();
     }
 

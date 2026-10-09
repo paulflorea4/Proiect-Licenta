@@ -2,7 +2,7 @@
 
 | Commit | Task | Status | Notes |
 | --- | --- | --- | --- |
-| 3.1a | `POST /courses` (teacher): create a course, generate a unique enrollment code | Not started | Code generation must retry on collision against the unique constraint from 1.2b. Make codes short and unambiguous (no `0/O`, `1/l`). |
+| 3.1a | `POST /courses` (teacher): create a course, generate a unique enrollment code | Done | Code generation must retry on collision against the unique constraint from 1.2b. Make codes short and unambiguous (no `0/O`, `1/l`). |
 | 3.1b | `GET /courses`: role-aware list — teacher sees own, student sees enrolled, admin sees all | Not started | One endpoint, three behaviors; test each. |
 | 3.1c | `GET /courses/{id}` with an access check | Not started | Ownership/enrollment check lives in one reusable place (a service method or security expression) — Phases 4–15 all need "can this user see this course/assignment/submission?". |
 | 3.1d | `PUT /courses/{id}` and `DELETE /courses/{id}` (owning teacher or admin) | Not started | Deleting a course with assignments is blocked with a clear error — no silent cascade over student submissions. |

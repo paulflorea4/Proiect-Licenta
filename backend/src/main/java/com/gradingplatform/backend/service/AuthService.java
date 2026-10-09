@@ -7,7 +7,6 @@ import com.gradingplatform.backend.entity.User;
 import com.gradingplatform.backend.repository.UserRepository;
 import com.gradingplatform.backend.security.JwtService;
 import java.util.Locale;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -59,21 +58,11 @@ public class AuthService {
             // insert, it also holds when two signups for one email arrive at the same moment.
             return users.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
-            if (violatesEmailUniqueness(e)) {
+            if (Constraints.isViolationOf(e, EMAIL_UNIQUE_CONSTRAINT)) {
                 throw new EmailAlreadyUsedException();
             }
             throw e;
         }
-    }
-
-    private static boolean violatesEmailUniqueness(Throwable error) {
-        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
-            if (cause instanceof ConstraintViolationException violation
-                    && EMAIL_UNIQUE_CONSTRAINT.equals(violation.getConstraintName())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

@@ -16,6 +16,12 @@ spring:
 jwt:
   expiration: 24h
 
+# Languages an assignment may use (3.3a). A stand-in: 4.1b's languages config replaces this list.
+assignments:
+  languages:
+    - JAVA
+    - PYTHON
+
 # Datasource: the SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD environment variables bind
 # straight to spring.datasource.* (relaxed binding, see backend/.env.example) and always win over
 # anything below. No profile is active by default: choose one with SPRING_PROFILES_ACTIVE.

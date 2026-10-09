@@ -2,6 +2,7 @@ package com.gradingplatform.backend;
 
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
+import com.gradingplatform.backend.repository.AssignmentRepository;
 import com.gradingplatform.backend.repository.CourseRepository;
 import com.gradingplatform.backend.repository.EnrollmentRepository;
 import com.gradingplatform.backend.repository.UserRepository;
@@ -50,6 +51,9 @@ abstract class RealHttpTestBase {
     protected EnrollmentRepository enrollments;
 
     @Autowired
+    protected AssignmentRepository assignments;
+
+    @Autowired
     protected JdbcTemplate jdbc;
 
     @Autowired
@@ -65,7 +69,7 @@ abstract class RealHttpTestBase {
     @BeforeEach
     @AfterEach
     void emptyTables() {
-        jdbc.update("DELETE FROM assignments"); // no entity yet (3.3a); then through its repository
+        assignments.deleteAll();
         enrollments.deleteAll();
         courses.deleteAll();
         users.deleteAll();

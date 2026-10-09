@@ -51,6 +51,39 @@ class EnrollCodeGeneratorTests {
     }
 
     @Test
+    void whatAStudentTypedIsTrimmedAndUpperCased() {
+        assertThat(EnrollCodeGenerator.normalize("abcd2345")).isEqualTo("ABCD2345");
+        assertThat(EnrollCodeGenerator.normalize("  AbCd2345 \n")).isEqualTo("ABCD2345");
+        assertThat(EnrollCodeGenerator.normalize("ABCD2345")).isEqualTo("ABCD2345");
+    }
+
+    @Test
+    void normalizingDoesNotGuessAtLookAlikeSymbols() {
+        // 0 and O, 1 and l are not aliased: a code containing them matches nothing.
+        assertThat(EnrollCodeGenerator.normalize("0o1l")).isEqualTo("0O1L");
+    }
+
+    @Test
+    void normalizingIgnoresTheDefaultLocale() {
+        java.util.Locale before = java.util.Locale.getDefault();
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("tr-TR"));
+            // In Turkish "i".toUpperCase() is a dotted capital I; Locale.ROOT keeps it a plain I.
+            assertThat(EnrollCodeGenerator.normalize("kitap")).isEqualTo("KITAP");
+        } finally {
+            java.util.Locale.setDefault(before);
+        }
+    }
+
+    @Test
+    void generatedCodesAreAlreadyNormal() {
+        for (int i = 0; i < 500; i++) {
+            String code = generator.next();
+            assertThat(EnrollCodeGenerator.normalize(code)).isEqualTo(code);
+        }
+    }
+
+    @Test
     void theCodeFitsItsColumn() {
         // V2: enroll_code VARCHAR(20).
         assertThat(EnrollCodeGenerator.LENGTH).isLessThanOrEqualTo(20);

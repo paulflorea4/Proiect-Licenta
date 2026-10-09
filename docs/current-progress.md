@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.1d done)
-- Next commit: 3.2a — `POST /courses/enroll`: student joins with an enrollment code
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.2a done)
+- Next commit: 3.2b — `DELETE /courses/{id}/enrollment` (student leaves) and `GET /courses/{id}/students` (teacher)
 - In progress: —
-- Blocked: PR #64 (commit 3.1d) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #65 (commit 3.2a) awaiting review — checked just after opening, no response yet.

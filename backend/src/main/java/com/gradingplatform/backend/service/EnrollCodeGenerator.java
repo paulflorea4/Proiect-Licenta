@@ -1,6 +1,7 @@
 package com.gradingplatform.backend.service;
 
 import java.security.SecureRandom;
+import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,6 +24,15 @@ public class EnrollCodeGenerator {
     static final int LENGTH = 8;
 
     private final SecureRandom random = new SecureRandom();
+
+    /**
+     * What a student typed, made comparable with a stored code: surrounding spaces dropped and
+     * upper-cased (codes are generated in upper case only). Nothing else is guessed, so a code with
+     * a wrong letter simply matches nothing.
+     */
+    public static String normalize(String typed) {
+        return typed.trim().toUpperCase(Locale.ROOT);
+    }
 
     public String next() {
         StringBuilder code = new StringBuilder(LENGTH);

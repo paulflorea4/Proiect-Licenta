@@ -2,9 +2,11 @@ package com.gradingplatform.backend.controller;
 
 import com.gradingplatform.backend.dto.CourseRequest;
 import com.gradingplatform.backend.dto.CourseResponse;
+import com.gradingplatform.backend.dto.EnrollRequest;
 import com.gradingplatform.backend.dto.PageResponse;
 import com.gradingplatform.backend.security.AuthenticatedUser;
 import com.gradingplatform.backend.service.CourseService;
+import com.gradingplatform.backend.service.EnrollmentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.Sort;
@@ -27,9 +29,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class CourseController {
 
     private final CourseService courseService;
+    private final EnrollmentService enrollmentService;
 
-    public CourseController(CourseService courseService) {
+    public CourseController(CourseService courseService, EnrollmentService enrollmentService) {
         this.courseService = courseService;
+        this.enrollmentService = enrollmentService;
     }
 
     /**
@@ -57,6 +61,18 @@ public class CourseController {
     public CourseResponse get(@AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long id) {
         return CourseResponse.forRole(
                 courseService.getVisibleTo(principal.id(), principal.role(), id), principal.role());
+    }
+
+    /**
+     * A student joins the course that has the code in the body. Answers 200 with the course as a
+     * student sees it (no enrollment code), also when the student was already in it. A code that
+     * matches nothing is a 404, so the answer says nothing more than that.
+     */
+    @PostMapping("/enroll")
+    @PreAuthorize("hasRole('STUDENT')")
+    public CourseResponse enroll(
+            @AuthenticationPrincipal AuthenticatedUser principal, @Valid @RequestBody EnrollRequest request) {
+        return CourseResponse.forRole(enrollmentService.enroll(principal.id(), request.code()), principal.role());
     }
 
     /**

@@ -32,6 +32,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
     LAST_ADMIN(HttpStatus.CONFLICT, "The last remaining admin cannot be demoted"),
     COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "Course not found"),
+    ENROLL_CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "No course has this enrollment code"),
     COURSE_HAS_ASSIGNMENTS(
             HttpStatus.CONFLICT, "The course has assignments and cannot be deleted; delete its assignments first");
 

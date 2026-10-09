@@ -7,7 +7,7 @@
 | 3.1c | `GET /courses/{id}` with an access check | Done | Ownership/enrollment check lives in one reusable place (a service method or security expression) — Phases 4–15 all need "can this user see this course/assignment/submission?". |
 | 3.1d | `PUT /courses/{id}` and `DELETE /courses/{id}` (owning teacher or admin) | Done | Deleting a course with assignments is blocked with a clear error — no silent cascade over student submissions. |
 | 3.2a | `POST /courses/enroll`: student joins with an enrollment code | Done | Joining twice is idempotent, not an error. Unknown code → 404, not 403, so codes can't be probed by error type. |
-| 3.2b | `DELETE /courses/{id}/enrollment` (student leaves) and `GET /courses/{id}/students` (teacher) | Not started | Leaving keeps the student's past submissions; they just lose access. |
+| 3.2b | `DELETE /courses/{id}/enrollment` (student leaves) and `GET /courses/{id}/students` (teacher) | Done | Leaving keeps the student's past submissions; they just lose access. |
 | 3.3a | `POST /courses/{id}/assignments` (owning teacher): title, description, language, deadline, limits, optional starter code | Not started | Validate `language` against the languages config (default: Java, Python), the deadline is in the future, limits within sane server-side maximums. New assignments start unpublished. |
 | 3.3b | `GET /courses/{id}/assignments` and `GET /assignments/{id}` | Not started | Students only see published assignments; teachers see all of their own. |
 | 3.3c | `PUT /assignments/{id}`, publish/unpublish, `DELETE /assignments/{id}` | Not started | Block language change and deletion once submissions exist. Publishing requires a valid rubric (3.4b). |

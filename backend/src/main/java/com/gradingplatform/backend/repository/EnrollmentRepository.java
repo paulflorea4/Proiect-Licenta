@@ -27,4 +27,13 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Enrollme
     @Modifying
     @Query("delete from Enrollment e where e.id.courseId = :courseId")
     int deleteByCourseId(@Param("courseId") Long courseId);
+
+    /**
+     * Removes one student from one course, in one statement.
+     *
+     * @return 1 if the student was enrolled, 0 if there was nothing to remove
+     */
+    @Modifying
+    @Query("delete from Enrollment e where e.id.courseId = :courseId and e.id.studentId = :studentId")
+    int deleteByCourseIdAndStudentId(@Param("courseId") Long courseId, @Param("studentId") Long studentId);
 }

@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.2a done)
-- Next commit: 3.2b — `DELETE /courses/{id}/enrollment` (student leaves) and `GET /courses/{id}/students` (teacher)
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.2b done)
+- Next commit: 3.3a — `POST /courses/{id}/assignments` (owning teacher)
 - In progress: —
-- Blocked: PR #65 (commit 3.2a) awaiting review — checked just after opening, no response yet.
+- Blocked: —

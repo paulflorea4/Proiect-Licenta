@@ -1,4 +1,4 @@
 - Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.2b done)
 - Next commit: 3.3a — `POST /courses/{id}/assignments` (owning teacher)
 - In progress: —
-- Blocked: —
+- Blocked: PR #66 (commit 3.2b) awaiting review — checked just after opening, no response yet.

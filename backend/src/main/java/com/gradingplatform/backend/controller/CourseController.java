@@ -11,9 +11,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -55,6 +57,31 @@ public class CourseController {
     public CourseResponse get(@AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long id) {
         return CourseResponse.forRole(
                 courseService.getVisibleTo(principal.id(), principal.role(), id), principal.role());
+    }
+
+    /**
+     * Replaces a course's title and description (the owner and the enrollment code stay). The
+     * owning teacher or an admin; any other teacher gets the 404 of a course they cannot see.
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public CourseResponse update(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @PathVariable long id,
+            @Valid @RequestBody CourseRequest request) {
+        return CourseResponse.forRole(
+                courseService.update(principal.id(), principal.role(), id, request), principal.role());
+    }
+
+    /**
+     * Deletes a course and its enrollments. The owning teacher or an admin. Blocked with a 409
+     * while the course still has assignments: nothing students submitted is ever deleted with it.
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long id) {
+        courseService.delete(principal.id(), principal.role(), id);
     }
 
     /**

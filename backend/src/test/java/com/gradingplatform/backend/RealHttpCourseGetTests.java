@@ -158,17 +158,4 @@ class RealHttpCourseGetTests extends RealHttpTestBase {
         assertThat(get("/courses/" + course.getId(), null).statusCode()).isEqualTo(401);
         assertThat(get("/courses/" + course.getId(), "not.a.jwt").statusCode()).isEqualTo(401);
     }
-
-    @Test
-    void putAndDeleteOnACourseDoNotExistYet() throws Exception {
-        // They arrive in 3.1d; until then they answer 405 and change nothing.
-        String token = tokenFor(owner);
-
-        assertThat(send("PUT", "/courses/" + course.getId(), token, "{\"title\":\"X\"}")
-                        .statusCode())
-                .isEqualTo(405);
-        assertThat(send("DELETE", "/courses/" + course.getId(), token, null).statusCode())
-                .isEqualTo(405);
-        assertThat(courses.findById(course.getId()).orElseThrow().getTitle()).isEqualTo("Algorithms");
-    }
 }

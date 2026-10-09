@@ -48,6 +48,12 @@ public class Course {
         this.enrollCode = enrollCode;
     }
 
+    /** The two fields a teacher may change. The owner and the enrollment code never change. */
+    public void update(String title, String description) {
+        this.title = title;
+        this.description = description;
+    }
+
     public Long getId() {
         return id;
     }

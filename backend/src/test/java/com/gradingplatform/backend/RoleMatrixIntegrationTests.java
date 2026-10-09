@@ -107,7 +107,16 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
             // Any signed-in user may list; what each sees depends on the role (RealHttpCourseListTests).
             Endpoint.signedIn("GET", "/courses"),
             // Who may see which course is decided by CourseAccess, tested in RealHttpCourseGetTests.
-            Endpoint.signedIn("GET", "/courses/{id}", "/courses/987654321"));
+            Endpoint.signedIn("GET", "/courses/{id}", "/courses/987654321"),
+            // Teachers and admins pass the role rule; ownership then decides (RealHttpCourseChangeTests).
+            Endpoint.rolesOnly(
+                    "PUT",
+                    "/courses/{id}",
+                    "/courses/987654321",
+                    "{\"title\":\"Algorithms\"}",
+                    Role.TEACHER,
+                    Role.ADMIN),
+            Endpoint.rolesOnly("DELETE", "/courses/{id}", "/courses/987654321", "{}", Role.TEACHER, Role.ADMIN));
 
     static Stream<Arguments> endpointsAndCallers() {
         return ENDPOINTS.stream()

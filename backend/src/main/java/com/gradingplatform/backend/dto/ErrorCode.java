@@ -31,7 +31,9 @@ public enum ErrorCode {
     EMAIL_ALREADY_USED(HttpStatus.CONFLICT, "An account with this email already exists"),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
     LAST_ADMIN(HttpStatus.CONFLICT, "The last remaining admin cannot be demoted"),
-    COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "Course not found");
+    COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "Course not found"),
+    COURSE_HAS_ASSIGNMENTS(
+            HttpStatus.CONFLICT, "The course has assignments and cannot be deleted; delete its assignments first");
 
     private final HttpStatus status;
     private final String defaultMessage;

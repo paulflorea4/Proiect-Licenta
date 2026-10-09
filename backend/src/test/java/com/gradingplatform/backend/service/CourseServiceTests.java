@@ -51,7 +51,7 @@ class CourseServiceTests {
     @BeforeEach
     void setUp() {
         cleanUp();
-        service = new CourseService(courses, generator, new CourseAccess(courses, enrollments));
+        service = new CourseService(courses, generator, new CourseAccess(courses, enrollments), enrollments);
         teacher = users.save(new User("teacher@example.com", "hash", "Teacher", Role.TEACHER));
     }
 

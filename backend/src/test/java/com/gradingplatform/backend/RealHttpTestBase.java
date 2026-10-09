@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Base of the integration tests that talk to a real server over HTTP (2.7a): the whole application
@@ -24,7 +25,7 @@ import org.springframework.context.annotation.Import;
  * ({@link TestcontainersConfiguration}). It is what 2.7b and the tests of every later phase extend.
  *
  * <p>What it gives a test: {@link #port}, the repositories and token service, empty `users` and
- * `courses` and `enrollments` tables before and after every test, {@link #saved} and {@link #tokenFor} to create a caller, and
+ * `courses`, `enrollments` and `assignments` tables before and after every test, {@link #saved} and {@link #tokenFor} to create a caller, and
  * {@link #send} (with {@link #get}, {@link #post}, {@link #patch}) to make a request as that caller.
  * A subclass that needs another configuration repeats {@code @SpringBootTest} with its own
  * properties; Spring builds (and caches) a separate context for it, still on the shared container.
@@ -49,6 +50,9 @@ abstract class RealHttpTestBase {
     protected EnrollmentRepository enrollments;
 
     @Autowired
+    protected JdbcTemplate jdbc;
+
+    @Autowired
     protected JwtService jwtService;
 
     protected final HttpClient http = HttpClient.newHttpClient();
@@ -61,6 +65,7 @@ abstract class RealHttpTestBase {
     @BeforeEach
     @AfterEach
     void emptyTables() {
+        jdbc.update("DELETE FROM assignments"); // no entity yet (3.3a); then through its repository
         enrollments.deleteAll();
         courses.deleteAll();
         users.deleteAll();

@@ -85,6 +85,44 @@ class CourseAccessTests {
     }
 
     @Test
+    void onlyTheOwnerAndAnAdminMayManage() {
+        assertThat(access.canManage(owner.getId(), Role.TEACHER, mine)).isTrue();
+        assertThat(access.canManage(otherTeacher.getId(), Role.TEACHER, mine)).isFalse();
+        assertThat(access.canManage(enrolled.getId(), Role.STUDENT, mine)).isFalse();
+        assertThat(access.canManage(outsider.getId(), Role.STUDENT, mine)).isFalse();
+        assertThat(access.canManage(admin.getId(), Role.ADMIN, mine)).isTrue();
+    }
+
+    @Test
+    void whoeverMayManageAlsoMayView() {
+        // Otherwise a refusal could be a 403 for someone who is supposed to get a 404.
+        for (User user : users.findAll()) {
+            for (Course course : courses.findAll()) {
+                if (access.canManage(user.getId(), user.getRole(), course)) {
+                    assertThat(access.canView(user.getId(), user.getRole(), course))
+                            .as(user.getEmail() + " manages " + course.getTitle())
+                            .isTrue();
+                }
+            }
+        }
+    }
+
+    @Test
+    void requireManageableRefusesWithA404WhenInvisibleAndA403WhenOnlyVisible() {
+        assertThat(access.requireManageable(owner.getId(), Role.TEACHER, mine.getId())
+                        .getId())
+                .isEqualTo(mine.getId());
+
+        assertThatThrownBy(() -> access.requireManageable(otherTeacher.getId(), Role.TEACHER, mine.getId()))
+                .isInstanceOf(CourseNotFoundException.class);
+        assertThatThrownBy(() -> access.requireManageable(admin.getId(), Role.ADMIN, 987_654_321L))
+                .isInstanceOf(CourseNotFoundException.class);
+        // An enrolled student can see the course but may not change it.
+        assertThatThrownBy(() -> access.requireManageable(enrolled.getId(), Role.STUDENT, mine.getId()))
+                .isInstanceOf(AccessRefusedException.class);
+    }
+
+    @Test
     void requireViewableReturnsTheCourseOrThrowsTheSameErrorForAbsentAndHidden() {
         assertThat(access.requireViewable(owner.getId(), Role.TEACHER, mine.getId())
                         .getId())

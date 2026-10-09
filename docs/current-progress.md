@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.1b done)
-- Next commit: 3.1c — `GET /courses/{id}` with an access check
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.1c done)
+- Next commit: 3.1d — `PUT /courses/{id}` and `DELETE /courses/{id}` (owning teacher or admin)
 - In progress: —
-- Blocked: PR #62 (commit 3.1b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #63 (commit 3.1c) awaiting review — checked just after opening, no response yet.

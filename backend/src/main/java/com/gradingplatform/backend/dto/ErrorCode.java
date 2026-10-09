@@ -30,7 +30,8 @@ public enum ErrorCode {
     ACCOUNT_NO_LONGER_EXISTS(HttpStatus.UNAUTHORIZED, "Account no longer exists"),
     EMAIL_ALREADY_USED(HttpStatus.CONFLICT, "An account with this email already exists"),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
-    LAST_ADMIN(HttpStatus.CONFLICT, "The last remaining admin cannot be demoted");
+    LAST_ADMIN(HttpStatus.CONFLICT, "The last remaining admin cannot be demoted"),
+    COURSE_NOT_FOUND(HttpStatus.NOT_FOUND, "Course not found");
 
     private final HttpStatus status;
     private final String defaultMessage;

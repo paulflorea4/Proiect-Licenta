@@ -53,6 +53,11 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
             return new Endpoint(method, path, path, "{}", false, ANYONE_SIGNED_IN);
         }
 
+        /** Any signed-in user, for a path with a variable part. */
+        static Endpoint signedIn(String method, String pattern, String path) {
+            return new Endpoint(method, pattern, path, "{}", false, ANYONE_SIGNED_IN);
+        }
+
         static Endpoint rolesOnly(String method, String pattern, String path, String body, Role... roles) {
             return new Endpoint(method, pattern, path, body, false, EnumSet.copyOf(Arrays.asList(roles)));
         }
@@ -100,7 +105,9 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
             // empties `courses` after every test.
             Endpoint.rolesOnly("POST", "/courses", "/courses", "{\"title\":\"Algorithms\"}", Role.TEACHER),
             // Any signed-in user may list; what each sees depends on the role (RealHttpCourseListTests).
-            Endpoint.signedIn("GET", "/courses"));
+            Endpoint.signedIn("GET", "/courses"),
+            // Who may see which course is decided by CourseAccess, tested in RealHttpCourseGetTests.
+            Endpoint.signedIn("GET", "/courses/{id}", "/courses/987654321"));
 
     static Stream<Arguments> endpointsAndCallers() {
         return ENDPOINTS.stream()

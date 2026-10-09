@@ -13,6 +13,7 @@ import com.gradingplatform.backend.entity.Course;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
 import com.gradingplatform.backend.repository.CourseRepository;
+import com.gradingplatform.backend.repository.EnrollmentRepository;
 import com.gradingplatform.backend.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,9 @@ class CourseServiceTests {
     CourseRepository courses;
 
     @Autowired
+    EnrollmentRepository enrollments;
+
+    @Autowired
     UserRepository users;
 
     private final EnrollCodeGenerator generator = mock(EnrollCodeGenerator.class);
@@ -47,12 +51,13 @@ class CourseServiceTests {
     @BeforeEach
     void setUp() {
         cleanUp();
-        service = new CourseService(courses, generator);
+        service = new CourseService(courses, generator, new CourseAccess(courses, enrollments));
         teacher = users.save(new User("teacher@example.com", "hash", "Teacher", Role.TEACHER));
     }
 
     @AfterEach
     void cleanUp() {
+        enrollments.deleteAll();
         courses.deleteAll();
         users.deleteAll();
     }

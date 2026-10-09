@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,6 +44,17 @@ public class CourseController {
         return PageResponse.of(
                 courseService.listVisibleTo(principal.id(), principal.role(), pageable),
                 course -> CourseResponse.forRole(course, principal.role()));
+    }
+
+    /**
+     * One course. A teacher may read their own, a student one they are enrolled in, an admin any;
+     * for everyone else it is a 404, the same as for an id that does not exist. A student's answer
+     * has no enrollment code.
+     */
+    @GetMapping("/{id}")
+    public CourseResponse get(@AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long id) {
+        return CourseResponse.forRole(
+                courseService.getVisibleTo(principal.id(), principal.role(), id), principal.role());
     }
 
     /**

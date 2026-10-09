@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Bean;
  * <p>Real-HTTP tests extend {@link RealHttpTestBase}, which already imports this.
  */
 @TestConfiguration(proxyBeanMethods = false)
-class TestcontainersConfiguration {
+public class TestcontainersConfiguration {
 
     @Bean
     JdbcConnectionDetails testDatabase() {

@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (Phase 2 finished with 2.7d)
-- Next commit: 3.1a — `POST /courses` (teacher): create a course, generate a unique enrollment code
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.1a done)
+- Next commit: 3.1b — `GET /courses`: role-aware list — teacher sees own, student sees enrolled, admin sees all
 - In progress: —
-- Blocked: PR #60 (commit 2.7d) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #61 (commit 3.1a) awaiting review — checked just after opening, no response yet.

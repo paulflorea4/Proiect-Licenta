@@ -42,6 +42,33 @@ public class CourseAccess {
     }
 
     /**
+     * True if this user may change or delete the course: the teacher who owns it, or an admin. A
+     * student never may. Anyone who may manage a course may also see it.
+     */
+    public boolean canManage(long userId, Role role, Course course) {
+        return switch (role) {
+            case ADMIN -> true;
+            case TEACHER -> course.getTeacherId() == userId;
+            case STUDENT -> false;
+        };
+    }
+
+    /**
+     * The course with this id, if this user may change it.
+     *
+     * @throws CourseNotFoundException if there is no such course or the user may not even see it
+     * @throws AccessRefusedException if the user can see the course but may not change it
+     */
+    @Transactional(readOnly = true)
+    public Course requireManageable(long userId, Role role, long courseId) {
+        Course course = requireViewable(userId, role, courseId);
+        if (!canManage(userId, role, course)) {
+            throw new AccessRefusedException();
+        }
+        return course;
+    }
+
+    /**
      * The course with this id, if this user may see it.
      *
      * @throws CourseNotFoundException if there is no such course or the user may not see it

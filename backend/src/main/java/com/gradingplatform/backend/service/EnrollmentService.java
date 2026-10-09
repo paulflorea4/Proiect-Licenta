@@ -1,9 +1,14 @@
 package com.gradingplatform.backend.service;
 
 import com.gradingplatform.backend.entity.Course;
+import com.gradingplatform.backend.entity.Role;
+import com.gradingplatform.backend.entity.User;
 import com.gradingplatform.backend.repository.CourseRepository;
 import com.gradingplatform.backend.repository.EnrollmentRepository;
+import com.gradingplatform.backend.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,10 +23,15 @@ public class EnrollmentService {
 
     private final CourseRepository courses;
     private final EnrollmentRepository enrollments;
+    private final UserRepository users;
+    private final CourseAccess access;
 
-    public EnrollmentService(CourseRepository courses, EnrollmentRepository enrollments) {
+    public EnrollmentService(
+            CourseRepository courses, EnrollmentRepository enrollments, UserRepository users, CourseAccess access) {
         this.courses = courses;
         this.enrollments = enrollments;
+        this.users = users;
+        this.access = access;
     }
 
     /**
@@ -50,5 +60,33 @@ public class EnrollmentService {
             throw e;
         }
         return course;
+    }
+
+    /**
+     * Takes the student out of the course. Only the membership goes: what the student submitted
+     * stays (nothing in a submission references the enrollment), they just lose access to the
+     * course. One delete statement decides, so a student who is not in the course (or a course
+     * that does not exist) is the same 404 as any course the caller cannot see, and leaving twice
+     * is a 404 the second time.
+     *
+     * @throws CourseNotFoundException if the student is not enrolled in this course
+     */
+    @Transactional
+    public void leave(long studentId, long courseId) {
+        if (enrollments.deleteByCourseIdAndStudentId(courseId, studentId) == 0) {
+            throw new CourseNotFoundException();
+        }
+    }
+
+    /**
+     * One page of the students enrolled in a course, for the teacher who owns it or an admin.
+     *
+     * @throws CourseNotFoundException if there is no such course or the user may not see it
+     * @throws AccessRefusedException if the user can see the course but may not manage it
+     */
+    @Transactional(readOnly = true)
+    public Page<User> listStudents(long userId, Role role, long courseId, Pageable pageable) {
+        access.requireManageable(userId, role, courseId);
+        return users.findEnrolledIn(courseId, pageable);
     }
 }

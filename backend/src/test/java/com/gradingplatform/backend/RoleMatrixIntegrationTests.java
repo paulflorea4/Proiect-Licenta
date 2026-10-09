@@ -118,7 +118,13 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     Role.ADMIN),
             Endpoint.rolesOnly("DELETE", "/courses/{id}", "/courses/987654321", "{}", Role.TEACHER, Role.ADMIN),
             // A student who passes here is told the code matches nothing; nothing is joined.
-            Endpoint.rolesOnly("POST", "/courses/enroll", "/courses/enroll", "{\"code\":\"ZZZZZZZZ\"}", Role.STUDENT));
+            Endpoint.rolesOnly("POST", "/courses/enroll", "/courses/enroll", "{\"code\":\"ZZZZZZZZ\"}", Role.STUDENT),
+            // A student who passes here is told the course is not theirs; nothing is removed.
+            Endpoint.rolesOnly(
+                    "DELETE", "/courses/{id}/enrollment", "/courses/987654321/enrollment", "{}", Role.STUDENT),
+            // Teachers and admins pass the role rule; ownership then decides (RealHttpCourseStudentsTests).
+            Endpoint.rolesOnly(
+                    "GET", "/courses/{id}/students", "/courses/987654321/students", "{}", Role.TEACHER, Role.ADMIN));
 
     static Stream<Arguments> endpointsAndCallers() {
         return ENDPOINTS.stream()

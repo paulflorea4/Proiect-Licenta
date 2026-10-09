@@ -4,6 +4,7 @@ import com.gradingplatform.backend.dto.CourseRequest;
 import com.gradingplatform.backend.dto.CourseResponse;
 import com.gradingplatform.backend.dto.EnrollRequest;
 import com.gradingplatform.backend.dto.PageResponse;
+import com.gradingplatform.backend.dto.StudentSummaryResponse;
 import com.gradingplatform.backend.security.AuthenticatedUser;
 import com.gradingplatform.backend.service.CourseService;
 import com.gradingplatform.backend.service.EnrollmentService;
@@ -73,6 +74,35 @@ public class CourseController {
     public CourseResponse enroll(
             @AuthenticationPrincipal AuthenticatedUser principal, @Valid @RequestBody EnrollRequest request) {
         return CourseResponse.forRole(enrollmentService.enroll(principal.id(), request.code()), principal.role());
+    }
+
+    /**
+     * A student leaves a course. Answers 204. Their past submissions stay; they lose access to the
+     * course. A course they are not in (or that does not exist) is the 404 of any course they cannot
+     * see.
+     */
+    @DeleteMapping("/{id}/enrollment")
+    @PreAuthorize("hasRole('STUDENT')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leave(@AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long id) {
+        enrollmentService.leave(principal.id(), id);
+    }
+
+    /**
+     * The students enrolled in a course, as {@link PageResponse} in student id order. The owning
+     * teacher or an admin; any other teacher gets the 404 of a course they cannot see.
+     */
+    @GetMapping("/{id}/students")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public PageResponse<StudentSummaryResponse> students(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @PathVariable long id,
+            @RequestParam(required = false) @Min(0) Integer page,
+            @RequestParam(required = false) @Min(1) Integer size) {
+        var pageable = PageResponse.pageable(page, size, Sort.by("id"));
+        return PageResponse.of(
+                enrollmentService.listStudents(principal.id(), principal.role(), id, pageable),
+                StudentSummaryResponse::from);
     }
 
     /**

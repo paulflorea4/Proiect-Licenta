@@ -98,7 +98,9 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     Role.ADMIN),
             // Unlike the rows above, a teacher who passes here creates a course; the base class
             // empties `courses` after every test.
-            Endpoint.rolesOnly("POST", "/courses", "/courses", "{\"title\":\"Algorithms\"}", Role.TEACHER));
+            Endpoint.rolesOnly("POST", "/courses", "/courses", "{\"title\":\"Algorithms\"}", Role.TEACHER),
+            // Any signed-in user may list; what each sees depends on the role (RealHttpCourseListTests).
+            Endpoint.signedIn("GET", "/courses"));
 
     static Stream<Arguments> endpointsAndCallers() {
         return ENDPOINTS.stream()

@@ -3,6 +3,7 @@ package com.gradingplatform.backend;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
 import com.gradingplatform.backend.repository.CourseRepository;
+import com.gradingplatform.backend.repository.EnrollmentRepository;
 import com.gradingplatform.backend.repository.UserRepository;
 import com.gradingplatform.backend.security.JwtService;
 import java.io.IOException;
@@ -23,7 +24,7 @@ import org.springframework.context.annotation.Import;
  * ({@link TestcontainersConfiguration}). It is what 2.7b and the tests of every later phase extend.
  *
  * <p>What it gives a test: {@link #port}, the repositories and token service, empty `users` and
- * `courses` tables before and after every test, {@link #saved} and {@link #tokenFor} to create a caller, and
+ * `courses` and `enrollments` tables before and after every test, {@link #saved} and {@link #tokenFor} to create a caller, and
  * {@link #send} (with {@link #get}, {@link #post}, {@link #patch}) to make a request as that caller.
  * A subclass that needs another configuration repeats {@code @SpringBootTest} with its own
  * properties; Spring builds (and caches) a separate context for it, still on the shared container.
@@ -45,6 +46,9 @@ abstract class RealHttpTestBase {
     protected CourseRepository courses;
 
     @Autowired
+    protected EnrollmentRepository enrollments;
+
+    @Autowired
     protected JwtService jwtService;
 
     protected final HttpClient http = HttpClient.newHttpClient();
@@ -57,6 +61,7 @@ abstract class RealHttpTestBase {
     @BeforeEach
     @AfterEach
     void emptyTables() {
+        enrollments.deleteAll();
         courses.deleteAll();
         users.deleteAll();
     }

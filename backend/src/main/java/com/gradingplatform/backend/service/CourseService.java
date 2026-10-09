@@ -2,9 +2,13 @@ package com.gradingplatform.backend.service;
 
 import com.gradingplatform.backend.dto.CourseRequest;
 import com.gradingplatform.backend.entity.Course;
+import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.repository.CourseRepository;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CourseService {
@@ -28,6 +32,21 @@ public class CourseService {
     public CourseService(CourseRepository courses, EnrollCodeGenerator codeGenerator) {
         this.courses = courses;
         this.codeGenerator = codeGenerator;
+    }
+
+    /**
+     * The courses this user can see, one page of them: a teacher's own, a student's enrolled
+     * courses, every course for an admin. Which of the three follows from the role, so the caller
+     * cannot ask for another user's list. The role is the token's (2.4b), so a promotion applies
+     * after the next signin.
+     */
+    @Transactional(readOnly = true)
+    public Page<Course> listVisibleTo(long userId, Role role, Pageable pageable) {
+        return switch (role) {
+            case TEACHER -> courses.findByTeacherId(userId, pageable);
+            case STUDENT -> courses.findEnrolledBy(userId, pageable);
+            case ADMIN -> courses.findAll(pageable);
+        };
     }
 
     /**

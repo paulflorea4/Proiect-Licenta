@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.1a done)
-- Next commit: 3.1b — `GET /courses`: role-aware list — teacher sees own, student sees enrolled, admin sees all
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.1b done)
+- Next commit: 3.1c — `GET /courses/{id}` with an access check
 - In progress: —
-- Blocked: PR #61 (commit 3.1a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #62 (commit 3.1b) awaiting review — checked just after opening, no response yet.

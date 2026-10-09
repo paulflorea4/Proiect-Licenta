@@ -276,10 +276,10 @@ class RealHttpCourseCreateTests extends RealHttpTestBase {
     }
 
     @Test
-    void otherMethodsOnTheCollectionAreNotAllowedYet() throws Exception {
+    void putAndDeleteOnTheCollectionAreNotAllowed() throws Exception {
         signedInTeacher();
 
-        // GET /courses arrives in 3.1b; until then the path answers 405 and creates nothing.
+        // Only GET (3.1b) and POST exist on /courses; PUT and DELETE are on /courses/{id} (3.1d).
         assertThat(send("PUT", "/courses", teacherToken, "{\"title\":\"A\"}").statusCode())
                 .isEqualTo(405);
         assertThat(send("DELETE", "/courses", teacherToken, null).statusCode()).isEqualTo(405);

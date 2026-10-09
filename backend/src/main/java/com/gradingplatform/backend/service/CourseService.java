@@ -28,10 +28,21 @@ public class CourseService {
 
     private final CourseRepository courses;
     private final EnrollCodeGenerator codeGenerator;
+    private final CourseAccess access;
 
-    public CourseService(CourseRepository courses, EnrollCodeGenerator codeGenerator) {
+    public CourseService(CourseRepository courses, EnrollCodeGenerator codeGenerator, CourseAccess access) {
         this.courses = courses;
         this.codeGenerator = codeGenerator;
+        this.access = access;
+    }
+
+    /**
+     * One course, if this user may see it (see {@link CourseAccess}).
+     *
+     * @throws CourseNotFoundException if there is no such course or the user may not see it
+     */
+    public Course getVisibleTo(long userId, Role role, long courseId) {
+        return access.requireViewable(userId, role, courseId);
     }
 
     /**

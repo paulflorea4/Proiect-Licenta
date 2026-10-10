@@ -160,3 +160,14 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **One gap in what a status shows:** for `GET` rows that answer 200 to several callers (course list, assignment list, course detail) a short extra test per caller asserts *what* they get (which courses, drafts hidden from students, the enrollment code only for owner/admin, hidden-test strings absent from every student response).
 - **Completeness guard** limited to the four Phase 3 controllers, by handler class, so Phase 4+ controllers do not fail it.
 - **Tests (+418, backend 1001 -> 1419; ai-service and frontend unchanged and passing):** `AuthorizationMatrixTests` (parameterized: 125 status checks, 125 no-side-effect checks, 125 identical-404 checks, 25 anonymous checks, plus the content and completeness tests).
+
+## 3.6b — publish rule, hidden-test masking, enrollment idempotency tests
+
+- **Most of the single cases already existed** (written with 3.4b, 3.5b and 3.2a), so this commit adds what they did not cover instead of repeating them; tests only, no production change. What was missing, per topic:
+  - *Publish rule:* the **race** claim made at 3.4b ("race-free under the row lock") had no test. Two tests hold the assignment's lock from a second connection and show that a publish waits for a rubric edit in flight and then refuses it, and the reverse. Plus the round trips a teacher makes (publish, unpublish, edit, republish; delete the last test; delete a criterion) and 100 criteria of weight 1.
+  - *Masking:* the 3.5b tests look at one endpoint. The **sweep** puts every GET endpoint, now and later, under the same check, so the guarantee does not depend on remembering to test a new endpoint. A fixed list of paths would not have done that.
+  - *Enrollment:* idempotency was tested as "same answer, one row"; not as "a repeat changes nothing": `enrolled_at` stays, nothing else moves, the body is identical, the code is not shown.
+- **Mutation-checked:** removing `FOR UPDATE` (2 race tests fail), turning `ON CONFLICT DO NOTHING` into an upsert that resets `enrolled_at` (1 fails) and putting a hidden test's real name back in the student view (2 sweep tests fail) were each caught; code restored.
+- **A sweep needs a rule for path variables.** `{id}` is resolved by the path prefix (`/courses/`, `/assignments/`, `/admin/users/`); anything unknown fails the test loudly rather than being skipped. That is the maintenance cost of the sweep and it is on purpose.
+- **Tests (+16, backend 1419 -> 1435; ai-service and frontend unchanged and passing).**
+- **This closes Phase 3** (every row of `tasks-phase-03.md` is Done once this is merged). The next row is 4.1a.

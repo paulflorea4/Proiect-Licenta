@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.4b done)
-- Next commit: 3.5a — Test case CRUD: `POST/PUT/DELETE /assignments/{id}/tests`
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.5a done)
+- Next commit: 3.5b — Student-facing DTO for tests: hidden tests have name masked, input and expected output absent
 - In progress: —
-- Blocked: PR #71 (commit 3.4b) awaiting review — checked just after opening, no response yet. Open question in the PR: block rubric/test edits while published (option A/B) — decide before 3.5a.
+- Blocked: PR #72 (commit 3.5a) awaiting review — checked just after opening, no response yet.

@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.3a done)
-- Next commit: 3.3b — `GET /courses/{id}/assignments` and `GET /assignments/{id}`
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.3b done)
+- Next commit: 3.3c — `PUT /assignments/{id}`, publish/unpublish, `DELETE /assignments/{id}`
 - In progress: —
-- Blocked: PR #67 (commit 3.3a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #68 (commit 3.3b) awaiting review — checked just after opening, no response yet.

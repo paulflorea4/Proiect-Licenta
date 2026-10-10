@@ -82,3 +82,14 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **`updated_at` is only DB-defaulted for now** (`insertable = false, updatable = false`); 3.3c, the first update, makes the application maintain it (V4's comment).
 - **Deadline boundary:** exactly "now" is refused, one millisecond later is accepted (`AssignmentServiceTests`, fixed clock). The race where the course is deleted after the access check is mapped from the foreign key to a 404 (name checked against real Postgres).
 - **Tests (+62, backend 700 -> 762; ai-service and frontend unchanged and passing):** `RealHttpAssignmentCreateTests` (create and stored values, optional fields, language spellings, ignored body fields, maxima, unsupported languages, past deadlines, missing/blank/over-long/out-of-range fields, malformed bodies, other teacher / student / admin / anonymous, course undeletable afterwards), `AssignmentServiceTests` (4), `AssignmentPropertiesTests` (5), one more matrix row (5 checks).
+
+## 3.3b — `GET /courses/{id}/assignments` and `GET /assignments/{id}`
+
+- **Anything not visible is a 404, never a 403.** Same reasoning as 3.1c: a course the caller cannot see gives `COURSE_NOT_FOUND`; for `GET /assignments/{id}` a new `ASSIGNMENT_NOT_FOUND` covers a missing id, an assignment in a course the caller cannot see, and, for a student, a draft. Tested byte for byte, so a student cannot tell a draft from a missing id.
+- **Who sees drafts: the owning teacher and admins** (they pass `canView` on the course); students never. The row says "teachers see all of their own"; admin follows the project-wide pattern (see everything) — say if admin should be excluded.
+- **Student shape = the same record with keys left out**, as `CourseResponse.forRole` does for the enrollment code: no `published` (always true for them), `createdAt`, `updatedAt`. Everything a student needs to attempt it stays (description, language, deadline, `maxAttempts`, limits, starter code). Easy to add the timestamps back if the frontend wants them.
+- **The visibility rule is in `CourseAccess`** (`canView(userId, role, courseId)`, `canViewAssignment(role, assignment)`), as 3.1c asked, not in the controller or service. Single-assignment fetch is one `findById` plus the course check; the list is one query per role (`findByCourseId` / `findByCourseIdAndPublishedTrue`).
+- **Order and paging:** id order, `PageResponse` conventions (2.5c). No filters or search; not asked.
+- **No new write path:** tests publish with SQL because publishing arrives in 3.3c.
+- **Tests (+32, backend 762 -> 794; ai-service and frontend unchanged and passing):** `RealHttpAssignmentGetTests` (22), two matrix rows (10 checks).
+

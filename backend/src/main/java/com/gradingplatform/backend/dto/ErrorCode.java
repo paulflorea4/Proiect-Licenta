@@ -35,6 +35,7 @@ public enum ErrorCode {
     ENROLL_CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "No course has this enrollment code"),
     COURSE_HAS_ASSIGNMENTS(
             HttpStatus.CONFLICT, "The course has assignments and cannot be deleted; delete its assignments first"),
+    ASSIGNMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Assignment not found"),
     UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, "The language is not supported"),
     DEADLINE_NOT_IN_FUTURE(HttpStatus.BAD_REQUEST, "The deadline must be in the future");
 

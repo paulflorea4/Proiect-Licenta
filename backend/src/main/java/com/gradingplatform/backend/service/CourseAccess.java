@@ -1,5 +1,6 @@
 package com.gradingplatform.backend.service;
 
+import com.gradingplatform.backend.entity.Assignment;
 import com.gradingplatform.backend.entity.Course;
 import com.gradingplatform.backend.entity.EnrollmentId;
 import com.gradingplatform.backend.entity.Role;
@@ -41,6 +42,14 @@ public class CourseAccess {
         };
     }
 
+    /** True if the course exists and this user may see it. */
+    @Transactional(readOnly = true)
+    public boolean canView(long userId, Role role, long courseId) {
+        return courses.findById(courseId)
+                .filter(course -> canView(userId, role, course))
+                .isPresent();
+    }
+
     /**
      * True if this user may change or delete the course: the teacher who owns it, or an admin. A
      * student never may. Anyone who may manage a course may also see it.
@@ -51,6 +60,15 @@ public class CourseAccess {
             case TEACHER -> course.getTeacherId() == userId;
             case STUDENT -> false;
         };
+    }
+
+    /**
+     * True if a viewer of the course may see this assignment of it: students only see published
+     * ones, a teacher or admin who can see the course sees all (drafts included). Call it after
+     * the course itself was found viewable.
+     */
+    public boolean canViewAssignment(Role role, Assignment assignment) {
+        return role != Role.STUDENT || assignment.isPublished();
     }
 
     /**

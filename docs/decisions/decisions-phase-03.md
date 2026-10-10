@@ -91,5 +91,5 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **The visibility rule is in `CourseAccess`** (`canView(userId, role, courseId)`, `canViewAssignment(role, assignment)`), as 3.1c asked, not in the controller or service. Single-assignment fetch is one `findById` plus the course check; the list is one query per role (`findByCourseId` / `findByCourseIdAndPublishedTrue`).
 - **Order and paging:** id order, `PageResponse` conventions (2.5c). No filters or search; not asked.
 - **No new write path:** tests publish with SQL because publishing arrives in 3.3c.
-- **Tests (+32, backend 762 -> 794; ai-service and frontend unchanged and passing):** `RealHttpAssignmentGetTests` (22), two matrix rows (10 checks). Docker Desktop was not running at the start of the session; I started it (installed at `%LOCALAPPDATA%\Programs\DockerDesktop`) to run the Testcontainers tests.
+- **Tests (+32, backend 762 -> 794; ai-service and frontend unchanged and passing):** `RealHttpAssignmentGetTests` (22), two matrix rows (10 checks).
 

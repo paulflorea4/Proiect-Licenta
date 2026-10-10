@@ -61,7 +61,8 @@ class AssignmentServiceTests {
         cleanUp();
         teacher = users.save(new User("teacher@example.com", "hash", "Teacher", Role.TEACHER));
         course = courses.save(new Course("Algorithms", null, teacher.getId(), "ABCD2345"));
-        service = new AssignmentService(assignments, new CourseAccess(courses, enrollments), properties, clock);
+        service = new AssignmentService(
+                assignments, new CourseAccess(courses, enrollments), properties, mock(PublishRules.class), clock);
     }
 
     @AfterEach
@@ -105,7 +106,8 @@ class AssignmentServiceTests {
         // The access check passes (a stand-in that always allows), then the insert meets a course
         // that no longer exists: Postgres names assignments_course_id_fkey, which we map to a 404.
         CourseAccess allowAll = mock(CourseAccess.class);
-        AssignmentService racing = new AssignmentService(assignments, allowAll, properties, clock);
+        AssignmentService racing =
+                new AssignmentService(assignments, allowAll, properties, mock(PublishRules.class), clock);
         long goneCourseId = course.getId() + 1_000_000;
 
         assertThatThrownBy(

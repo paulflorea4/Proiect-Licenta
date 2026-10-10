@@ -182,6 +182,35 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     "{}",
                     Role.TEACHER,
                     Role.ADMIN),
+            // Tests, in full including hidden ones, for the people who run the course (RealHttpTestCaseTests).
+            Endpoint.rolesOnly(
+                    "GET",
+                    "/assignments/{assignmentId}/tests",
+                    "/assignments/987654321/tests",
+                    "{}",
+                    Role.TEACHER,
+                    Role.ADMIN),
+            Endpoint.rolesOnly(
+                    "POST",
+                    "/assignments/{assignmentId}/tests",
+                    "/assignments/987654321/tests",
+                    "{\"criterionId\":1,\"name\":\"t\",\"input\":\"\",\"expectedOutput\":\"\",\"visibility\":\"PUBLIC\",\"weight\":1}",
+                    Role.TEACHER,
+                    Role.ADMIN),
+            Endpoint.rolesOnly(
+                    "PUT",
+                    "/assignments/{assignmentId}/tests/{testId}",
+                    "/assignments/987654321/tests/987654321",
+                    "{\"criterionId\":1,\"name\":\"t\",\"input\":\"\",\"expectedOutput\":\"\",\"visibility\":\"PUBLIC\",\"weight\":1}",
+                    Role.TEACHER,
+                    Role.ADMIN),
+            Endpoint.rolesOnly(
+                    "DELETE",
+                    "/assignments/{assignmentId}/tests/{testId}",
+                    "/assignments/987654321/tests/987654321",
+                    "{}",
+                    Role.TEACHER,
+                    Role.ADMIN),
             // Teachers only (admin excluded, as for creating a course); ownership then decides, and
             // this course does not exist, so a teacher who passes is answered by a 404.
             Endpoint.rolesOnly(

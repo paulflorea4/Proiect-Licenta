@@ -3,7 +3,6 @@ package com.gradingplatform.backend.service;
 import com.gradingplatform.backend.dto.RubricCriterionRequest;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.RubricCriterion;
-import com.gradingplatform.backend.repository.AssignmentRepository;
 import com.gradingplatform.backend.repository.RubricCriterionRepository;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,9 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
  * "assignment not found" of an id that does not exist.
  *
  * <p>Once the assignment has a submission the criteria and their weights are locked, because
- * existing grades would silently stop matching them. Every change takes the assignment's row lock
- * first ({@link AssignmentService#lockManageable}), so the check for submissions cannot race with
- * one being made. That the weights add up to 100 is not enforced here, only when publishing (3.4b).
+ * existing grades would silently stop matching them, and while it is published (3.5a: the rubric
+ * is finished before publication, so it is edited on a draft). Every change takes the assignment's
+ * row lock first ({@link AssignmentService#lockDraftForGradingChange}), so the check for
+ * submissions cannot race with one being made. That the weights add up to 100 is not enforced
+ * here, only when publishing (3.4b).
  */
 @Service
 public class RubricService {
@@ -27,13 +28,10 @@ public class RubricService {
     static final String TEST_CASE_FOREIGN_KEY = "test_cases_criterion_id_fkey";
 
     private final RubricCriterionRepository criteria;
-    private final AssignmentRepository assignments;
     private final AssignmentService assignmentService;
 
-    public RubricService(
-            RubricCriterionRepository criteria, AssignmentRepository assignments, AssignmentService assignmentService) {
+    public RubricService(RubricCriterionRepository criteria, AssignmentService assignmentService) {
         this.criteria = criteria;
-        this.assignments = assignments;
         this.assignmentService = assignmentService;
     }
 
@@ -54,12 +52,12 @@ public class RubricService {
      * @throws AssignmentNotFoundException if there is no such assignment or the user may not manage it
      * @throws CriterionTypeNotAvailableException if no phase has enabled the type yet
      * @throws RubricLockedException if the assignment has submissions
+     * @throws AssignmentPublishedException if the assignment is published
      */
     @Transactional
     public RubricCriterion create(long userId, Role role, long assignmentId, RubricCriterionRequest request) {
-        assignmentService.lockManageable(userId, role, assignmentId);
+        assignmentService.lockDraftForGradingChange(userId, role, assignmentId, RubricLockedException::new);
         requireAvailable(request);
-        requireUnlocked(assignmentId);
         return criteria.saveAndFlush(
                 new RubricCriterion(assignmentId, request.name(), request.type(), request.weight()));
     }
@@ -71,13 +69,13 @@ public class RubricService {
      * @throws CriterionNotFoundException if the assignment has no such criterion
      * @throws CriterionTypeNotAvailableException if no phase has enabled the type yet
      * @throws RubricLockedException if the assignment has submissions
+     * @throws AssignmentPublishedException if the assignment is published
      */
     @Transactional
     public RubricCriterion update(
             long userId, Role role, long assignmentId, long criterionId, RubricCriterionRequest request) {
-        assignmentService.lockManageable(userId, role, assignmentId);
+        assignmentService.lockDraftForGradingChange(userId, role, assignmentId, RubricLockedException::new);
         requireAvailable(request);
-        requireUnlocked(assignmentId);
         RubricCriterion criterion = criteria.findByIdAndAssignmentId(criterionId, assignmentId)
                 .orElseThrow(CriterionNotFoundException::new);
         criterion.revise(request.name(), request.type(), request.weight());
@@ -91,12 +89,12 @@ public class RubricService {
      * @throws AssignmentNotFoundException if there is no such assignment or the user may not manage it
      * @throws CriterionNotFoundException if the assignment has no such criterion
      * @throws RubricLockedException if the assignment has submissions
+     * @throws AssignmentPublishedException if the assignment is published
      * @throws CriterionHasTestsException if test cases belong to the criterion
      */
     @Transactional
     public void delete(long userId, Role role, long assignmentId, long criterionId) {
-        assignmentService.lockManageable(userId, role, assignmentId);
-        requireUnlocked(assignmentId);
+        assignmentService.lockDraftForGradingChange(userId, role, assignmentId, RubricLockedException::new);
         RubricCriterion criterion = criteria.findByIdAndAssignmentId(criterionId, assignmentId)
                 .orElseThrow(CriterionNotFoundException::new);
         try {
@@ -113,12 +111,6 @@ public class RubricService {
     private static void requireAvailable(RubricCriterionRequest request) {
         if (!request.type().isAvailable()) {
             throw new CriterionTypeNotAvailableException();
-        }
-    }
-
-    private void requireUnlocked(long assignmentId) {
-        if (assignments.hasSubmissions(assignmentId)) {
-            throw new RubricLockedException();
         }
     }
 }

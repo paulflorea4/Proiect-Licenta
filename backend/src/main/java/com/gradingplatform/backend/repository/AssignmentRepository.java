@@ -36,7 +36,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query(value = "select exists (select 1 from submissions where assignment_id = :id)", nativeQuery = true)
     boolean hasSubmissions(@Param("id") Long id);
 
-    /** The assignment's test cases, which never outlive it (tables without entities until 3.5a). */
+    /** The assignment's test cases, which never outlive it (one bulk statement, so no entities are loaded). */
     @Modifying
     @Query(value = "delete from test_cases where assignment_id = :id", nativeQuery = true)
     int deleteTestCasesOf(@Param("id") Long id);

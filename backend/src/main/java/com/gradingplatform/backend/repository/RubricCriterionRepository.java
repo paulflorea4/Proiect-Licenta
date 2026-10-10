@@ -16,8 +16,8 @@ public interface RubricCriterionRepository extends JpaRepository<RubricCriterion
     Optional<RubricCriterion> findByIdAndAssignmentId(Long id, Long assignmentId);
 
     /**
-     * How many `TESTS` criteria of the assignment have no test case at all (the table has no
-     * entity until 3.5a). Each of them would score 0 / 0.
+     * How many `TESTS` criteria of the assignment have no test case at all (a native `NOT EXISTS`
+     * query: this repository has no `TestCase` relation to join). Each of them would score 0 / 0.
      */
     @Query(
             value = "select count(*) from rubric_criteria c where c.assignment_id = :assignmentId "

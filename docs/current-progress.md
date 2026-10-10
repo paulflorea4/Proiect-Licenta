@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.5b done)
-- Next commit: 3.6a — Authorization matrix tests: owner / other teacher / enrolled student / non-enrolled student / admin across every Phase 3 endpoint
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.6a done)
+- Next commit: 3.6b — Tests: rubric-sum publish rule, hidden-test masking, enrollment idempotency
 - In progress: —
-- Blocked: PR #73 (commit 3.5b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #74 (commit 3.6a) awaiting review — checked just after opening, no response yet.

@@ -150,3 +150,13 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Reads stay open after a submission and on a published assignment**, as they must: a student needs the public tests to work.
 - **Phase 6 note:** the AI prompt's test section has to come from these types (public in full, hidden as pass/fail only), not from a `TestCase`.
 - **Tests (+22, backend 979 -> 1001; ai-service and frontend unchanged and passing):** `StudentTestCaseResponseTests` (7), `RealHttpStudentTestViewTests` (15); the 3.5a student-list test now expects the masked list instead of a 403; matrix row changed.
+
+## 3.6a — Phase 3 authorization matrix
+
+- **A second matrix next to the role matrix, not an extension of it.** `RoleMatrixIntegrationTests` varies the role against paths that do not exist; the questions that matter in Phase 3 are about ownership and enrollment, which need real data. So `AuthorizationMatrixTests` builds a world (owner's course, an enrolled student, a non-enrolled one, another teacher, an admin) per call and sends a valid request as each of the five callers. Tests only; no production change.
+- **Expected statuses are written into the 25 rows, not derived from the code**, so a rule changing in `CourseAccess` shows up as a failure to be read, not as a silently moving expectation. They encode the decisions of 3.1-3.5 (e.g. admin cannot create a course or assignment but can change them; a student gets 404 for a draft, 403 for a write; the rubric is teacher/admin only; the test list is the one read students have).
+- **Three properties per row, not one:** the status; a refused call changes nothing (snapshot of the five course tables); a 404 equals the 404 of a missing id byte for byte. The third is the "ids cannot be probed" rule of 3.1c in one place for all endpoints.
+- **Checked that it can fail:** three deliberate bugs in the production code (any student sees any course; hidden tests mapped as public; students see drafts) produced 26 failures; the code was restored.
+- **One gap in what a status shows:** for `GET` rows that answer 200 to several callers (course list, assignment list, course detail) a short extra test per caller asserts *what* they get (which courses, drafts hidden from students, the enrollment code only for owner/admin, hidden-test strings absent from every student response).
+- **Completeness guard** limited to the four Phase 3 controllers, by handler class, so Phase 4+ controllers do not fail it.
+- **Tests (+418, backend 1001 -> 1419; ai-service and frontend unchanged and passing):** `AuthorizationMatrixTests` (parameterized: 125 status checks, 125 no-side-effect checks, 125 identical-404 checks, 25 anonymous checks, plus the content and completeness tests).

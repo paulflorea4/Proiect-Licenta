@@ -6,6 +6,8 @@ import com.gradingplatform.backend.entity.Assignment;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.repository.AssignmentRepository;
 import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -98,5 +100,100 @@ public class AssignmentService {
                 .filter(a -> access.canView(userId, role, a.getCourseId()))
                 .filter(a -> access.canViewAssignment(role, a))
                 .orElseThrow(AssignmentNotFoundException::new);
+    }
+
+    /**
+     * Replaces the title, description, language, deadline, limits and starter code. The assignment
+     * must be one the user may manage (owning teacher or admin); anyone else who cannot see its
+     * course gets the same "not found" as for a missing id. The language is locked once there is a
+     * submission; a language or a deadline that is not being changed is not re-checked, so a
+     * teacher can still fix a typo after the deadline has passed.
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
+     * @throws UnsupportedLanguageException if the new language is not in the supported list
+     * @throws DeadlineNotInFutureException if the deadline is changed to one that is not in the future
+     * @throws AssignmentLanguageLockedException if the language changes and there are submissions
+     */
+    @Transactional
+    public Assignment update(long userId, Role role, long assignmentId, AssignmentRequest request) {
+        Assignment assignment = lockManageable(userId, role, assignmentId);
+        String language = AssignmentProperties.normalize(request.language());
+        boolean languageChanged = !language.equals(assignment.getLanguage());
+        if (languageChanged && !properties.supports(request.language())) {
+            throw new UnsupportedLanguageException();
+        }
+        if (!request.deadline().equals(assignment.getDeadline())
+                && !request.deadline().isAfter(clock.instant())) {
+            throw new DeadlineNotInFutureException();
+        }
+        if (languageChanged && assignments.hasSubmissions(assignmentId)) {
+            throw new AssignmentLanguageLockedException();
+        }
+        assignment.revise(
+                request.title(),
+                request.description(),
+                language,
+                request.deadline(),
+                request.maxAttempts(),
+                request.timeLimitMs(),
+                request.memoryLimitMb(),
+                request.starterCode(),
+                now());
+        return assignments.saveAndFlush(assignment);
+    }
+
+    /**
+     * Makes the assignment visible to students ({@code true}) or hides it again ({@code false}).
+     * Setting the state it already has changes nothing. Same access rules as {@link #update}.
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
+     */
+    @Transactional
+    public Assignment setPublished(long userId, Role role, long assignmentId, boolean published) {
+        Assignment assignment = lockManageable(userId, role, assignmentId);
+        if (assignment.isPublished() != published) {
+            assignment.setPublished(published, now());
+        }
+        return assignments.saveAndFlush(assignment);
+    }
+
+    /**
+     * Deletes the assignment together with its rubric criteria and test cases, which are teacher
+     * work with no meaning once it is gone. Refused while any submission exists. Same access rules
+     * as {@link #update}.
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
+     * @throws AssignmentHasSubmissionsException if anyone has submitted to it
+     */
+    @Transactional
+    public void delete(long userId, Role role, long assignmentId) {
+        Assignment assignment = lockManageable(userId, role, assignmentId);
+        if (assignments.hasSubmissions(assignmentId)) {
+            throw new AssignmentHasSubmissionsException();
+        }
+        assignments.deleteTestCasesOf(assignmentId);
+        assignments.deleteRubricCriteriaOf(assignmentId);
+        assignments.delete(assignment);
+        assignments.flush();
+    }
+
+    /**
+     * The assignment, locked for the rest of the transaction, if the user may manage its course.
+     * The access check comes first and needs only the course id, so a caller who may not touch the
+     * assignment never takes its lock.
+     */
+    private Assignment lockManageable(long userId, Role role, long assignmentId) {
+        long courseId = assignments.findCourseIdById(assignmentId).orElseThrow(AssignmentNotFoundException::new);
+        try {
+            access.requireManageable(userId, role, courseId);
+        } catch (CourseNotFoundException e) {
+            throw new AssignmentNotFoundException();
+        }
+        return assignments.findByIdForUpdate(assignmentId).orElseThrow(AssignmentNotFoundException::new);
+    }
+
+    /** The current time at the precision the database keeps (microseconds). */
+    private Instant now() {
+        return clock.instant().truncatedTo(ChronoUnit.MICROS);
     }
 }

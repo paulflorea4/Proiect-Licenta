@@ -93,3 +93,14 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **No new write path:** tests publish with SQL because publishing arrives in 3.3c.
 - **Tests (+32, backend 762 -> 794; ai-service and frontend unchanged and passing):** `RealHttpAssignmentGetTests` (22), two matrix rows (10 checks).
 
+## 3.3c — update, publish/unpublish, delete an assignment
+
+- **Gate resolved by the human: publish freely for now.** The row says publishing requires a valid rubric, which does not exist until 3.4a/3.4b. 3.3c ships publish with no check; 3.4b adds "weights sum to 100, every `TESTS` criterion has a test" to `AssignmentService.setPublished`.
+- **Roles: owning teacher or admin** for all four endpoints (as 3.1d for courses, where create is teacher-only but change is teacher/admin). Another teacher gets the 404 `ASSIGNMENT_NOT_FOUND`, byte-identical to a missing id; a student is 403 by role. Say if admin should be excluded.
+- **Only the language is locked after a submission.** The row and CLAUDE.md name language, rubric/weights, tests, and deletion; time and memory limits, attempts, starter code, title, description and deadline are not named, so they stay editable. Editing a limit after grading does not change existing grades but may make old and new runs differ; flagging in case you want those locked too.
+- **Lock check is exact, not racy.** The update and delete take `SELECT ... FOR UPDATE` on the assignment and then ask whether a submission exists. A submission's foreign key holds a key-share lock on the row, so the two serialise either way. First attempt used JPA's pessimistic lock, which Hibernate sends as `FOR NO KEY UPDATE` on Postgres: that does not conflict, and the concurrency test caught it. Hence the native query.
+- **Delete takes the rubric and tests with it** (draft work; otherwise a draft with a single test could never be deleted because of the foreign keys). Nothing is removed when submissions exist (tested: the 409 leaves the test case, criterion and submission in place).
+- **Unchanged language / deadline are not re-validated.** `PUT` always carries both. Without this a teacher could not fix a title after the deadline, nor after a language was dropped from the list. A changed deadline must still be in the future.
+- **Unpublishing is allowed with submissions.** Not locked by the spec; the teacher may need to hide a mistake. What students then see of their old submissions is Phase 5's decision.
+- **Publish and unpublish are `POST .../publish` and `.../unpublish`**, idempotent 200s with the assignment; a repeat does not touch `updated_at`.
+- **Tests (+47, backend 794 -> 841; ai-service and frontend unchanged and passing):** `RealHttpAssignmentChangeTests` (27, including the concurrent-submission case) and four role-matrix rows (20 checks).

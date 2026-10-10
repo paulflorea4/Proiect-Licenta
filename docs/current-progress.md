@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.3b done)
-- Next commit: 3.3c — `PUT /assignments/{id}`, publish/unpublish, `DELETE /assignments/{id}`
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.3c done)
+- Next commit: 3.4a — Rubric criteria CRUD: `POST/PUT/DELETE /assignments/{id}/rubric`
 - In progress: —
-- Blocked: PR #68 (commit 3.3b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #69 (commit 3.3c) awaiting review — checked just after opening, no response yet.

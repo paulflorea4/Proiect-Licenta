@@ -8,6 +8,7 @@ import com.gradingplatform.backend.repository.AssignmentRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.function.Supplier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -216,6 +217,30 @@ public class AssignmentService {
     public Assignment lockManageable(long userId, Role role, long assignmentId) {
         checkManageable(userId, role, assignmentId);
         return assignments.findByIdForUpdate(assignmentId).orElseThrow(AssignmentNotFoundException::new);
+    }
+
+    /**
+     * For a change to what submissions are graded against (the rubric, the test cases): the
+     * assignment, locked, if the user may manage it and the change is allowed. It is refused with
+     * the caller's own "locked" error once anyone has submitted, and with
+     * {@link AssignmentPublishedException} while the assignment is published (the rubric and tests
+     * are finished before it is, so they are edited on a draft). The submissions rule is reported
+     * first: unpublishing would not help then.
+     *
+     * @param lockedBySubmissions what to throw when there are submissions
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Assignment lockDraftForGradingChange(
+            long userId, Role role, long assignmentId, Supplier<? extends RuntimeException> lockedBySubmissions) {
+        Assignment assignment = lockManageable(userId, role, assignmentId);
+        if (assignments.hasSubmissions(assignmentId)) {
+            throw lockedBySubmissions.get();
+        }
+        if (assignment.isPublished()) {
+            throw new AssignmentPublishedException();
+        }
+        return assignment;
     }
 
     private void checkManageable(long userId, Role role, long assignmentId) {

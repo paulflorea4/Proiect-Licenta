@@ -49,6 +49,11 @@ public enum ErrorCode {
     CRITERION_HAS_NO_TESTS(
             HttpStatus.CONFLICT,
             "Every tests criterion needs at least one test case before the assignment can be published"),
+    ASSIGNMENT_PUBLISHED(
+            HttpStatus.CONFLICT, "The assignment is published; unpublish it before changing its rubric or tests"),
+    TESTS_LOCKED(HttpStatus.CONFLICT, "The assignment has submissions, so its test cases can no longer be changed"),
+    TEST_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "Test case not found"),
+    TEST_CRITERION_INVALID(HttpStatus.BAD_REQUEST, "The criterion must be a tests criterion of this assignment"),
     UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, "The language is not supported"),
     DEADLINE_NOT_IN_FUTURE(HttpStatus.BAD_REQUEST, "The deadline must be in the future");
 

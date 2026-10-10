@@ -57,9 +57,9 @@ public class Assignment {
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
-    /** Set by the database default on insert; 3.3c makes the application maintain it on updates. */
+    /** Set by the database default on insert, then maintained by the application on every change (V4: no trigger). */
     @Generated(event = EventType.INSERT)
-    @Column(name = "updated_at", insertable = false, updatable = false)
+    @Column(name = "updated_at", insertable = false)
     private Instant updatedAt;
 
     /** For JPA only. */
@@ -86,6 +86,33 @@ public class Assignment {
         this.memoryLimitMb = memoryLimitMb;
         this.starterCode = starterCode;
         this.published = false;
+    }
+
+    /** Replaces everything a teacher can edit; the caller has already checked what is locked. */
+    public void revise(
+            String title,
+            String description,
+            String language,
+            Instant deadline,
+            Integer maxAttempts,
+            int timeLimitMs,
+            int memoryLimitMb,
+            String starterCode,
+            Instant now) {
+        this.title = title;
+        this.description = description;
+        this.language = language;
+        this.deadline = deadline;
+        this.maxAttempts = maxAttempts;
+        this.timeLimitMs = timeLimitMs;
+        this.memoryLimitMb = memoryLimitMb;
+        this.starterCode = starterCode;
+        this.updatedAt = now;
+    }
+
+    public void setPublished(boolean published, Instant now) {
+        this.published = published;
+        this.updatedAt = now;
     }
 
     public Long getId() {

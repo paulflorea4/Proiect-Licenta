@@ -11,9 +11,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -53,6 +55,41 @@ public class AssignmentController {
     public AssignmentResponse get(@AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long id) {
         return AssignmentResponse.forRole(
                 assignmentService.getVisibleTo(principal.id(), principal.role(), id), principal.role());
+    }
+
+    /**
+     * Replaces an assignment's editable fields (same body and rules as creating it). Owning
+     * teacher or admin; the language cannot change once there are submissions (409).
+     */
+    @PutMapping("/assignments/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public AssignmentResponse update(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @PathVariable long id,
+            @Valid @RequestBody AssignmentRequest request) {
+        return AssignmentResponse.from(assignmentService.update(principal.id(), principal.role(), id, request));
+    }
+
+    /** Makes an assignment visible to students. Owning teacher or admin; already published is a 200 no-op. */
+    @PostMapping("/assignments/{id}/publish")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public AssignmentResponse publish(@AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long id) {
+        return AssignmentResponse.from(assignmentService.setPublished(principal.id(), principal.role(), id, true));
+    }
+
+    /** Hides an assignment from students again. Owning teacher or admin; already a draft is a 200 no-op. */
+    @PostMapping("/assignments/{id}/unpublish")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public AssignmentResponse unpublish(@AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long id) {
+        return AssignmentResponse.from(assignmentService.setPublished(principal.id(), principal.role(), id, false));
+    }
+
+    /** Deletes an assignment with its rubric and tests. Owning teacher or admin; 409 once anyone has submitted. */
+    @DeleteMapping("/assignments/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long id) {
+        assignmentService.delete(principal.id(), principal.role(), id);
     }
 
     /**

@@ -128,6 +128,30 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
             // Any signed-in user may ask; CourseAccess decides what they see (RealHttpAssignmentGetTests).
             Endpoint.signedIn("GET", "/courses/{courseId}/assignments", "/courses/987654321/assignments"),
             Endpoint.signedIn("GET", "/assignments/{id}", "/assignments/987654321"),
+            // Teachers and admins pass the role rule; ownership then decides (RealHttpAssignmentChangeTests).
+            Endpoint.rolesOnly(
+                    "PUT",
+                    "/assignments/{id}",
+                    "/assignments/987654321",
+                    "{\"title\":\"Sorting\",\"description\":\"Sort it\",\"language\":\"JAVA\","
+                            + "\"deadline\":\"2999-01-01T00:00:00Z\",\"timeLimitMs\":2000,\"memoryLimitMb\":256}",
+                    Role.TEACHER,
+                    Role.ADMIN),
+            Endpoint.rolesOnly(
+                    "POST",
+                    "/assignments/{id}/publish",
+                    "/assignments/987654321/publish",
+                    "{}",
+                    Role.TEACHER,
+                    Role.ADMIN),
+            Endpoint.rolesOnly(
+                    "POST",
+                    "/assignments/{id}/unpublish",
+                    "/assignments/987654321/unpublish",
+                    "{}",
+                    Role.TEACHER,
+                    Role.ADMIN),
+            Endpoint.rolesOnly("DELETE", "/assignments/{id}", "/assignments/987654321", "{}", Role.TEACHER, Role.ADMIN),
             // Teachers only (admin excluded, as for creating a course); ownership then decides, and
             // this course does not exist, so a teacher who passes is answered by a 404.
             Endpoint.rolesOnly(

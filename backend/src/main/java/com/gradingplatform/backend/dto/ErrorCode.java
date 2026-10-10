@@ -36,6 +36,9 @@ public enum ErrorCode {
     COURSE_HAS_ASSIGNMENTS(
             HttpStatus.CONFLICT, "The course has assignments and cannot be deleted; delete its assignments first"),
     ASSIGNMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Assignment not found"),
+    ASSIGNMENT_HAS_SUBMISSIONS(HttpStatus.CONFLICT, "The assignment has submissions and cannot be deleted"),
+    ASSIGNMENT_LANGUAGE_LOCKED(
+            HttpStatus.CONFLICT, "The assignment has submissions, so its language can no longer be changed"),
     UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, "The language is not supported"),
     DEADLINE_NOT_IN_FUTURE(HttpStatus.BAD_REQUEST, "The deadline must be in the future");
 

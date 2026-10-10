@@ -12,6 +12,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -178,18 +179,39 @@ public class AssignmentService {
     }
 
     /**
+     * The assignment with this id, if the user may manage its course (no lock). For the reads that
+     * only the people who run a course may make, such as the rubric.
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
+     */
+    @Transactional(readOnly = true)
+    public Assignment requireManageable(long userId, Role role, long assignmentId) {
+        checkManageable(userId, role, assignmentId);
+        return assignments.findById(assignmentId).orElseThrow(AssignmentNotFoundException::new);
+    }
+
+    /**
      * The assignment, locked for the rest of the transaction, if the user may manage its course.
      * The access check comes first and needs only the course id, so a caller who may not touch the
-     * assignment never takes its lock.
+     * assignment never takes its lock. The lock makes "does it have submissions?" exact for
+     * everything the caller does next; anything that changes what a submission is graded against
+     * (the assignment itself, its rubric, its tests) goes through here.
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
      */
-    private Assignment lockManageable(long userId, Role role, long assignmentId) {
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Assignment lockManageable(long userId, Role role, long assignmentId) {
+        checkManageable(userId, role, assignmentId);
+        return assignments.findByIdForUpdate(assignmentId).orElseThrow(AssignmentNotFoundException::new);
+    }
+
+    private void checkManageable(long userId, Role role, long assignmentId) {
         long courseId = assignments.findCourseIdById(assignmentId).orElseThrow(AssignmentNotFoundException::new);
         try {
             access.requireManageable(userId, role, courseId);
         } catch (CourseNotFoundException e) {
             throw new AssignmentNotFoundException();
         }
-        return assignments.findByIdForUpdate(assignmentId).orElseThrow(AssignmentNotFoundException::new);
     }
 
     /** The current time at the precision the database keeps (microseconds). */

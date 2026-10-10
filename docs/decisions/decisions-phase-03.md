@@ -104,3 +104,16 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Unpublishing is allowed with submissions.** Not locked by the spec; the teacher may need to hide a mistake. What students then see of their old submissions is Phase 5's decision.
 - **Publish and unpublish are `POST .../publish` and `.../unpublish`**, idempotent 200s with the assignment; a repeat does not touch `updated_at`.
 - **Tests (+47, backend 794 -> 841; ai-service and frontend unchanged and passing):** `RealHttpAssignmentChangeTests` (27, including the concurrent-submission case) and four role-matrix rows (20 checks).
+
+## 3.4a — rubric criteria CRUD
+
+- **The row lists POST/PUT/DELETE; I added `GET /assignments/{id}/rubric`.** "CRUD" needs a read, and 3.4b/3.5a tests need one. It answers `{criteria, totalWeight}` in creation order, unpaginated (a rubric has a handful of rows).
+- **Teacher and admin only, students 403 by role.** The spec shows students a "rubric breakdown" on the result page, which is per-submission (Phase 5); whether a student may read the rubric of a published assignment before submitting has no default anywhere, so I did not open it. Say if students should read it (it would be a student shape without anything teacher-only).
+- **Weights are validated one at a time (1-100), not in total.** 3.4b says a draft with a wrong sum is allowed and only publishing is refused, so 80 + 80 is accepted here. Weight 0 is refused: a zero-weight criterion scores nothing and hides a mistake.
+- **Types: an enum `CriterionType` with an `available` flag**, not a string list in config. Unknown spelling (including lower case) is a 400 like the role in `PATCH /admin/users/{id}/role`; known but not yet enabled is 400 `CRITERION_TYPE_NOT_AVAILABLE` ("not available yet"). One flag to flip per later phase.
+- **Locked after the first submission: add, change and delete** (CLAUDE.md says "criteria and weights are locked"; adding a criterion changes what existing grades were graded against). 409 `RUBRIC_LOCKED`, checked under the assignment's row lock like 3.3c's language rule. `lockManageable` is now public and `MANDATORY`-transactional so the rubric (and soon the tests) reuse it instead of copying the access and lock logic.
+- **Deleting a criterion that tests belong to is refused (409 `CRITERION_HAS_TESTS`), never cascaded**, as for a course with assignments (3.1d). The foreign key decides. Deleting the whole assignment still removes its criteria and tests (3.3c).
+- **Criterion names need not be unique** within an assignment: nothing in the schema or the scoring depends on it.
+- **Not done, on purpose:** the `config` JSONB column is unmapped (no type has parameters yet); a PUT may not turn a criterion into another available type because there is only one. When a second type becomes available, changing the type of a criterion that has tests needs a rule (tests must belong to a `TESTS` criterion, 3.5a).
+- **Found, not changed:** Jackson truncates `"weight": 10.5` to 10 (and does the same for every integer field in the API); filed in `docs/suggestions.md`.
+- **Tests (+57, backend 841 -> 898; ai-service and frontend unchanged and passing):** `RealHttpRubricTests` (37, parameterized cases counted) and four role-matrix rows (20 checks).

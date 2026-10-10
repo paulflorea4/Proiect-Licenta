@@ -39,6 +39,11 @@ public enum ErrorCode {
     ASSIGNMENT_HAS_SUBMISSIONS(HttpStatus.CONFLICT, "The assignment has submissions and cannot be deleted"),
     ASSIGNMENT_LANGUAGE_LOCKED(
             HttpStatus.CONFLICT, "The assignment has submissions, so its language can no longer be changed"),
+    CRITERION_NOT_FOUND(HttpStatus.NOT_FOUND, "Rubric criterion not found"),
+    CRITERION_TYPE_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "This criterion type is not available yet"),
+    RUBRIC_LOCKED(HttpStatus.CONFLICT, "The assignment has submissions, so its rubric can no longer be changed"),
+    CRITERION_HAS_TESTS(
+            HttpStatus.CONFLICT, "The criterion has test cases and cannot be deleted; delete its tests first"),
     UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, "The language is not supported"),
     DEADLINE_NOT_IN_FUTURE(HttpStatus.BAD_REQUEST, "The deadline must be in the future");
 

@@ -183,13 +183,8 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     Role.TEACHER,
                     Role.ADMIN),
             // Tests, in full including hidden ones, for the people who run the course (RealHttpTestCaseTests).
-            Endpoint.rolesOnly(
-                    "GET",
-                    "/assignments/{assignmentId}/tests",
-                    "/assignments/987654321/tests",
-                    "{}",
-                    Role.TEACHER,
-                    Role.ADMIN),
+            // Anyone signed in may ask; the role picks the full or the masked shape (RealHttpStudentTestViewTests).
+            Endpoint.signedIn("GET", "/assignments/{assignmentId}/tests", "/assignments/987654321/tests"),
             Endpoint.rolesOnly(
                     "POST",
                     "/assignments/{assignmentId}/tests",

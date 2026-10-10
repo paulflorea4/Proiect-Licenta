@@ -12,9 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The test cases of an assignment (3.5a). Only the people who manage the assignment's course
- * (owning teacher, admin) can read or change them; anyone else gets the "assignment not found" of
- * an id that does not exist. Students never reach this service: their shape (3.5b) masks hidden
- * tests and is built elsewhere.
+ * (owning teacher, admin) can change them or read them in full; anyone else gets the "assignment
+ * not found" of an id that does not exist. A student can read the list of a published assignment of
+ * a course they are in, but only through {@code StudentTestCasesResponse}, which masks hidden tests
+ * (3.5b); the writes are never theirs.
  *
  * <p>Every test belongs to a {@code TESTS} criterion of the same assignment. A test can only be
  * added, changed or deleted on a draft ({@link AssignmentPublishedException}) that nobody has
@@ -36,13 +37,22 @@ public class TestCaseService {
     }
 
     /**
-     * The assignment's tests in run order.
+     * The assignment's tests in run order, as entities: the caller must map them for the role
+     * (full for the people who run the course, masked for a student).
      *
-     * @throws AssignmentNotFoundException if there is no such assignment or the user may not manage it
+     * <p>A teacher or admin must manage the assignment's course; a student must be able to see the
+     * assignment, which means they are enrolled and it is published. Whoever may not gets the
+     * "assignment not found" of an id that does not exist.
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
      */
     @Transactional(readOnly = true)
     public List<TestCase> list(long userId, Role role, long assignmentId) {
-        assignmentService.requireManageable(userId, role, assignmentId);
+        if (role == Role.STUDENT) {
+            assignmentService.getVisibleTo(userId, role, assignmentId);
+        } else {
+            assignmentService.requireManageable(userId, role, assignmentId);
+        }
         return tests.findByAssignmentIdOrderByPositionAscIdAsc(assignmentId);
     }
 

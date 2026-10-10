@@ -588,11 +588,10 @@ class RealHttpTestCaseTests extends RealHttpTestBase {
     }
 
     @Test
-    void studentsAreRefusedOnEveryEndpointEvenWhenPublishedAndEnrolled() throws Exception {
+    void studentsAreRefusedEveryWriteEvenWhenPublishedAndEnrolled() throws Exception {
         TestCase t = test(assignment, criterion, "t", 1);
         publishBySql(assignment);
 
-        assertThat(listTests(student, assignment).statusCode()).isEqualTo(403);
         assertThat(add(student, assignment, body()).statusCode()).isEqualTo(403);
         assertThat(replace(student, assignment, t.getId(), body()).statusCode()).isEqualTo(403);
         assertThat(remove(student, assignment, t.getId()).statusCode()).isEqualTo(403);

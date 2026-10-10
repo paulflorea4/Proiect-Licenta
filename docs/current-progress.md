@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.5a done)
-- Next commit: 3.5b — Student-facing DTO for tests: hidden tests have name masked, input and expected output absent
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.5b done)
+- Next commit: 3.6a — Authorization matrix tests: owner / other teacher / enrolled student / non-enrolled student / admin across every Phase 3 endpoint
 - In progress: —
-- Blocked: PR #72 (commit 3.5a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #73 (commit 3.5b) awaiting review — checked just after opening, no response yet.

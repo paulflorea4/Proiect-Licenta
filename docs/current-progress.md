@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.3c done)
-- Next commit: 3.4a — Rubric criteria CRUD: `POST/PUT/DELETE /assignments/{id}/rubric`
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.4a done)
+- Next commit: 3.4b — Rubric validation: weights sum to 100 before an assignment can be published
 - In progress: —
-- Blocked: PR #69 (commit 3.3c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #70 (commit 3.4a) awaiting review — checked just after opening, no response yet.

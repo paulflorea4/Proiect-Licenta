@@ -1,8 +1,11 @@
 package com.gradingplatform.backend.controller;
 
+import com.gradingplatform.backend.dto.StudentTestCasesResponse;
 import com.gradingplatform.backend.dto.TestCaseRequest;
 import com.gradingplatform.backend.dto.TestCaseResponse;
 import com.gradingplatform.backend.dto.TestCasesResponse;
+import com.gradingplatform.backend.dto.TestListResponse;
+import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.security.AuthenticatedUser;
 import com.gradingplatform.backend.service.TestCaseService;
 import jakarta.validation.Valid;
@@ -20,9 +23,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * The test cases of an assignment, in full (hidden tests included), for the people who run its
- * course (owning teacher, admin). Students are refused by role; another teacher gets the 404 of an
- * assignment that does not exist. What students see of the tests is a separate shape (3.5b).
+ * The test cases of an assignment. The writes, and the list in full (hidden tests included), are
+ * for the people who run its course (owning teacher, admin); students are refused the writes by
+ * role and get a masked list (3.5b). Another teacher gets the 404 of an assignment that does not
+ * exist.
  */
 @RestController
 @RequestMapping("/assignments/{assignmentId}/tests")
@@ -34,12 +38,17 @@ public class TestCaseController {
         this.testCaseService = testCaseService;
     }
 
-    /** The tests in run order. */
+    /**
+     * The tests in run order. The token's role picks the shape: the teacher or admin who runs the
+     * course gets every test in full, a student of a course they are in gets a published
+     * assignment's tests with the hidden ones masked (no name, input or expected output), and
+     * everyone else the 404 of an assignment that does not exist.
+     */
     @GetMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    public TestCasesResponse list(
+    public TestListResponse list(
             @AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long assignmentId) {
-        return TestCasesResponse.of(testCaseService.list(principal.id(), principal.role(), assignmentId));
+        var tests = testCaseService.list(principal.id(), principal.role(), assignmentId);
+        return principal.role() == Role.STUDENT ? StudentTestCasesResponse.of(tests) : TestCasesResponse.of(tests);
     }
 
     /** Adds a test. Only on a draft with no submissions (409 otherwise). */

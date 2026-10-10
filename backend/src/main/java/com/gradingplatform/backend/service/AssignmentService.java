@@ -7,6 +7,8 @@ import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.repository.AssignmentRepository;
 import java.time.Clock;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,5 +69,34 @@ public class AssignmentService {
             }
             throw e;
         }
+    }
+
+    /**
+     * One page of a course's assignments, in id order: all of them for a teacher or admin who can
+     * see the course, only the published ones for a student.
+     *
+     * @throws CourseNotFoundException if there is no such course or the user may not see it
+     */
+    @Transactional(readOnly = true)
+    public Page<Assignment> listIn(long userId, Role role, long courseId, Pageable pageable) {
+        access.requireViewable(userId, role, courseId);
+        return role == Role.STUDENT
+                ? assignments.findByCourseIdAndPublishedTrue(courseId, pageable)
+                : assignments.findByCourseId(courseId, pageable);
+    }
+
+    /**
+     * One assignment, if this user may see it: its course must be visible to them and, for a
+     * student, it must be published.
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
+     */
+    @Transactional(readOnly = true)
+    public Assignment getVisibleTo(long userId, Role role, long assignmentId) {
+        return assignments
+                .findById(assignmentId)
+                .filter(a -> access.canView(userId, role, a.getCourseId()))
+                .filter(a -> access.canViewAssignment(role, a))
+                .orElseThrow(AssignmentNotFoundException::new);
     }
 }

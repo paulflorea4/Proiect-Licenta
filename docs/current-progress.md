@@ -1,4 +1,4 @@
-- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.4a done)
-- Next commit: 3.4b — Rubric validation: weights sum to 100 before an assignment can be published
+- Phase: Phase 3 — `docs/tasks/tasks-phase-03.md` (3.4b done)
+- Next commit: 3.5a — Test case CRUD: `POST/PUT/DELETE /assignments/{id}/tests`
 - In progress: —
-- Blocked: PR #70 (commit 3.4a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #71 (commit 3.4b) awaiting review — checked just after opening, no response yet. Open question in the PR: block rubric/test edits while published (option A/B) — decide before 3.5a.

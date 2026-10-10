@@ -24,11 +24,17 @@ public class AssignmentService {
     private final AssignmentRepository assignments;
     private final CourseAccess access;
     private final AssignmentProperties properties;
+    private final PublishRules publishRules;
     private final Clock clock;
 
     public AssignmentService(
-            AssignmentRepository assignments, CourseAccess access, AssignmentProperties properties, Clock clock) {
+            AssignmentRepository assignments,
+            CourseAccess access,
+            AssignmentProperties properties,
+            PublishRules publishRules,
+            Clock clock) {
         this.assignments = assignments;
+        this.publishRules = publishRules;
         this.access = access;
         this.properties = properties;
         this.clock = clock;
@@ -145,14 +151,21 @@ public class AssignmentService {
 
     /**
      * Makes the assignment visible to students ({@code true}) or hides it again ({@code false}).
-     * Setting the state it already has changes nothing. Same access rules as {@link #update}.
+     * Setting the state it already has changes nothing, and checks nothing. Publishing a draft
+     * needs a rubric that passes {@link PublishRules}; hiding never does. Same access rules as
+     * {@link #update}.
      *
      * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
+     * @throws RubricWeightsInvalidException if publishing and the rubric weights do not add up to 100
+     * @throws CriterionHasNoTestsException if publishing and a `TESTS` criterion has no test case
      */
     @Transactional
     public Assignment setPublished(long userId, Role role, long assignmentId, boolean published) {
         Assignment assignment = lockManageable(userId, role, assignmentId);
         if (assignment.isPublished() != published) {
+            if (published) {
+                publishRules.requirePublishable(assignmentId);
+            }
             assignment.setPublished(published, now());
         }
         return assignments.saveAndFlush(assignment);

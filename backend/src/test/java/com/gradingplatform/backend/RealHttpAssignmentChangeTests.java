@@ -129,6 +129,7 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
                 studentId);
     }
 
+    /** A rubric that can be published: one `TESTS` criterion worth 100 with one test case. */
     private long addCriterionWithTest() {
         long criterionId = jdbc.queryForObject(
                 "insert into rubric_criteria (assignment_id, name, type, weight) values (?, 'Tests', 'TESTS', 100) "
@@ -340,6 +341,7 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
 
     @Test
     void publishingShowsTheAssignmentToStudentsAndUnpublishingHidesIt() throws Exception {
+        addCriterionWithTest();
         String studentToken = tokenFor(student);
         assertThat(get(path(), studentToken).statusCode()).isEqualTo(404);
 
@@ -359,6 +361,7 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
 
     @Test
     void publishingTwiceAndUnpublishingADraftAreNoOps() throws Exception {
+        addCriterionWithTest();
         assertThat(unpublish(owner).statusCode()).isEqualTo(200);
         Instant untouched = stored().getUpdatedAt();
 
@@ -373,12 +376,14 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
 
     @Test
     void anAdminCanPublish() throws Exception {
+        addCriterionWithTest();
         assertThat(publish(admin).statusCode()).isEqualTo(200);
         assertThat(stored().isPublished()).isTrue();
     }
 
     @Test
     void anAssignmentWithSubmissionsCanStillBeHidden() throws Exception {
+        addCriterionWithTest();
         publish(owner);
         submit(student.getId());
 

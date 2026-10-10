@@ -44,6 +44,11 @@ public enum ErrorCode {
     RUBRIC_LOCKED(HttpStatus.CONFLICT, "The assignment has submissions, so its rubric can no longer be changed"),
     CRITERION_HAS_TESTS(
             HttpStatus.CONFLICT, "The criterion has test cases and cannot be deleted; delete its tests first"),
+    RUBRIC_WEIGHTS_INVALID(
+            HttpStatus.CONFLICT, "The rubric weights must add up to 100 before the assignment can be published"),
+    CRITERION_HAS_NO_TESTS(
+            HttpStatus.CONFLICT,
+            "Every tests criterion needs at least one test case before the assignment can be published"),
     UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, "The language is not supported"),
     DEADLINE_NOT_IN_FUTURE(HttpStatus.BAD_REQUEST, "The deadline must be in the future");
 

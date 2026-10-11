@@ -1,4 +1,4 @@
 - Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.1a done)
 - Next commit: 4.1b — Languages config file (image, compile command, run command, source file name) + loader
 - In progress: —
-- Blocked: PR for commit 4.1a awaiting review — checked just after opening, no response yet.
+- Blocked: PR #76 (commit 4.1a) awaiting review — checked just after opening, no response yet.

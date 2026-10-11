@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.2b done)
-- Next commit: 4.3a — `DockerCliSandboxRunner`: one container per run with the full restriction flags
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.3a done; row 4.6b added for the CI path filter)
+- Next commit: 4.3b — Wall-clock timeout: kill the container itself (`docker kill`), report `TIMEOUT`
 - In progress: —
-- Blocked: PR #79 (commit 4.2b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #80 (commit 4.3a) awaiting review — checked just after opening, no response yet.

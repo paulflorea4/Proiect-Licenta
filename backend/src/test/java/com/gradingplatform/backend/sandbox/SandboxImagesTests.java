@@ -5,10 +5,8 @@ import static com.gradingplatform.backend.sandbox.DockerCli.dockerWithInput;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gradingplatform.backend.TestcontainersConfiguration;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
-import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,32 +27,13 @@ import org.springframework.context.annotation.Import;
 @SpringBootTest
 class SandboxImagesTests {
 
-    private static final Duration BUILD = Duration.ofMinutes(10);
     private static final Duration RUN = Duration.ofSeconds(60);
-    private static final Path SANDBOX_DIR = Path.of("../infra/sandbox");
 
     @Autowired
     SandboxProperties languages;
 
-    private static Path dockerfile(String id) {
-        return SANDBOX_DIR.resolve(id.toLowerCase(Locale.ROOT)).resolve("Dockerfile");
-    }
-
-    /** Builds the image of a language under its configured name (a cached no-op when nothing changed). */
     private String build(String id) {
-        LanguageSpec spec = languages.find(id).orElseThrow();
-        assertThat(dockerfile(id)).as("Dockerfile of " + id).isRegularFile();
-
-        DockerCli.Output built = docker(
-                BUILD,
-                "build",
-                "--quiet",
-                "--tag",
-                spec.image(),
-                dockerfile(id).getParent().toString());
-
-        assertThat(built.exitCode()).as(built.stderr()).isZero();
-        return spec.image();
+        return SandboxTestImages.ensureBuilt(languages, id);
     }
 
     /** Runs a shell script in the image as the image's own user, with no extra options. */
@@ -74,7 +53,7 @@ class SandboxImagesTests {
     @Test
     void theDockerfilesSitWhereTheLanguagesConfigNamesThem() {
         for (String id : languages.ids()) {
-            assertThat(dockerfile(id)).as(id).isRegularFile();
+            assertThat(SandboxTestImages.dockerfile(id)).as(id).isRegularFile();
         }
     }
 

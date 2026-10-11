@@ -3,8 +3,6 @@ package com.gradingplatform.backend.sandbox;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,16 +12,33 @@ import java.util.concurrent.TimeUnit;
  * Runs the {@code docker} command line (4.3a). Arguments are a list handed to {@link ProcessBuilder}
  * one by one: no shell is involved, so nothing in an argument is split, expanded or interpreted.
  *
- * <p>Output goes to temporary files rather than pipes, so a command that prints a lot can never
- * block on a full pipe while we wait for it (the output size cap is 4.3c).
+ * <p>Output is read continuously on two threads into a {@link BoundedCapture} each (4.3c): the
+ * command is never blocked by a full pipe, and no more than the output limit of either stream is
+ * ever held, however much it prints.
  */
 final class DockerCommand {
 
+    /** The output limit of commands that are not sandboxed programs (inspect, rm, build...). */
+    static final int DEFAULT_OUTPUT_LIMIT = 1024 * 1024;
+
+    /** How long the client gets to end after the timeout action ran, before it is destroyed. */
+    static final Duration AFTER_TIMEOUT = Duration.ofSeconds(15);
+
+    /** How long the output threads get to finish once the process has ended. */
+    private static final Duration READER_JOIN = Duration.ofSeconds(5);
+
     /**
      * What a finished command printed. {@code timedOut}: the deadline passed and the timeout action
-     * ran; the output is whatever was printed until the command ended.
+     * ran; the output is whatever was printed until the command ended. A {@code ...Truncated} flag
+     * means that stream had more than the limit and the text is only its beginning.
      */
-    record Result(int exitCode, String stdout, String stderr, boolean timedOut) {}
+    record Result(
+            int exitCode,
+            String stdout,
+            String stderr,
+            boolean stdoutTruncated,
+            boolean stderrTruncated,
+            boolean timedOut) {}
 
     /** The command did not finish in time (and was killed) or could not be started. */
     static final class DockerCommandException extends RuntimeException {
@@ -34,12 +49,14 @@ final class DockerCommand {
 
     private DockerCommand() {}
 
-    /** How long the client gets to end after the timeout action ran, before it is destroyed. */
-    static final Duration AFTER_TIMEOUT = Duration.ofSeconds(15);
-
     /** Runs a command that must finish in time: otherwise the client is destroyed and this throws. */
     static Result run(Duration timeout, String stdin, List<String> dockerArguments) {
-        return run(timeout, stdin, dockerArguments, null);
+        return run(timeout, stdin, dockerArguments, null, DEFAULT_OUTPUT_LIMIT);
+    }
+
+    /** Same, with a timeout action (see below) and the default output limit. */
+    static Result run(Duration timeout, String stdin, List<String> dockerArguments, Runnable onTimeout) {
+        return run(timeout, stdin, dockerArguments, onTimeout, DEFAULT_OUTPUT_LIMIT);
     }
 
     /**
@@ -47,21 +64,22 @@ final class DockerCommand {
      * the action runs (it must stop what the command started, e.g. {@code docker kill}), the client
      * is given {@link #AFTER_TIMEOUT} to end and the result is flagged {@code timedOut}; without one,
      * the client is destroyed and this throws. Killing only the client would leave a container running.
+     *
+     * @param outputLimitBytes the most of stdout, and of stderr, that is kept
      */
-    static Result run(Duration timeout, String stdin, List<String> dockerArguments, Runnable onTimeout) {
+    static Result run(
+            Duration timeout, String stdin, List<String> dockerArguments, Runnable onTimeout, int outputLimitBytes) {
         List<String> command = new ArrayList<>();
         command.add("docker");
         command.addAll(dockerArguments);
-        Path out = null;
-        Path err = null;
         try {
-            out = Files.createTempFile("docker-out", ".txt");
-            err = Files.createTempFile("docker-err", ".txt");
-            Process process = new ProcessBuilder(command)
-                    .redirectOutput(out.toFile())
-                    .redirectError(err.toFile())
-                    .start();
+            Process process = new ProcessBuilder(command).start();
+            BoundedCapture stdout = new BoundedCapture(process.getInputStream(), outputLimitBytes);
+            BoundedCapture stderr = new BoundedCapture(process.getErrorStream(), outputLimitBytes);
+            Thread stdoutReader = start(stdout, "docker-stdout");
+            Thread stderrReader = start(stderr, "docker-stderr");
             feed(process, stdin);
+
             boolean timedOut = false;
             if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
                 if (onTimeout == null) {
@@ -80,20 +98,28 @@ final class DockerCommand {
                     }
                 }
             }
+            stdoutReader.join(READER_JOIN.toMillis());
+            stderrReader.join(READER_JOIN.toMillis());
             return new Result(
                     process.isAlive() ? -1 : process.exitValue(),
-                    Files.readString(out, StandardCharsets.UTF_8),
-                    Files.readString(err, StandardCharsets.UTF_8),
+                    stdout.text(),
+                    stderr.text(),
+                    stdout.truncated(),
+                    stderr.truncated(),
                     timedOut);
         } catch (IOException e) {
             throw new DockerCommandException("could not run docker " + dockerArguments.get(0), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new DockerCommandException("interrupted while waiting for docker " + dockerArguments.get(0), e);
-        } finally {
-            deleteQuietly(out);
-            deleteQuietly(err);
         }
+    }
+
+    private static Thread start(Runnable task, String name) {
+        Thread thread = new Thread(task, name);
+        thread.setDaemon(true);
+        thread.start();
+        return thread;
     }
 
     /**
@@ -114,15 +140,5 @@ final class DockerCommand {
                 "docker-stdin");
         writer.setDaemon(true);
         writer.start();
-    }
-
-    private static void deleteQuietly(Path file) {
-        if (file != null) {
-            try {
-                Files.deleteIfExists(file);
-            } catch (IOException ignored) {
-                // A leftover temp file is not worth failing a run for.
-            }
-        }
     }
 }

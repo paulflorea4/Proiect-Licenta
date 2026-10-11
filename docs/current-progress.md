@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.3b done; row 4.6b added for the CI path filter)
-- Next commit: 4.3c — Output size cap: truncate stdout/stderr at a named constant
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.3c done; row 4.6b added for the CI path filter)
+- Next commit: 4.3d — Guaranteed cleanup: containers and temp workdirs removed on success, failure and timeout
 - In progress: —
-- Blocked: PR #81 (commit 4.3b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #82 (commit 4.3c) awaiting review — checked just after opening, no response yet.

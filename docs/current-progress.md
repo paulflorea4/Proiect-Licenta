@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.2a done)
-- Next commit: 4.2b — Runner images: `infra/sandbox/java/Dockerfile` and `infra/sandbox/python/Dockerfile`
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.2b done)
+- Next commit: 4.3a — `DockerCliSandboxRunner`: one container per run with the full restriction flags
 - In progress: —
-- Blocked: PR #78 (commit 4.2a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #79 (commit 4.2b) awaiting review — checked just after opening, no response yet.

@@ -1,4 +1,4 @@
 - Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.1b done; next row is the 4.2a GATE)
 - Next commit: 4.2a — GATE: confirm Docker is installed and approve the base images for the Java and Python runners
 - In progress: —
-- Blocked: PR for commit 4.1b awaiting review — checked just after opening, no response yet.
+- Blocked: PR #77 (commit 4.1b) awaiting review — checked just after opening, no response yet.

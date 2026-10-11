@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.gradingplatform.backend.TestcontainersConfiguration;
-import com.gradingplatform.backend.config.AssignmentProperties;
 import com.gradingplatform.backend.dto.AssignmentRequest;
 import com.gradingplatform.backend.entity.Assignment;
 import com.gradingplatform.backend.entity.Course;
@@ -15,10 +14,11 @@ import com.gradingplatform.backend.repository.AssignmentRepository;
 import com.gradingplatform.backend.repository.CourseRepository;
 import com.gradingplatform.backend.repository.EnrollmentRepository;
 import com.gradingplatform.backend.repository.UserRepository;
+import com.gradingplatform.backend.sandbox.SandboxProperties;
+import com.gradingplatform.backend.sandbox.TestLanguages;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ class AssignmentServiceTests {
     @Autowired
     UserRepository users;
 
-    private final AssignmentProperties properties = new AssignmentProperties(List.of("JAVA", "PYTHON"));
+    private final SandboxProperties properties = TestLanguages.javaAndPython();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private User teacher;

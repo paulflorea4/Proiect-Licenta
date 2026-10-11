@@ -1,10 +1,10 @@
 package com.gradingplatform.backend.service;
 
-import com.gradingplatform.backend.config.AssignmentProperties;
 import com.gradingplatform.backend.dto.AssignmentRequest;
 import com.gradingplatform.backend.entity.Assignment;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.repository.AssignmentRepository;
+import com.gradingplatform.backend.sandbox.SandboxProperties;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -24,14 +24,14 @@ public class AssignmentService {
 
     private final AssignmentRepository assignments;
     private final CourseAccess access;
-    private final AssignmentProperties properties;
+    private final SandboxProperties properties;
     private final PublishRules publishRules;
     private final Clock clock;
 
     public AssignmentService(
             AssignmentRepository assignments,
             CourseAccess access,
-            AssignmentProperties properties,
+            SandboxProperties properties,
             PublishRules publishRules,
             Clock clock) {
         this.assignments = assignments;
@@ -64,7 +64,7 @@ public class AssignmentService {
                 courseId,
                 request.title(),
                 request.description(),
-                AssignmentProperties.normalize(request.language()),
+                SandboxProperties.normalize(request.language()),
                 request.deadline(),
                 request.maxAttempts(),
                 request.timeLimitMs(),
@@ -125,7 +125,7 @@ public class AssignmentService {
     @Transactional
     public Assignment update(long userId, Role role, long assignmentId, AssignmentRequest request) {
         Assignment assignment = lockManageable(userId, role, assignmentId);
-        String language = AssignmentProperties.normalize(request.language());
+        String language = SandboxProperties.normalize(request.language());
         boolean languageChanged = !language.equals(assignment.getLanguage());
         if (languageChanged && !properties.supports(request.language())) {
             throw new UnsupportedLanguageException();

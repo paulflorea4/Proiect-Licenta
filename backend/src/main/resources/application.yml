@@ -20,7 +20,7 @@ jwt:
 # A new language is a new entry here plus an image under infra/sandbox/ - no code changes. The key is
 # the language id (upper-case). Commands are argument lists, not shell strings; they run in the
 # container's working directory, where `source-file-name` is written. Java: the file name must match the
-# public class (`Main`). The image names are placeholders until the images exist (4.2a, 4.2b).
+# public class (`Main`). Each image is built from infra/sandbox/<language> under the name given here (4.2b).
 sandbox:
   languages:
     JAVA:

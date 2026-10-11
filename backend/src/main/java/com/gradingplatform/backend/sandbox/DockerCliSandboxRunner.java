@@ -28,11 +28,15 @@ import org.springframework.stereotype.Component;
  * a container named by us; the container is inspected for its exit code and then always removed.
  * The container is not started with {@code --rm}: 4.5a needs {@code docker inspect} after it exits.
  *
- * <p>Still to come, row by row: the wall-clock timeout that kills the container and reports
- * {@code TIMEOUT} (4.3b), the output size cap (4.3c), guaranteed cleanup of the directory and a test
- * that counts leftovers (4.3d), the Java compile step (4.4b) and mapping of out-of-memory and kills
- * (4.5a). <b>Until 4.3b this must not be wired to anything that takes a student's code:</b> the only
- * bound on a run is {@link #SAFETY_CEILING}, a safety net and not the assignment's time limit.
+ * <p>Wall-clock timeout (4.3b): a run gets the request's time limit plus {@link #START_GRACE}; when
+ * that passes the <em>container</em> is killed ({@code docker kill}: stopping only the client process
+ * would leave the program running) and the result is {@link SandboxStatus#TIMEOUT} with whatever was
+ * printed until then.
+ *
+ * <p>Still to come, row by row: the output size cap (4.3c), guaranteed cleanup of the directory and a
+ * test that counts leftovers (4.3d), the Java compile step (4.4b) and mapping of out-of-memory and
+ * kills (4.5a). <b>Until 4.3c this must not be wired to anything that takes a student's code:</b> a
+ * program that prints without end fills the disk for as long as the time limit lasts.
  *
  * <p>The text of a {@link SandboxStatus#SANDBOX_ERROR} result is for logs: it never goes to a student.
  */
@@ -41,8 +45,17 @@ public class DockerCliSandboxRunner implements SandboxRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DockerCliSandboxRunner.class);
 
-    /** The longest any single run may take whatever the request says; replaced by 4.3b. */
-    static final Duration SAFETY_CEILING = Duration.ofMinutes(10);
+    /**
+     * Added to the request's time limit before a run is killed: starting a container takes time
+     * that is the platform's, not the program's. Placeholder, pending the human's tuning. A program
+     * that overruns by less than this is not stopped (its reported runtime shows it).
+     */
+    static final Duration START_GRACE = Duration.ofSeconds(2);
+
+    /** How often, and for how long, a kill is retried while the container does not exist yet. */
+    private static final int KILL_ATTEMPTS = 20;
+
+    private static final long KILL_RETRY_MILLIS = 250;
 
     /** For the short housekeeping commands (inspect, rm). */
     static final Duration HOUSEKEEPING = Duration.ofSeconds(60);
@@ -117,9 +130,14 @@ public class DockerCliSandboxRunner implements SandboxRunner {
         arguments.add("run");
         arguments.addAll(DockerRunArguments.build(name, spec.image(), hostDirectory, writable, limits, command));
         long started = System.nanoTime();
+        Duration deadline = Duration.ofMillis(limits.timeLimitMs()).plus(START_GRACE);
         try {
-            DockerCommand.Result run = DockerCommand.run(SAFETY_CEILING, stdin, arguments);
+            DockerCommand.Result run = DockerCommand.run(deadline, stdin, arguments, () -> killContainer(name));
             Duration runtime = Duration.ofNanos(System.nanoTime() - started);
+            if (run.timedOut()) {
+                return new SandboxResult(
+                        SandboxStatus.TIMEOUT, null, run.stdout(), run.stderr(), false, false, runtime);
+            }
             // `docker run` itself exits 125-127 for its own failures, which a program can also
             // return; the container's recorded exit code tells them apart (no container: the
             // sandbox failed, say because the image is missing).
@@ -139,6 +157,32 @@ public class DockerCliSandboxRunner implements SandboxRunner {
         } finally {
             removeContainer(name);
         }
+    }
+
+    /**
+     * Kills the container itself. If it does not exist yet (the deadline fired while Docker was still
+     * creating it) the kill is retried for a few seconds; the removal afterwards catches any remainder.
+     */
+    private void killContainer(String containerName) {
+        for (int attempt = 0; attempt < KILL_ATTEMPTS; attempt++) {
+            DockerCommand.Result killed = DockerCommand.run(HOUSEKEEPING, "", List.of("kill", containerName));
+            if (killed.exitCode() == 0 || !killed.stderr().contains("No such container")) {
+                if (killed.exitCode() != 0 && !killed.stderr().contains("is not running")) {
+                    log.warn(
+                            "could not kill container {}: {}",
+                            containerName,
+                            killed.stderr().strip());
+                }
+                return;
+            }
+            try {
+                Thread.sleep(KILL_RETRY_MILLIS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+        log.warn("container {} did not appear to be killed", containerName);
     }
 
     private Integer recordedExitCode(String containerName) {

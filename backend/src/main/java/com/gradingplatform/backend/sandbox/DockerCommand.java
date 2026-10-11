@@ -19,8 +19,11 @@ import java.util.concurrent.TimeUnit;
  */
 final class DockerCommand {
 
-    /** What a finished command printed. */
-    record Result(int exitCode, String stdout, String stderr) {}
+    /**
+     * What a finished command printed. {@code timedOut}: the deadline passed and the timeout action
+     * ran; the output is whatever was printed until the command ended.
+     */
+    record Result(int exitCode, String stdout, String stderr, boolean timedOut) {}
 
     /** The command did not finish in time (and was killed) or could not be started. */
     static final class DockerCommandException extends RuntimeException {
@@ -31,7 +34,21 @@ final class DockerCommand {
 
     private DockerCommand() {}
 
+    /** How long the client gets to end after the timeout action ran, before it is destroyed. */
+    static final Duration AFTER_TIMEOUT = Duration.ofSeconds(15);
+
+    /** Runs a command that must finish in time: otherwise the client is destroyed and this throws. */
     static Result run(Duration timeout, String stdin, List<String> dockerArguments) {
+        return run(timeout, stdin, dockerArguments, null);
+    }
+
+    /**
+     * Runs a command. When it does not finish in {@code timeout}: with an {@code onTimeout} action,
+     * the action runs (it must stop what the command started, e.g. {@code docker kill}), the client
+     * is given {@link #AFTER_TIMEOUT} to end and the result is flagged {@code timedOut}; without one,
+     * the client is destroyed and this throws. Killing only the client would leave a container running.
+     */
+    static Result run(Duration timeout, String stdin, List<String> dockerArguments, Runnable onTimeout) {
         List<String> command = new ArrayList<>();
         command.add("docker");
         command.addAll(dockerArguments);
@@ -45,15 +62,29 @@ final class DockerCommand {
                     .redirectError(err.toFile())
                     .start();
             feed(process, stdin);
+            boolean timedOut = false;
             if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
-                process.destroyForcibly();
-                throw new DockerCommandException(
-                        "docker " + dockerArguments.get(0) + " did not finish in " + timeout, null);
+                if (onTimeout == null) {
+                    process.destroyForcibly();
+                    throw new DockerCommandException(
+                            "docker " + dockerArguments.get(0) + " did not finish in " + timeout, null);
+                }
+                timedOut = true;
+                try {
+                    onTimeout.run();
+                } finally {
+                    // Normally the client ends by itself once its container is gone.
+                    if (!process.waitFor(AFTER_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+                        process.destroyForcibly();
+                        process.waitFor(AFTER_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+                    }
+                }
             }
             return new Result(
-                    process.exitValue(),
+                    process.isAlive() ? -1 : process.exitValue(),
                     Files.readString(out, StandardCharsets.UTF_8),
-                    Files.readString(err, StandardCharsets.UTF_8));
+                    Files.readString(err, StandardCharsets.UTF_8),
+                    timedOut);
         } catch (IOException e) {
             throw new DockerCommandException("could not run docker " + dockerArguments.get(0), e);
         } catch (InterruptedException e) {

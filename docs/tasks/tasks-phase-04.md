@@ -2,7 +2,7 @@
 
 | Commit | Task | Status | Notes |
 | --- | --- | --- | --- |
-| 4.1a | `SandboxRunner` interface + request/result types (language, source files, stdin, limits → status, exit code, stdout, stderr, runtime) | Not started | Pure Java, no Docker yet. Everything above this layer (Phase 5) codes against the interface, so a different runner can be swapped in later. |
+| 4.1a | `SandboxRunner` interface + request/result types (language, source files, stdin, limits → status, exit code, stdout, stderr, runtime) | Done | Pure Java, no Docker yet. Everything above this layer (Phase 5) codes against the interface, so a different runner can be swapped in later. |
 | 4.1b | Languages config file (image, compile command, run command, source file name) + loader | Not started | Java 17 and Python 3.12 entries; image names are placeholders until the 4.2a gate fixes them. Adding a language must be a config entry plus an image — no `if (language == ...)` anywhere. 3.3a validates assignment languages against a stand-in list, `assignments.languages` in `application.yml` read by `config/AssignmentProperties`: make the real config the source of that list and remove the stand-in. |
 | 4.2a | **GATE** — confirm Docker is installed and approve the base images for the Java and Python runners | Not started | Docker and base images are external software; stop and ask which images the human wants (e.g. a JDK image and a slim Python image). |
 | 4.2b | Runner images: `infra/sandbox/java/Dockerfile` and `infra/sandbox/python/Dockerfile` | Not started | Non-root user, no extra tooling beyond what compile/run needs. Blocked on 4.2a. |

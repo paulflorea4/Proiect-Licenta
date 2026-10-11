@@ -33,10 +33,12 @@ import org.springframework.stereotype.Component;
  * would leave the program running) and the result is {@link SandboxStatus#TIMEOUT} with whatever was
  * printed until then.
  *
- * <p>Still to come, row by row: the output size cap (4.3c), guaranteed cleanup of the directory and a
- * test that counts leftovers (4.3d), the Java compile step (4.4b) and mapping of out-of-memory and
- * kills (4.5a). <b>Until 4.3c this must not be wired to anything that takes a student's code:</b> a
- * program that prints without end fills the disk for as long as the time limit lasts.
+ * <p>Output cap (4.3c): at most {@link #OUTPUT_LIMIT_BYTES} of stdout, and as much of stderr, is kept;
+ * the rest is read and thrown away while the program runs, so neither memory nor disk grows with what
+ * it prints, and the result's {@code ...Truncated} flag says that output was cut.
+ *
+ * <p>Still to come, row by row: guaranteed cleanup of the directory and a test that counts leftovers
+ * (4.3d), the Java compile step (4.4b) and mapping of out-of-memory and kills (4.5a).
  *
  * <p>The text of a {@link SandboxStatus#SANDBOX_ERROR} result is for logs: it never goes to a student.
  */
@@ -56,6 +58,13 @@ public class DockerCliSandboxRunner implements SandboxRunner {
     private static final int KILL_ATTEMPTS = 20;
 
     private static final long KILL_RETRY_MILLIS = 250;
+
+    /**
+     * The most of a program's stdout, and of its stderr, that is kept. Placeholder, pending the human's
+     * tuning, and well above the 100000 characters a test case's expected output may have (4.1b/3.5a
+     * caps): a correct program must never be cut short by it. It bounds memory, not correctness.
+     */
+    static final int OUTPUT_LIMIT_BYTES = 1024 * 1024;
 
     /** For the short housekeeping commands (inspect, rm). */
     static final Duration HOUSEKEEPING = Duration.ofSeconds(60);
@@ -132,11 +141,18 @@ public class DockerCliSandboxRunner implements SandboxRunner {
         long started = System.nanoTime();
         Duration deadline = Duration.ofMillis(limits.timeLimitMs()).plus(START_GRACE);
         try {
-            DockerCommand.Result run = DockerCommand.run(deadline, stdin, arguments, () -> killContainer(name));
+            DockerCommand.Result run =
+                    DockerCommand.run(deadline, stdin, arguments, () -> killContainer(name), OUTPUT_LIMIT_BYTES);
             Duration runtime = Duration.ofNanos(System.nanoTime() - started);
             if (run.timedOut()) {
                 return new SandboxResult(
-                        SandboxStatus.TIMEOUT, null, run.stdout(), run.stderr(), false, false, runtime);
+                        SandboxStatus.TIMEOUT,
+                        null,
+                        run.stdout(),
+                        run.stderr(),
+                        run.stdoutTruncated(),
+                        run.stderrTruncated(),
+                        runtime);
             }
             // `docker run` itself exits 125-127 for its own failures, which a program can also
             // return; the container's recorded exit code tells them apart (no container: the
@@ -150,7 +166,14 @@ public class DockerCliSandboxRunner implements SandboxRunner {
                 return sandboxError("the container could not be run", runtime);
             }
             SandboxStatus status = exitCode == 0 ? SandboxStatus.OK : SandboxStatus.RUNTIME_ERROR;
-            return new SandboxResult(status, exitCode, run.stdout(), run.stderr(), false, false, runtime);
+            return new SandboxResult(
+                    status,
+                    exitCode,
+                    run.stdout(),
+                    run.stderr(),
+                    run.stdoutTruncated(),
+                    run.stderrTruncated(),
+                    runtime);
         } catch (DockerCommand.DockerCommandException e) {
             log.warn("docker failed for container {}: {}", name, e.getMessage());
             return sandboxError("docker failed", Duration.ofNanos(System.nanoTime() - started));

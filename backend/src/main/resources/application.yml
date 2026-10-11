@@ -16,11 +16,22 @@ spring:
 jwt:
   expiration: 24h
 
-# Languages an assignment may use (3.3a). A stand-in: 4.1b's languages config replaces this list.
-assignments:
+# The languages the sandbox runs, and the only list of languages an assignment may use (4.1b).
+# A new language is a new entry here plus an image under infra/sandbox/ - no code changes. The key is
+# the language id (upper-case). Commands are argument lists, not shell strings; they run in the
+# container's working directory, where `source-file-name` is written. Java: the file name must match the
+# public class (`Main`). The image names are placeholders until the images exist (4.2a, 4.2b).
+sandbox:
   languages:
-    - JAVA
-    - PYTHON
+    JAVA:
+      image: grading-sandbox-java:dev
+      source-file-name: Main.java
+      compile-command: [javac, -encoding, UTF-8, Main.java]
+      run-command: [java, -cp, ., Main]
+    PYTHON:
+      image: grading-sandbox-python:dev
+      source-file-name: main.py
+      run-command: [python, main.py]
 
 # Datasource: the SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD environment variables bind
 # straight to spring.datasource.* (relaxed binding, see backend/.env.example) and always win over

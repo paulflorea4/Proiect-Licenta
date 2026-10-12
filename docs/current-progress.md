@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.3c done; row 4.6b added for the CI path filter)
-- Next commit: 4.3d — Guaranteed cleanup: containers and temp workdirs removed on success, failure and timeout
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.3d done; row 4.6b added for the CI path filter)
+- Next commit: 4.4a — Run a Python submission end to end with one stdin/stdout test
 - In progress: —
-- Blocked: PR #82 (commit 4.3c) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #83 (commit 4.3d) awaiting review — checked just after opening, no response yet.

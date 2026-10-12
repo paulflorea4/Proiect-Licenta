@@ -72,8 +72,9 @@ final class DockerCommand {
         List<String> command = new ArrayList<>();
         command.add("docker");
         command.addAll(dockerArguments);
+        Process process = null;
         try {
-            Process process = new ProcessBuilder(command).start();
+            process = new ProcessBuilder(command).start();
             BoundedCapture stdout = new BoundedCapture(process.getInputStream(), outputLimitBytes);
             BoundedCapture stderr = new BoundedCapture(process.getErrorStream(), outputLimitBytes);
             Thread stdoutReader = start(stdout, "docker-stdout");
@@ -110,6 +111,8 @@ final class DockerCommand {
         } catch (IOException e) {
             throw new DockerCommandException("could not run docker " + dockerArguments.get(0), e);
         } catch (InterruptedException e) {
+            // The caller removes the container; the client must not outlive the call either.
+            process.destroyForcibly();
             Thread.currentThread().interrupt();
             throw new DockerCommandException("interrupted while waiting for docker " + dockerArguments.get(0), e);
         }

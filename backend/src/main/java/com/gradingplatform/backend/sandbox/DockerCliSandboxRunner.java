@@ -37,8 +37,13 @@ import org.springframework.stereotype.Component;
  * the rest is read and thrown away while the program runs, so neither memory nor disk grows with what
  * it prints, and the result's {@code ...Truncated} flag says that output was cut.
  *
- * <p>Still to come, row by row: guaranteed cleanup of the directory and a test that counts leftovers
- * (4.3d), the Java compile step (4.4b) and mapping of out-of-memory and kills (4.5a).
+ * <p>Cleanup (4.3d): the container is removed and the directory deleted in {@code finally} blocks, so
+ * they are gone after a success, a failing program, a timeout, a docker failure and an interrupted
+ * thread alike ({@code SandboxCleanupTests} counts what is left). A crash of the JVM itself cannot be
+ * covered here.
+ *
+ * <p>Still to come, row by row: the Java compile step (4.4b) and mapping of out-of-memory and kills
+ * (4.5a).
  *
  * <p>The text of a {@link SandboxStatus#SANDBOX_ERROR} result is for logs: it never goes to a student.
  */
@@ -221,8 +226,13 @@ public class DockerCliSandboxRunner implements SandboxRunner {
         }
     }
 
-    /** Always attempted, and never throws: a failed removal is logged, the result stands. */
+    /**
+     * Always attempted, and never throws: a failed removal is logged, the result stands. It also runs
+     * when the calling thread was interrupted (shutdown, cancellation): a set interrupt flag would make
+     * the wait for {@code docker rm} fail at once, so the flag is cleared for the removal and restored.
+     */
     private void removeContainer(String containerName) {
+        boolean interrupted = Thread.interrupted();
         try {
             DockerCommand.Result removed = DockerCommand.run(HOUSEKEEPING, "", List.of("rm", "--force", containerName));
             if (removed.exitCode() != 0 && !removed.stderr().contains("No such container")) {
@@ -233,6 +243,10 @@ public class DockerCliSandboxRunner implements SandboxRunner {
             }
         } catch (RuntimeException e) {
             log.warn("could not remove container {}: {}", containerName, e.getMessage());
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

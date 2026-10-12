@@ -48,8 +48,12 @@ import org.springframework.stereotype.Component;
  * {@link #sweepOrphans} removes what such a run left, and is called once at startup by
  * {@link SandboxStartupSweep}, before anything can start a run.
  *
- * <p>Still to come, row by row: the Java compile step (4.4b) and mapping of out-of-memory and kills
- * (4.5a).
+ * <p>Compile step (4.4b): for a language with a compile command, one writable container (with
+ * {@link #COMPILE_LIMITS}) builds into the run directory first; if that fails the result is
+ * {@link SandboxStatus#COMPILE_ERROR} with the compiler's output and no test container is started,
+ * otherwise every run (4.6a: each test) uses the built directory, mounted read-only.
+ *
+ * <p>Still to come, row by row: mapping of out-of-memory and kills (4.5a).
  *
  * <p>The text of a {@link SandboxStatus#SANDBOX_ERROR} result is for logs: it never goes to a student.
  */
@@ -77,6 +81,14 @@ public class DockerCliSandboxRunner implements SandboxRunner {
      */
     static final int OUTPUT_LIMIT_BYTES = 1024 * 1024;
 
+    /**
+     * Limits of the compile container (4.4b), which are the platform's and not the assignment's: a
+     * student's memory limit for the program (it may be 128 MB) is too little for {@code javac}.
+     * Placeholders, pending the human's tuning. Time and memory only; every other restriction of
+     * {@link DockerRunArguments} applies to the compile container unchanged.
+     */
+    static final ExecutionLimits COMPILE_LIMITS = new ExecutionLimits(30_000, 512);
+
     /** The name of every per-run directory under the work root, followed by what the JDK appends. */
     static final String RUN_DIRECTORY_PREFIX = "run-";
 
@@ -88,6 +100,7 @@ public class DockerCliSandboxRunner implements SandboxRunner {
 
     private final SandboxProperties languages;
     private final Path workRoot;
+    private final ExecutionLimits compileLimits;
 
     @Autowired
     public DockerCliSandboxRunner(SandboxProperties languages) {
@@ -96,7 +109,13 @@ public class DockerCliSandboxRunner implements SandboxRunner {
 
     /** @param workRoot where the per-run directories are created; created if missing */
     DockerCliSandboxRunner(SandboxProperties languages, Path workRoot) {
+        this(languages, workRoot, COMPILE_LIMITS);
+    }
+
+    /** @param compileLimits what the compile container may use; the tests of the compile step shrink it */
+    DockerCliSandboxRunner(SandboxProperties languages, Path workRoot, ExecutionLimits compileLimits) {
         this.languages = languages;
+        this.compileLimits = compileLimits;
         this.workRoot = workRoot.toAbsolutePath();
         // The path goes into `--mount type=bind,source=...`, where a comma ends the value.
         if (this.workRoot.toString().contains(",")) {
@@ -121,10 +140,6 @@ public class DockerCliSandboxRunner implements SandboxRunner {
             return sandboxError("language is not configured", Duration.ZERO);
         }
         LanguageSpec spec = found.get();
-        if (spec.isCompiled()) {
-            return sandboxError(
-                    "compiled languages are not supported until the compile step exists (4.4b)", Duration.ZERO);
-        }
         Path directory;
         try {
             directory = prepare(request.sourceFiles());
@@ -133,9 +148,47 @@ public class DockerCliSandboxRunner implements SandboxRunner {
             return sandboxError("could not prepare the working directory", Duration.ZERO);
         }
         try {
+            if (spec.isCompiled()) {
+                SandboxResult compiled =
+                        runInContainer(spec, compileLimits, directory, true, spec.compileCommand(), "");
+                if (compiled.status() != SandboxStatus.OK) {
+                    return compileFailure(compiled);
+                }
+            }
             return runInContainer(spec, request.limits(), directory, false, spec.runCommand(), request.stdin());
         } finally {
             deleteTree(directory);
+        }
+    }
+
+    /**
+     * The compile step did not succeed: the student's code does not build ({@code COMPILE_ERROR}, with the
+     * compiler's own output), unless the sandbox itself failed, which stays a {@code SANDBOX_ERROR}. A
+     * compiler that runs out of time is also the code's doing, and gets a fixed message because there is
+     * no output worth showing.
+     */
+    private static SandboxResult compileFailure(SandboxResult compiled) {
+        switch (compiled.status()) {
+            case SANDBOX_ERROR:
+                return compiled;
+            case TIMEOUT:
+                return new SandboxResult(
+                        SandboxStatus.COMPILE_ERROR,
+                        null,
+                        "",
+                        "Compilation took too long and was stopped.",
+                        false,
+                        false,
+                        compiled.runtime());
+            default:
+                return new SandboxResult(
+                        SandboxStatus.COMPILE_ERROR,
+                        compiled.exitCode(),
+                        compiled.stdout(),
+                        compiled.stderr(),
+                        compiled.stdoutTruncated(),
+                        compiled.stderrTruncated(),
+                        compiled.runtime());
         }
     }
 

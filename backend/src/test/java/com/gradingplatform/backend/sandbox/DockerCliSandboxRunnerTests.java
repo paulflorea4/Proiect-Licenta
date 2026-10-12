@@ -204,14 +204,6 @@ class DockerCliSandboxRunnerTests {
     }
 
     @Test
-    void aCompiledLanguageIsASandboxErrorUntilTheCompileStepExists() {
-        SandboxResult result = runner.run(
-                new SandboxRequest("JAVA", List.of(new SourceFile("Main.java", "class Main {}")), "", LIMITS));
-
-        assertThat(result.status()).isEqualTo(SandboxStatus.SANDBOX_ERROR);
-    }
-
-    @Test
     void aMissingImageIsASandboxErrorAndNothingIsLeftBehind() throws IOException {
         Map<String, LanguageSpec> map = new LinkedHashMap<>();
         map.put(

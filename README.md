@@ -27,6 +27,15 @@ Bring up the local Postgres database from `/infra`: copy `.env.example` to `.env
 
 Docker must also be installed and running on whatever machine runs the backend, because from Phase 4 on the backend starts one short-lived, network-less sandbox container per run to execute submissions.
 
+### Submission conventions (for teachers and students)
+
+Submitted code is compiled (Java) and run in a sandbox with no network, a read-only filesystem and the assignment's time and memory limits; tests send input on stdin and compare stdout.
+
+- **Java:** the source file is `Main.java` and the public class is `Main` (`public static void main(String[] args)`). Other classes may be in the same file or in extra files in the same directory; no `package` line. If the code does not compile, the submission is reported as a compile error with the compiler's own messages and no test is run. The time limit counts the JVM's start-up too.
+- **Python:** the entry point is `main.py`.
+
+The names come from `sandbox.languages` in `backend/src/main/resources/application.yml`.
+
 ### Environment variables
 
 Each service ships an `.env.example` (copy it to `.env` — `.env.local` for the frontend — and fill in real values; never commit the real file). Two values must agree across files: `AI_SERVICE_TOKEN` is the same secret in `backend/.env` and `ai-service/.env`, and the backend's `SPRING_DATASOURCE_*` values must match the database in `infra/.env`. How each service actually loads its file:

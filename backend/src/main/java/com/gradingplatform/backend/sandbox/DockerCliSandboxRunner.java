@@ -5,6 +5,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,10 @@ import org.springframework.stereotype.Component;
  * they are gone after a success, a failing program, a timeout, a docker failure and an interrupted
  * thread alike ({@code SandboxCleanupTests} counts what is left). A crash of the JVM itself cannot be
  * covered here.
+ *
+ * <p>Startup sweep (4.3e): when the JVM itself is killed or crashes, no {@code finally} runs.
+ * {@link #sweepOrphans} removes what such a run left, and is called once at startup by
+ * {@link SandboxStartupSweep}, before anything can start a run.
  *
  * <p>Still to come, row by row: the Java compile step (4.4b) and mapping of out-of-memory and kills
  * (4.5a).
@@ -70,6 +76,12 @@ public class DockerCliSandboxRunner implements SandboxRunner {
      * caps): a correct program must never be cut short by it. It bounds memory, not correctness.
      */
     static final int OUTPUT_LIMIT_BYTES = 1024 * 1024;
+
+    /** The name of every per-run directory under the work root, followed by what the JDK appends. */
+    static final String RUN_DIRECTORY_PREFIX = "run-";
+
+    /** What {@link #sweepOrphans} removed. */
+    record SweepResult(int containers, int directories) {}
 
     /** For the short housekeeping commands (inspect, rm). */
     static final Duration HOUSEKEEPING = Duration.ofSeconds(60);
@@ -188,6 +200,73 @@ public class DockerCliSandboxRunner implements SandboxRunner {
     }
 
     /**
+     * Removes what an earlier process left behind when it died mid-run (4.3e): every container with
+     * our label, running or not, and every {@code run-*} directory under the work root. Anything else
+     * in either place is left alone. <b>Only for a moment when no run of this process exists yet</b>
+     * (startup), and it assumes this is the only backend using the work root and the label (v1 runs one
+     * instance): with a second instance it would remove that instance's runs.
+     *
+     * <p>Never throws and never needs Docker: if Docker cannot be asked, the containers are skipped
+     * (logged) and the directories are still handled.
+     */
+    SweepResult sweepOrphans() {
+        return new SweepResult(sweepContainers(), sweepDirectories());
+    }
+
+    private int sweepContainers() {
+        List<String> ids;
+        try {
+            DockerCommand.Result listed = DockerCommand.run(
+                    HOUSEKEEPING,
+                    "",
+                    List.of("ps", "--all", "--quiet", "--no-trunc", "--filter", "label=" + DockerRunArguments.LABEL));
+            if (listed.exitCode() != 0) {
+                log.warn(
+                        "startup sweep: could not list sandbox containers: {}",
+                        listed.stderr().strip());
+                return 0;
+            }
+            ids = listed.stdout()
+                    .lines()
+                    .map(String::strip)
+                    .filter(id -> !id.isEmpty())
+                    .toList();
+        } catch (RuntimeException e) {
+            log.warn("startup sweep: could not list sandbox containers: {}", e.getMessage());
+            return 0;
+        }
+        for (String id : ids) {
+            removeContainer(id);
+        }
+        if (!ids.isEmpty()) {
+            log.warn(
+                    "startup sweep: removed {} sandbox container(s) left by an earlier run of the backend", ids.size());
+        }
+        return ids.size();
+    }
+
+    private int sweepDirectories() {
+        List<Path> orphans;
+        try (Stream<Path> entries = Files.list(workRoot)) {
+            orphans = entries.filter(path -> path.getFileName().toString().startsWith(RUN_DIRECTORY_PREFIX))
+                    .filter(path -> Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS))
+                    .toList();
+        } catch (IOException | RuntimeException e) {
+            log.warn("startup sweep: could not list {}: {}", workRoot, e.toString());
+            return 0;
+        }
+        for (Path orphan : orphans) {
+            deleteTree(orphan);
+        }
+        if (!orphans.isEmpty()) {
+            log.warn(
+                    "startup sweep: removed {} working director(ies) left by an earlier run of the backend",
+                    orphans.size());
+        }
+        return orphans.size();
+    }
+
+    /**
      * Kills the container itself. If it does not exist yet (the deadline fired while Docker was still
      * creating it) the kill is retried for a few seconds; the removal afterwards catches any remainder.
      */
@@ -252,7 +331,7 @@ public class DockerCliSandboxRunner implements SandboxRunner {
 
     /** A new directory for this run, with the source files in it, readable by the container's user. */
     Path prepare(List<SourceFile> files) throws IOException {
-        Path directory = Files.createTempDirectory(workRoot, "run-");
+        Path directory = Files.createTempDirectory(workRoot, RUN_DIRECTORY_PREFIX);
         try {
             // The container runs as a different user than the host's: a directory it must be able to
             // write (the compile step) has to be open to it. The parent is not, so other host users

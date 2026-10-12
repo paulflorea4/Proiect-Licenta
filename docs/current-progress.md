@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.3e done; row 4.6b added for the CI path filter)
-- Next commit: 4.4a — Run a Python submission end to end with one stdin/stdout test
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.4a done; row 4.6b added for the CI path filter)
+- Next commit: 4.4b — Java: compile step (`javac`), then run; compile errors as `COMPILE_ERROR`
 - In progress: —
-- Blocked: PR #85 (commit 4.3e) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #86 (commit 4.4a) awaiting review — checked just after opening, no response yet.

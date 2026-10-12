@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.3d done; row 4.6b added for the CI path filter)
-- Next commit: 4.4a — Run a Python submission end to end with one stdin/stdout test
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.3d done; rows 4.3e and 4.6b added at your request)
+- Next commit: 4.3e — Startup sweep of orphaned sandbox containers and run directories
 - In progress: —
-- Blocked: PR #83 (commit 4.3d) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #84 (docs only: adds row 4.3e) awaiting review — checked just after opening, no response yet. 4.3e itself starts once it is merged.

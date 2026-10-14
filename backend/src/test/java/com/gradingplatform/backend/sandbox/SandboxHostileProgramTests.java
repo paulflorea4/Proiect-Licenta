@@ -292,8 +292,9 @@ class SandboxHostileProgramTests {
     }
 
     @Test
-    void aForkBombThatKeepsTryingIsKilledAndReportedAsATimeout() {
-        // Every process, children included, forks again and ignores the refusals.
+    void aForkBombThatKeepsTryingIsKilledByTheClockOrByMemory() {
+        // Every process, children included, forks again and ignores the refusals. The clock (TIMEOUT) or the
+        // memory limit (MEMORY_LIMIT, seen on native Linux Docker) ends it, whichever comes first.
         long started = System.nanoTime();
 
         SandboxResult result = python("""
@@ -305,16 +306,27 @@ class SandboxHostileProgramTests {
                         pass
                 """, new ExecutionLimits(1_000, 128));
 
-        assertStoppedInTime(result, 1_000, Duration.ofNanos(System.nanoTime() - started));
+        assertThat(result.status()).isIn(SandboxStatus.TIMEOUT, SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.completedCleanly()).isFalse();
+        assertThat(Duration.ofNanos(System.nanoTime() - started))
+                .isLessThan(Duration.ofMillis(1_000)
+                        .plus(DockerCliSandboxRunner.START_GRACE)
+                        .plus(KILL_ALLOWANCE));
         assertSandboxStillGradesAnHonestProgram();
     }
 
     @Test
-    void aForkBombThatDiesOnTheFirstRefusalIsARuntimeError() {
+    void aForkBombThatDiesOnTheFirstRefusalIsStoppedByTheProcessOrMemoryLimit() {
+        // Which limit bites first depends on the host: about 127 busy Python processes need more than
+        // 128 MB on a native Linux Docker (CI: MEMORY_LIMIT), less on Docker Desktop (RUNTIME_ERROR from the
+        // refused fork). Both are the sandbox doing its job; neither is a completed run.
         SandboxResult result = python("import os\nwhile True:\n    os.fork()\n", new ExecutionLimits(10_000, 128));
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.RUNTIME_ERROR);
-        assertThat(result.stderr()).contains("Resource temporarily unavailable");
+        assertThat(result.status()).isIn(SandboxStatus.RUNTIME_ERROR, SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.completedCleanly()).isFalse();
+        if (result.status() == SandboxStatus.RUNTIME_ERROR) {
+            assertThat(result.stderr()).contains("Resource temporarily unavailable");
+        }
         assertSandboxStillGradesAnHonestProgram();
     }
 

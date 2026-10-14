@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.6b done)
-- Next commit: 4.7a — Hostile-program tests (infinite loop, sleep, memory bomb, fork bomb, network, root fs write, sensitive host paths, giant output)
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.7a done)
+- Next commit: 4.7b — Test: concurrent runs don't share state (separate workdirs, no output cross-talk)
 - In progress: —
-- Blocked: PR #91 (commit 4.6b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #92 (commit 4.7a) awaiting review — checked just after opening, no response yet.

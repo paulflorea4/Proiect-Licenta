@@ -225,7 +225,9 @@ class SandboxHostileProgramTests {
         SandboxResult result =
                 python("x = []\nwhile True:\n    x.append(bytearray(10_000_000))\n", new ExecutionLimits(10_000, 64));
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status())
+                .as(result.toString() + " stderr=<" + result.stderr().strip() + ">")
+                .isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.exitCode()).isEqualTo(137);
         assertThat(result.completedCleanly()).isFalse();
     }
@@ -242,7 +244,9 @@ class SandboxHostileProgramTests {
                     time.sleep(0.01)
                 """, new ExecutionLimits(20_000, 64));
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status())
+                .as(result.toString() + " stderr=<" + result.stderr().strip() + ">")
+                .isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.runtime()).as("killed by memory, not by the clock").isLessThan(Duration.ofSeconds(15));
     }
 

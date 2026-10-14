@@ -98,16 +98,6 @@ public class DockerCliSandboxRunner implements SandboxRunner {
     /** What {@link #sweepOrphans} removed. */
     record SweepResult(int containers, int directories) {}
 
-    /**
-     * How often, and how far apart, a state of {@code 137 false} is read again before it is believed
-     * (see {@link ExitClassification}): Docker may record the out-of-memory flag a moment after the exit.
-     * Placeholders, pending the human's tuning: 5 x 100 ms, so a program that really exits with 137 waits
-     * at most half a second, once; the wait is not part of the reported runtime.
-     */
-    static final int OOM_FLAG_RECHECKS = 5;
-
-    static final Duration OOM_FLAG_RECHECK_INTERVAL = Duration.ofMillis(100);
-
     /** For the short housekeeping commands (inspect, rm). */
     static final Duration HOUSEKEEPING = Duration.ofSeconds(60);
 
@@ -271,6 +261,11 @@ public class DockerCliSandboxRunner implements SandboxRunner {
                         run.stderr().strip());
                 return sandboxError("the container could not be run", runtime);
             }
+            if (state.exitCode() == ExitClassification.SIGKILL_EXIT_CODE && !state.oomKilled()) {
+                // Read as a memory kill all the same (ExitClassification); logged because Docker's flag
+                // should have been set, and a program's own exit(137) looks exactly like this.
+                log.warn("container {} exited with 137 but Docker did not record an out-of-memory kill", name);
+            }
             return new SandboxResult(
                     ExitClassification.classify(state),
                     state.exitCode(),
@@ -381,22 +376,6 @@ public class DockerCliSandboxRunner implements SandboxRunner {
     }
 
     private Optional<ExitClassification.ContainerState> recordedState(String containerName) {
-        return ExitClassification.settle(
-                () -> inspectOnce(containerName), OOM_FLAG_RECHECKS, () -> pause(OOM_FLAG_RECHECK_INTERVAL));
-    }
-
-    /** Waits; false (and the interrupt flag kept) when the thread was interrupted. */
-    private static boolean pause(Duration duration) {
-        try {
-            Thread.sleep(duration.toMillis());
-            return true;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-    }
-
-    private Optional<ExitClassification.ContainerState> inspectOnce(String containerName) {
         DockerCommand.Result inspect = DockerCommand.run(
                 HOUSEKEEPING,
                 "",

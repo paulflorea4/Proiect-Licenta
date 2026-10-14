@@ -1,4 +1,4 @@
 - Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.7a done)
 - Next commit: 4.7b — Test: concurrent runs don't share state (separate workdirs, no output cross-talk)
 - In progress: —
-- Blocked: PR #92 (commit 4.7a) awaiting review and a green CI — the OOM-flag re-inspect fix (option (a)) was pushed; if `SandboxExitStatusTests` still fails on the runner, the flag is absent rather than late and the options in `docs/suggestions.md` apply.
+- Blocked: PR #92 (commit 4.7a) awaiting review and a green CI — exit 137 is now `MEMORY_LIMIT` whatever Docker's flag says (your decision); if CI still shows a flake it would be the flag-dependent `aHelperKilledForMemoryAndAMainProgramThatThenFailsIsAMemoryLimit` (decisions-phase-04, 4.5a follow-up).

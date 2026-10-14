@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Import;
 
 /**
  * 4.5a: how a run that ended is told apart in a real container: normal, non-zero, killed for memory,
- * killed by something else with the same exit code 137, and our own timeout kill. The decision table
+ * an explicit exit(137), and our own timeout kill. The decision table
  * itself is in {@link ExitClassificationTests}; the full hostile-program suite is 4.7a.
  */
 @Import(TestcontainersConfiguration.class)
@@ -105,14 +105,24 @@ class SandboxExitStatusTests {
         assertThat(result.stdout()).isEqualTo("20000000\n");
     }
 
-    // --- 137 that is not memory ------------------------------------------------------------------
+    // --- 137 and the flag ------------------------------------------------------------------------
 
     @Test
-    void anExplicitExit137WithoutTheMemoryKillerIsAnOrdinaryRuntimeError() {
+    void anExplicitExit137IsReadAsMemoryLikeAnyOther137() {
+        // Pinned, not endorsed: a plain exit(137) cannot be told from a memory kill whose flag Docker did not
+        // record (it happened on CI), so the code decides. See decisions-phase-04, 4.7a.
         SandboxResult result = python("import sys\nsys.exit(137)\n", LIMITS);
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.RUNTIME_ERROR);
+        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.exitCode()).isEqualTo(137);
+    }
+
+    @Test
+    void anExitCodeThatIsNot137IsNotReadAsMemoryWithoutTheFlag() {
+        SandboxResult result = python("import sys\nsys.exit(136)\n", LIMITS);
+
+        assertThat(result.status()).isEqualTo(SandboxStatus.RUNTIME_ERROR);
+        assertThat(result.exitCode()).isEqualTo(136);
     }
 
     @Test

@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.7a done locally; PR #92 CI red for a reason outside its diff)
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.7a done)
 - Next commit: 4.7b — Test: concurrent runs don't share state (separate workdirs, no output cross-talk)
 - In progress: —
-- Blocked: PR #92 (commit 4.7a) — CI fails intermittently in `SandboxExitStatusTests` (4.5a): a memory bomb gives `RUNTIME_ERROR` (exit 137) because Docker's `OOMKilled` flag is not set at inspect time on the runner. Needs your decision on how a 137 is classified (options in `docs/suggestions.md`, 4.7a/CI entry); the hostile suite itself passes on CI.
+- Blocked: PR #92 (commit 4.7a) awaiting review and a green CI — the OOM-flag re-inspect fix (option (a)) was pushed; if `SandboxExitStatusTests` still fails on the runner, the flag is absent rather than late and the options in `docs/suggestions.md` apply.

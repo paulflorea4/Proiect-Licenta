@@ -1,6 +1,8 @@
 package com.gradingplatform.backend.sandbox;
 
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /**
  * How a container that ended on its own is turned into a {@link SandboxStatus} (4.5a). Pure, so the
@@ -23,11 +25,19 @@ import java.util.Optional;
  *       worker vanished has still hit the limit.
  *   <li>non-zero, no flag (including 137): {@link SandboxStatus#RUNTIME_ERROR}.
  * </ul>
+ *
+ * <p>Docker can record the exit before it records the flag: on a CI runner a memory bomb was read as
+ * {@code 137 false} (so {@code RUNTIME_ERROR}) and the flag was there a moment later. So a
+ * {@code 137 false} is read again a few times before it is believed ({@link #settle}); a program that
+ * really exits with 137 pays that wait once, in the sandbox, not in its reported runtime.
  */
 final class ExitClassification {
 
     /** What {@code docker inspect} recorded for the container. */
     record ContainerState(int exitCode, boolean oomKilled) {}
+
+    /** 128 + SIGKILL: what the kernel's out-of-memory killer leaves, and the only code worth a second look. */
+    static final int SIGKILL_EXIT_CODE = 137;
 
     private ExitClassification() {}
 
@@ -36,6 +46,36 @@ final class ExitClassification {
             return SandboxStatus.OK;
         }
         return state.oomKilled() ? SandboxStatus.MEMORY_LIMIT : SandboxStatus.RUNTIME_ERROR;
+    }
+
+    /**
+     * The recorded state, read again while it is {@code 137 false}: that is the one shape that can still
+     * become {@code 137 true} because Docker records the flag a moment after the exit. Every other
+     * state is final at once. At most {@code rechecks} further reads, each after {@code pause}; a read
+     * that fails or is unreadable keeps the last good state, and a {@code pause} that cannot wait
+     * (the thread was interrupted) ends the rechecking.
+     *
+     * @param inspect reads the state of the container (empty when it cannot be read)
+     * @param rechecks how many more reads after the first one
+     * @param pause waits between two reads; returns {@code false} when it could not wait
+     */
+    static Optional<ContainerState> settle(
+            Supplier<Optional<ContainerState>> inspect, int rechecks, BooleanSupplier pause) {
+        Optional<ContainerState> state = inspect.get();
+        for (int i = 0; i < rechecks && state.isPresent() && mayStillGainTheFlag(state.get()); i++) {
+            if (!pause.getAsBoolean()) {
+                break;
+            }
+            Optional<ContainerState> again = inspect.get();
+            if (again.isPresent()) {
+                state = again;
+            }
+        }
+        return state;
+    }
+
+    private static boolean mayStillGainTheFlag(ContainerState state) {
+        return state.exitCode() == SIGKILL_EXIT_CODE && !state.oomKilled();
     }
 
     /**

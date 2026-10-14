@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.6a done; row 4.6b added for the CI path filter)
-- Next commit: 4.6b — CI trigger: add `infra/sandbox/**` to the path filter of `backend-ci.yml`
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.6b done)
+- Next commit: 4.7a — Hostile-program tests (infinite loop, sleep, memory bomb, fork bomb, network, root fs write, sensitive host paths, giant output)
 - In progress: —
-- Blocked: PR #90 (commit 4.6a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #91 (commit 4.6b) awaiting review — checked just after opening, no response yet.

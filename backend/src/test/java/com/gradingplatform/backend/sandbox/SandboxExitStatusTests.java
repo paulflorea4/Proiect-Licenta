@@ -65,13 +65,18 @@ class SandboxExitStatusTests {
         }
     }
 
+    /** What a failed status assertion shows: the result (lengths only) and the program's own stderr. */
+    private static String describe(SandboxResult result) {
+        return result + " stderr=<" + result.stderr().strip() + ">";
+    }
+
     // --- memory ----------------------------------------------------------------------------------
 
     @Test
     void aProgramThatOutgrowsItsMemoryIsKilledAndReportedAsMemoryLimit() {
         SandboxResult result = python(BOMB, LIMITS);
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status()).as(describe(result)).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.exitCode()).isEqualTo(137);
         assertThat(result.completedCleanly()).isFalse();
     }
@@ -80,7 +85,7 @@ class SandboxExitStatusTests {
     void theMemoryLimitIsReachedFarSoonerThanTheTimeLimit() {
         SandboxResult result = python(BOMB, new ExecutionLimits(30_000, 64));
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status()).as(describe(result)).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.runtime()).isLessThan(Duration.ofSeconds(20));
     }
 
@@ -88,7 +93,7 @@ class SandboxExitStatusTests {
     void outputPrintedBeforeTheKillIsKept() {
         SandboxResult result = python("print('started', flush=True)\n" + BOMB, LIMITS);
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status()).as(describe(result)).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.stdout()).isEqualTo("started\n");
     }
 
@@ -141,7 +146,7 @@ class SandboxExitStatusTests {
                 sys.exit(1)
                 """, LIMITS);
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status()).as(describe(result)).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.exitCode()).isEqualTo(1);
     }
 

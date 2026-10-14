@@ -12,6 +12,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,7 +49,7 @@ import org.springframework.stereotype.Component;
  * {@link #sweepOrphans} removes what such a run left, and is called once at startup by
  * {@link SandboxStartupSweep}, before anything can start a run.
  *
- * <p>Compile step (4.4b): for a language with a compile command, one writable container (with
+ * <p>Compile step (4.4b, once per batch since 4.6a): for a language with a compile command, one writable container (with
  * {@link #COMPILE_LIMITS}) builds into the run directory first; if that fails the result is
  * {@link SandboxStatus#COMPILE_ERROR} with the compiler's output and no test container is started,
  * otherwise every run (4.6a: each test) uses the built directory, mounted read-only.
@@ -137,9 +138,23 @@ public class DockerCliSandboxRunner implements SandboxRunner {
 
     @Override
     public SandboxResult run(SandboxRequest request) {
+        return runAll(new SandboxBatchRequest(
+                        request.language(), request.sourceFiles(), List.of(request.stdin()), request.limits()))
+                .get(0);
+    }
+
+    /**
+     * Builds once, then runs every input in its own fresh container on the same, now read-only,
+     * directory (4.6a). Nothing is shared between the runs but the built files: each container has its
+     * own tmpfs and processes, and cannot write the directory. A failed build is returned for every
+     * input; after a {@code SANDBOX_ERROR} the remaining inputs are not tried.
+     */
+    @Override
+    public List<SandboxResult> runAll(SandboxBatchRequest request) {
+        int count = request.stdins().size();
         Optional<LanguageSpec> found = languages.find(request.language());
         if (found.isEmpty()) {
-            return sandboxError("language is not configured", Duration.ZERO);
+            return Collections.nCopies(count, sandboxError("language is not configured", Duration.ZERO));
         }
         LanguageSpec spec = found.get();
         Path directory;
@@ -147,17 +162,25 @@ public class DockerCliSandboxRunner implements SandboxRunner {
             directory = prepare(request.sourceFiles());
         } catch (IOException e) {
             log.warn("could not prepare the working directory: {}", e.toString());
-            return sandboxError("could not prepare the working directory", Duration.ZERO);
+            return Collections.nCopies(count, sandboxError("could not prepare the working directory", Duration.ZERO));
         }
         try {
             if (spec.isCompiled()) {
                 SandboxResult compiled =
                         runInContainer(spec, compileLimits, directory, true, spec.compileCommand(), "");
                 if (compiled.status() != SandboxStatus.OK) {
-                    return compileFailure(compiled);
+                    return Collections.nCopies(count, compileFailure(compiled));
                 }
             }
-            return runInContainer(spec, request.limits(), directory, false, spec.runCommand(), request.stdin());
+            List<SandboxResult> results = new ArrayList<>(count);
+            for (String stdin : request.stdins()) {
+                if (!results.isEmpty() && results.get(results.size() - 1).status() == SandboxStatus.SANDBOX_ERROR) {
+                    results.add(sandboxError("not run: the sandbox failed on an earlier input", Duration.ZERO));
+                } else {
+                    results.add(runInContainer(spec, request.limits(), directory, false, spec.runCommand(), stdin));
+                }
+            }
+            return results;
         } finally {
             deleteTree(directory);
         }

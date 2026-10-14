@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.5b done; row 4.6b added for the CI path filter)
-- Next commit: 4.6a — Run all tests of an assignment for one submission: compile once, run each test in its own container
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.6a done; row 4.6b added for the CI path filter)
+- Next commit: 4.6b — CI trigger: add `infra/sandbox/**` to the path filter of `backend-ci.yml`
 - In progress: —
-- Blocked: PR #89 (commit 4.5b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #90 (commit 4.6a) awaiting review — checked just after opening, no response yet.

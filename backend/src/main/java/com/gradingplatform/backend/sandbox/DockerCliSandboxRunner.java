@@ -53,7 +53,9 @@ import org.springframework.stereotype.Component;
  * {@link SandboxStatus#COMPILE_ERROR} with the compiler's output and no test container is started,
  * otherwise every run (4.6a: each test) uses the built directory, mounted read-only.
  *
- * <p>Still to come, row by row: mapping of out-of-memory and kills (4.5a).
+ * <p>Exit conditions (4.5a): a container that ended on its own is classified from its recorded exit
+ * code and out-of-memory flag by {@link ExitClassification}; a timeout is decided first, from our own
+ * deadline, so our {@code docker kill} is never mistaken for a memory kill.
  *
  * <p>The text of a {@link SandboxStatus#SANDBOX_ERROR} result is for logs: it never goes to a student.
  */
@@ -225,20 +227,20 @@ public class DockerCliSandboxRunner implements SandboxRunner {
                         runtime);
             }
             // `docker run` itself exits 125-127 for its own failures, which a program can also
-            // return; the container's recorded exit code tells them apart (no container: the
-            // sandbox failed, say because the image is missing).
-            Integer exitCode = recordedExitCode(name);
-            if (exitCode == null) {
+            // return; the container's recorded state tells them apart (no container: the sandbox
+            // failed, say because the image is missing). The state also says whether the kernel
+            // killed the program for memory (4.5a).
+            ExitClassification.ContainerState state = recordedState(name).orElse(null);
+            if (state == null) {
                 log.warn(
                         "docker could not run container {}: {}",
                         name,
                         run.stderr().strip());
                 return sandboxError("the container could not be run", runtime);
             }
-            SandboxStatus status = exitCode == 0 ? SandboxStatus.OK : SandboxStatus.RUNTIME_ERROR;
             return new SandboxResult(
-                    status,
-                    exitCode,
+                    ExitClassification.classify(state),
+                    state.exitCode(),
                     run.stdout(),
                     run.stderr(),
                     run.stdoutTruncated(),
@@ -345,17 +347,15 @@ public class DockerCliSandboxRunner implements SandboxRunner {
         log.warn("container {} did not appear to be killed", containerName);
     }
 
-    private Integer recordedExitCode(String containerName) {
+    private Optional<ExitClassification.ContainerState> recordedState(String containerName) {
         DockerCommand.Result inspect = DockerCommand.run(
-                HOUSEKEEPING, "", List.of("inspect", "--format", "{{.State.ExitCode}}", containerName));
+                HOUSEKEEPING,
+                "",
+                List.of("inspect", "--format", "{{.State.ExitCode}} {{.State.OOMKilled}}", containerName));
         if (inspect.exitCode() != 0) {
-            return null;
+            return Optional.empty();
         }
-        try {
-            return Integer.valueOf(inspect.stdout().strip());
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        return ExitClassification.parse(inspect.stdout());
     }
 
     /**

@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Import;
  * 4.4a: the first end-to-end proof of the sandbox. A Python submission goes in through the
  * {@link SandboxRunner} interface only (the Spring bean, with the real work root and the language config),
  * runs in a real container, and its stdout is compared with the expected output of one test case. The
- * comparison here is a bare trailing-whitespace strip: the real, swappable comparison is 4.5b.
+ * comparison is the default {@link OutputComparison} (4.5b).
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -44,8 +44,7 @@ class PythonEndToEndTests {
     }
 
     private static boolean passes(SandboxResult result, Case test) {
-        return result.completedCleanly()
-                && result.stdout().stripTrailing().equals(test.expectedOutput().stripTrailing());
+        return TrailingWhitespaceComparison.INSTANCE.passes(result, test.expectedOutput());
     }
 
     @Test

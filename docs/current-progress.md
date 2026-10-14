@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.5a done; row 4.6b added for the CI path filter)
-- Next commit: 4.5b — Output comparison: pure function, trailing whitespace normalized
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.5b done; row 4.6b added for the CI path filter)
+- Next commit: 4.6a — Run all tests of an assignment for one submission: compile once, run each test in its own container
 - In progress: —
-- Blocked: PR #88 (commit 4.5a) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #89 (commit 4.5b) awaiting review — checked just after opening, no response yet.

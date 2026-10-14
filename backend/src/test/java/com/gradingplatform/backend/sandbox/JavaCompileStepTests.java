@@ -261,6 +261,19 @@ class JavaCompileStepTests {
     }
 
     @Test
+    void aCompilerKilledForMemoryIsACompileErrorNotAMemoryLimitOfTheProgram() {
+        // `tail /dev/zero` buffers one endless line: it grows until the container's memory limit.
+        DockerCliSandboxRunner hungry =
+                runnerWithCompileCommand(List.of("tail", "/dev/zero"), new ExecutionLimits(20_000, 64));
+
+        SandboxResult result =
+                hungry.run(new SandboxRequest("JAVA", List.of(new SourceFile("Main.java", SUM)), "", LIMITS));
+
+        assertThat(result.status()).isEqualTo(SandboxStatus.COMPILE_ERROR);
+        assertThat(result.exitCode()).isEqualTo(137);
+    }
+
+    @Test
     void aMissingImageIsASandboxErrorNotACompileError() throws IOException {
         LanguageSpec real = languages.find("JAVA").orElseThrow();
         Map<String, LanguageSpec> map = new LinkedHashMap<>();

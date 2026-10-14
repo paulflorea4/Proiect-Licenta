@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.4b done; row 4.6b added for the CI path filter)
-- Next commit: 4.5a — Map exit conditions to statuses (out-of-memory → `MEMORY_LIMIT`, tell it from our own kill)
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.5a done; row 4.6b added for the CI path filter)
+- Next commit: 4.5b — Output comparison: pure function, trailing whitespace normalized
 - In progress: —
-- Blocked: PR #87 (commit 4.4b) awaiting review — checked just after opening, no response yet.
+- Blocked: PR #88 (commit 4.5a) awaiting review — checked just after opening, no response yet.

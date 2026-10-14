@@ -10,7 +10,7 @@ public enum SandboxStatus {
     RUNTIME_ERROR,
     /** The wall-clock limit was reached and the program was stopped. */
     TIMEOUT,
-    /** The program was stopped for using more memory than its limit. */
+    /** The kernel killed the program for using more memory than its limit (the container's out-of-memory flag, 4.5a). */
     MEMORY_LIMIT,
     /** The sandbox failed (Docker unavailable, image missing...): says nothing about the program. */
     SANDBOX_ERROR

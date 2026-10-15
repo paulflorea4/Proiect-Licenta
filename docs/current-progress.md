@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.7e done)
-- Next commit: 4.7d — Test: hidden test inputs and expected outputs never exist inside the container
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (Phase 4 complete: 4.7d done)
+- Next commit: 5.1a — `POST /assignments/{id}/submissions` (enrolled student): source code as text
 - In progress: —
-- Blocked: PR for commit 4.7e awaiting review and a green CI.
+- Blocked: PR for commit 4.7d awaiting review and a green CI.

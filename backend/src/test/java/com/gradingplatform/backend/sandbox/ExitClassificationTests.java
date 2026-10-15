@@ -21,7 +21,7 @@ class ExitClassificationTests {
         "125, false, RUNTIME_ERROR", // a program's own code, not docker's failure
         "126, false, RUNTIME_ERROR",
         "127, false, RUNTIME_ERROR",
-        "137, false, RUNTIME_ERROR", // SIGKILL that was not the memory killer, or a plain exit(137)
+        "137, false, MEMORY_LIMIT", // the kernel's SIGKILL whose flag Docker did not record (seen on CI)
         "139, false, RUNTIME_ERROR", // segmentation fault
         "137, true,  MEMORY_LIMIT",
         "1,   true,  MEMORY_LIMIT", // a program that exits 1 after the kernel killed its worker

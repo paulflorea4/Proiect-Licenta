@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Import;
 
 /**
  * 4.5a: how a run that ended is told apart in a real container: normal, non-zero, killed for memory,
- * killed by something else with the same exit code 137, and our own timeout kill. The decision table
+ * an explicit exit(137), and our own timeout kill. The decision table
  * itself is in {@link ExitClassificationTests}; the full hostile-program suite is 4.7a.
  */
 @Import(TestcontainersConfiguration.class)
@@ -65,13 +65,18 @@ class SandboxExitStatusTests {
         }
     }
 
+    /** What a failed status assertion shows: the result (lengths only) and the program's own stderr. */
+    private static String describe(SandboxResult result) {
+        return result + " stderr=<" + result.stderr().strip() + ">";
+    }
+
     // --- memory ----------------------------------------------------------------------------------
 
     @Test
     void aProgramThatOutgrowsItsMemoryIsKilledAndReportedAsMemoryLimit() {
         SandboxResult result = python(BOMB, LIMITS);
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status()).as(describe(result)).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.exitCode()).isEqualTo(137);
         assertThat(result.completedCleanly()).isFalse();
     }
@@ -80,7 +85,7 @@ class SandboxExitStatusTests {
     void theMemoryLimitIsReachedFarSoonerThanTheTimeLimit() {
         SandboxResult result = python(BOMB, new ExecutionLimits(30_000, 64));
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status()).as(describe(result)).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.runtime()).isLessThan(Duration.ofSeconds(20));
     }
 
@@ -88,7 +93,7 @@ class SandboxExitStatusTests {
     void outputPrintedBeforeTheKillIsKept() {
         SandboxResult result = python("print('started', flush=True)\n" + BOMB, LIMITS);
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status()).as(describe(result)).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.stdout()).isEqualTo("started\n");
     }
 
@@ -100,14 +105,24 @@ class SandboxExitStatusTests {
         assertThat(result.stdout()).isEqualTo("20000000\n");
     }
 
-    // --- 137 that is not memory ------------------------------------------------------------------
+    // --- 137 and the flag ------------------------------------------------------------------------
 
     @Test
-    void anExplicitExit137WithoutTheMemoryKillerIsAnOrdinaryRuntimeError() {
+    void anExplicitExit137IsReadAsMemoryLikeAnyOther137() {
+        // Pinned, not endorsed: a plain exit(137) cannot be told from a memory kill whose flag Docker did not
+        // record (it happened on CI), so the code decides. See decisions-phase-04, 4.7a.
         SandboxResult result = python("import sys\nsys.exit(137)\n", LIMITS);
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.RUNTIME_ERROR);
+        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.exitCode()).isEqualTo(137);
+    }
+
+    @Test
+    void anExitCodeThatIsNot137IsNotReadAsMemoryWithoutTheFlag() {
+        SandboxResult result = python("import sys\nsys.exit(136)\n", LIMITS);
+
+        assertThat(result.status()).isEqualTo(SandboxStatus.RUNTIME_ERROR);
+        assertThat(result.exitCode()).isEqualTo(136);
     }
 
     @Test
@@ -141,7 +156,7 @@ class SandboxExitStatusTests {
                 sys.exit(1)
                 """, LIMITS);
 
-        assertThat(result.status()).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status()).as(describe(result)).isEqualTo(SandboxStatus.MEMORY_LIMIT);
         assertThat(result.exitCode()).isEqualTo(1);
     }
 

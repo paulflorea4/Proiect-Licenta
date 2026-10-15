@@ -261,6 +261,11 @@ public class DockerCliSandboxRunner implements SandboxRunner {
                         run.stderr().strip());
                 return sandboxError("the container could not be run", runtime);
             }
+            if (state.exitCode() == ExitClassification.SIGKILL_EXIT_CODE && !state.oomKilled()) {
+                // Read as a memory kill all the same (ExitClassification); logged because Docker's flag
+                // should have been set, and a program's own exit(137) looks exactly like this.
+                log.warn("container {} exited with 137 but Docker did not record an out-of-memory kill", name);
+            }
             return new SandboxResult(
                     ExitClassification.classify(state),
                     state.exitCode(),

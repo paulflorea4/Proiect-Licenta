@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.7a done)
-- Next commit: 4.7b — Test: concurrent runs don't share state (separate workdirs, no output cross-talk)
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.7b done)
+- Next commit: 4.7c — Test: output comparison edge cases (trailing spaces, CRLF vs LF, empty output, truncated output)
 - In progress: —
-- Blocked: PR #92 (commit 4.7a) awaiting review and a green CI — exit 137 is now `MEMORY_LIMIT` whatever Docker's flag says (your decision); if CI still shows a flake it would be the flag-dependent `aHelperKilledForMemoryAndAMainProgramThatThenFailsIsAMemoryLimit` (decisions-phase-04, 4.5a follow-up).
+- Blocked: PR for commit 4.7b awaiting review and a green CI.

@@ -6,6 +6,7 @@ import com.gradingplatform.backend.repository.AssignmentRepository;
 import com.gradingplatform.backend.repository.CourseRepository;
 import com.gradingplatform.backend.repository.EnrollmentRepository;
 import com.gradingplatform.backend.repository.RubricCriterionRepository;
+import com.gradingplatform.backend.repository.SubmissionRepository;
 import com.gradingplatform.backend.repository.TestCaseRepository;
 import com.gradingplatform.backend.repository.UserRepository;
 import com.gradingplatform.backend.security.JwtService;
@@ -28,7 +29,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * ({@link TestcontainersConfiguration}). It is what 2.7b and the tests of every later phase extend.
  *
  * <p>What it gives a test: {@link #port}, the repositories and token service, empty `users` and
- * `courses`, `enrollments` and `assignments` tables before and after every test, {@link #saved} and {@link #tokenFor} to create a caller, and
+ * `courses`, `enrollments`, `assignments` and `submissions` tables before and after every test, {@link #saved} and {@link #tokenFor} to create a caller, and
  * {@link #send} (with {@link #get}, {@link #post}, {@link #patch}) to make a request as that caller.
  * A subclass that needs another configuration repeats {@code @SpringBootTest} with its own
  * properties; Spring builds (and caches) a separate context for it, still on the shared container.
@@ -62,6 +63,9 @@ abstract class RealHttpTestBase {
     protected RubricCriterionRepository rubricCriteria;
 
     @Autowired
+    protected SubmissionRepository submissions;
+
+    @Autowired
     protected JdbcTemplate jdbc;
 
     @Autowired
@@ -77,6 +81,7 @@ abstract class RealHttpTestBase {
     @BeforeEach
     @AfterEach
     void emptyTables() {
+        submissions.deleteAll();
         testCases.deleteAll();
         rubricCriteria.deleteAll();
         assignments.deleteAll();

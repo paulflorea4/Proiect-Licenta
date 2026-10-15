@@ -206,6 +206,14 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     "{}",
                     Role.TEACHER,
                     Role.ADMIN),
+            // Students only; a student who passes is told the assignment does not exist, nothing is stored
+            // (RealHttpSubmitTests).
+            Endpoint.rolesOnly(
+                    "POST",
+                    "/assignments/{assignmentId}/submissions",
+                    "/assignments/987654321/submissions",
+                    "{\"sourceCode\":\"print(1)\"}",
+                    Role.STUDENT),
             // Teachers only (admin excluded, as for creating a course); ownership then decides, and
             // this course does not exist, so a teacher who passes is answered by a 404.
             Endpoint.rolesOnly(

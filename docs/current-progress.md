@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (Phase 4 complete: 4.7d done)
-- Next commit: 5.1a — `POST /assignments/{id}/submissions` (enrolled student): source code as text
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.1a done)
+- Next commit: 5.1b — Same endpoint accepts a single uploaded source file (multipart)
 - In progress: —
-- Blocked: PR for commit 4.7d awaiting review and a green CI.
+- Blocked: PR for commit 5.1a awaiting review and a green CI.

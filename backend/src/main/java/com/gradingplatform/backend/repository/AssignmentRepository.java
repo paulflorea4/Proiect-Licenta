@@ -32,7 +32,17 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query(value = "select * from assignments where id = :id for update", nativeQuery = true)
     Optional<Assignment> findByIdForUpdate(@Param("id") Long id);
 
-    /** True if anyone has submitted to this assignment (the table has no entity until Phase 5). */
+    /**
+     * The assignment, with the lock a new submission takes on it (`FOR KEY SHARE`, what the
+     * submission's foreign key takes anyway, only earlier: when the assignment is read rather than
+     * when the row is inserted). It waits for a teacher's {@link #findByIdForUpdate} in progress, so
+     * the language and published flag read here are the committed ones, and a teacher's change that
+     * comes later waits for the submission and then sees it. Submissions do not wait for each other.
+     */
+    @Query(value = "select * from assignments where id = :id for key share", nativeQuery = true)
+    Optional<Assignment> findByIdForKeyShare(@Param("id") Long id);
+
+    /** True if anyone has submitted to this assignment (native, as it predates the Submission entity). */
     @Query(value = "select exists (select 1 from submissions where assignment_id = :id)", nativeQuery = true)
     boolean hasSubmissions(@Param("id") Long id);
 

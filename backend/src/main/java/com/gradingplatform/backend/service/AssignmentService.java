@@ -243,6 +243,27 @@ public class AssignmentService {
         return assignment;
     }
 
+    /**
+     * For a new submission (5.1a): the assignment, locked against a concurrent change by its teacher
+     * for the rest of the transaction ({@link AssignmentRepository#findByIdForKeyShare}), if the user
+     * may see it. For a student that is a published assignment of a course they are enrolled in; the
+     * course is checked before the lock, the published flag under it. Anything else is the 404 of an
+     * id that does not exist.
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Assignment lockVisibleForSubmission(long userId, Role role, long assignmentId) {
+        long courseId = assignments.findCourseIdById(assignmentId).orElseThrow(AssignmentNotFoundException::new);
+        if (!access.canView(userId, role, courseId)) {
+            throw new AssignmentNotFoundException();
+        }
+        return assignments
+                .findByIdForKeyShare(assignmentId)
+                .filter(a -> access.canViewAssignment(role, a))
+                .orElseThrow(AssignmentNotFoundException::new);
+    }
+
     private void checkManageable(long userId, Role role, long assignmentId) {
         long courseId = assignments.findCourseIdById(assignmentId).orElseThrow(AssignmentNotFoundException::new);
         try {

@@ -156,8 +156,9 @@ class SandboxOutputComparisonTests {
 
     @Test
     void aTeachersWindowsInputReachesTheProgramByteForByte() {
-        // Inputs are not normalised (3.5a stores them as typed). On Linux Python's stdin splits lines at
-        // \n only, so input() keeps the \r; int() ignores it, a string comparison does not.
+        // The sandbox passes stdin byte for byte. On Linux Python's stdin splits lines at \n only, so
+        // input() keeps a \r; int() ignores it, a string comparison does not. That is why a test case's
+        // input is normalised to \n when it is saved (4.7e, TestCaseRequest), not here.
         String echo = """
                 import sys
                 data = sys.stdin.buffer.read()

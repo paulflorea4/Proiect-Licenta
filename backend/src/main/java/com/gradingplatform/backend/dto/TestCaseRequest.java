@@ -10,8 +10,13 @@ import jakarta.validation.constraints.Size;
 /**
  * Body of `POST /assignments/{id}/tests` and `PUT /assignments/{id}/tests/{testId}`. The criterion
  * must be a `TESTS` criterion of the same assignment (checked by the service). {@code input} and
- * {@code expectedOutput} are kept exactly as sent, whitespace included, and may be empty (a
- * program that reads nothing or prints nothing); only the name is trimmed.
+ * {@code expectedOutput} are kept as sent, whitespace included, and may be empty (a program that
+ * reads nothing or prints nothing); the name is trimmed. One exception (4.7e, the human's decision):
+ * Windows line endings in {@code input} become {@code \n}, because the input reaches the program's
+ * stdin byte for byte and Python's {@code input()} on Linux would keep the {@code \r}, failing a
+ * correct program only because the test was typed on Windows. A lone {@code \r} is kept. The expected
+ * output needs no such change: the comparison already ignores line endings (4.5b). The size cap
+ * applies to the text as stored.
  *
  * <p>The size caps and the maximum weight are server-side placeholders pending the human's call
  * (flagged in the PR); the name limit matches its column.
@@ -34,10 +39,13 @@ public record TestCaseRequest(
     public static final int WEIGHT_MAX = 100;
     public static final int POSITION_MAX = 100_000;
 
-    /** Surrounding whitespace on the name is dropped. */
+    /** Surrounding whitespace on the name is dropped; CRLF in the input becomes LF. */
     public TestCaseRequest {
         if (name != null) {
             name = name.trim();
+        }
+        if (input != null) {
+            input = input.replace("\r\n", "\n");
         }
     }
 }

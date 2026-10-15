@@ -1,4 +1,4 @@
-- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.7c done)
+- Phase: Phase 4 — `docs/tasks/tasks-phase-04.md` (4.7e done)
 - Next commit: 4.7d — Test: hidden test inputs and expected outputs never exist inside the container
 - In progress: —
-- Blocked: PR for commit 4.7c awaiting review and a green CI.
+- Blocked: PR for commit 4.7e awaiting review and a green CI.

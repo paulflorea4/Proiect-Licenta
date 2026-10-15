@@ -76,8 +76,10 @@ class RealHttpTestCaseTests extends RealHttpTestBase {
         return "\""
                 + text.replace("\\", "\\\\")
                         .replace("\"", "\\\"")
+                        .replace("\r", "\\r")
                         .replace("\n", "\\n")
-                        .replace("\t", "\\t") + "\"";
+                        .replace("\t", "\\t")
+                + "\"";
     }
 
     /** A valid body for the given criterion; each test overrides what it is about. */
@@ -200,6 +202,52 @@ class RealHttpTestCaseTests extends RealHttpTestBase {
         TestCase stored = testCases.findAll().get(0);
         assertThat(stored.getInput()).isEqualTo(padded);
         assertThat(stored.getExpectedOutput()).isEmpty();
+    }
+
+    @Test
+    void windowsLineEndingsInTheInputAreStoredAsUnixOnesAndTheExpectedOutputIsKept() throws Exception {
+        // 4.7e: a Python program on Linux would otherwise read '3 4\r' from input().
+        HttpResponse<String> response =
+                add(owner, assignment, body("input", quoted("3 4\r\n1 2\r\n"), "expectedOutput", quoted("7\r\n3\r\n")));
+
+        assertThat(response.statusCode()).isEqualTo(201);
+        TestCase stored = testCases.findAll().get(0);
+        assertThat(stored.getInput()).isEqualTo("3 4\n1 2\n");
+        assertThat(stored.getExpectedOutput()).isEqualTo("7\r\n3\r\n");
+        assertThat(response.body()).contains("\"input\":\"3 4\\n1 2\\n\"");
+    }
+
+    @Test
+    void aReplacedInputIsNormalisedTheSameWay() throws Exception {
+        TestCase t = test(assignment, criterion, "old", 0);
+
+        HttpResponse<String> response = replace(owner, assignment, t.getId(), body("input", quoted("a\r\nb\r\n")));
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(testCases.findById(t.getId()).orElseThrow().getInput()).isEqualTo("a\nb\n");
+    }
+
+    @Test
+    void aCarriageReturnThatIsNotPartOfAWindowsLineEndingIsKept() throws Exception {
+        String input = "a\rb\n\r\r\n\nc\r";
+
+        assertThat(add(owner, assignment, body("input", quoted(input))).statusCode())
+                .isEqualTo(201);
+
+        // Only the one "\r\n" pair is a Windows line ending; the other carriage returns are data.
+        assertThat(testCases.findAll().get(0).getInput()).isEqualTo("a\rb\n\r\n\nc\r");
+    }
+
+    @Test
+    void theSizeCapAppliesToTheInputAsStored() throws Exception {
+        // 50 000 CRLF pairs are 100 000 characters sent and 50 000 stored; one over the cap is still
+        // refused when it stays over the cap after normalising.
+        assertThat(add(owner, assignment, body("input", quoted("\r\n".repeat(50_000) + "x")))
+                        .statusCode())
+                .isEqualTo(201);
+        assertThat(add(owner, assignment, body("input", quoted("x".repeat(100_001))))
+                        .statusCode())
+                .isEqualTo(400);
     }
 
     @Test

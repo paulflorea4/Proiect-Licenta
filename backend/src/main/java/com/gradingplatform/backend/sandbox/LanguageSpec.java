@@ -38,6 +38,14 @@ public record LanguageSpec(String image, String sourceFileName, List<String> com
         }
     }
 
+    /**
+     * The extension an uploaded source file must have for this language (5.1b): that of
+     * {@link #sourceFileName}, lower-case, without the dot (for {@code Main.java} it is {@code java}).
+     */
+    public String sourceFileExtension() {
+        return SourceFile.extensionOf(sourceFileName);
+    }
+
     /** Whether the language has a build step before it runs (Java does, Python does not). */
     public boolean isCompiled() {
         return !compileCommand.isEmpty();

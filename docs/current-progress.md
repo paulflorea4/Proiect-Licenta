@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.1b done)
-- Next commit: 5.1c — Submission validation: published, before deadline, attempt limit, max source size, language matches
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.1c done)
+- Next commit: 5.2a — Bounded worker pool (`ThreadPoolTaskExecutor`) that picks up `QUEUED` submissions
 - In progress: —
-- Blocked: PR for commit 5.1b awaiting review and a green CI.
+- Blocked: PR for commit 5.1c awaiting review and a green CI.

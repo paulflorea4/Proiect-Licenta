@@ -104,12 +104,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     /**
      * An upload over the server's multipart limit ({@code spring.servlet.multipart}), refused while
      * the request is parsed. The only upload is a submission's source file (5.1b), so it is the same
-     * answer as a file over {@code SubmissionService.SOURCE_FILE_MAX_BYTES}.
+     * answer as a file over {@code SubmissionService.SOURCE_MAX_BYTES}.
      */
     @Override
     protected ResponseEntity<Object> handleMaxUploadSizeExceededException(
             MaxUploadSizeExceededException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        ErrorCode code = ErrorCode.SOURCE_FILE_TOO_LARGE;
+        ErrorCode code = ErrorCode.SOURCE_TOO_LARGE;
         return json(code.status(), ErrorResponse.of(code), headers);
     }
 

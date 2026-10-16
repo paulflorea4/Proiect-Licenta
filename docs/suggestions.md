@@ -38,3 +38,6 @@ Historical, append-only. Things that would meaningfully help (a missing MCP conn
   **Resolved (4.7e):** the human chose (a); `TestCaseRequest` turns `\r\n` into `\n` in `input` on create and update.
 
 - (5.1b) Not verified: a JSON text submission whose `sourceCode` contains `\u0000` probably reaches Postgres and fails as a 500 (`TEXT` cannot hold U+0000). The file upload refuses NUL with 400 `SOURCE_FILE_NOT_TEXT`; 5.1c's source validation could apply the same rule to the text body.
+  **Resolved (5.1c, as the human asked):** confirmed (a NUL in `sourceCode` was a 500 `INTERNAL_ERROR`); text is now refused with 400 `SOURCE_NOT_TEXT` for a NUL or an unpaired surrogate, the same rule as files.
+
+- (5.1c) **A JSON body has no size bound before it is parsed.** `SOURCE_MAX_BYTES` is checked after Jackson has read the whole body into memory, so a 100 MB `sourceCode` is refused with 413 only after it was held in full (multipart uploads are bounded while parsed, 5.1b). The same holds for every JSON endpoint (test case texts, descriptions). A servlet filter refusing a `Content-Length` (or a streamed body) above a configured maximum before the controller would close it for all of them; not done, as no task covers it.

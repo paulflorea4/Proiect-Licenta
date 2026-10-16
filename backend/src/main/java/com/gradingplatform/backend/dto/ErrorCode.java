@@ -57,11 +57,14 @@ public enum ErrorCode {
     UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, "The language is not supported"),
     DEADLINE_NOT_IN_FUTURE(HttpStatus.BAD_REQUEST, "The deadline must be in the future"),
     ONE_SOURCE_FILE_EXPECTED(HttpStatus.BAD_REQUEST, "Exactly one source file is expected, in the part named file"),
-    SOURCE_FILE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "The source file is too large"),
-    SOURCE_FILE_NOT_TEXT(HttpStatus.BAD_REQUEST, "The source file must be UTF-8 text"),
+    SOURCE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "The source code is too large"),
+    SOURCE_NOT_TEXT(HttpStatus.BAD_REQUEST, "The source code must be UTF-8 text without NUL characters"),
     SOURCE_FILE_EMPTY(HttpStatus.BAD_REQUEST, "The source file is empty"),
     SOURCE_FILE_EXTENSION_MISMATCH(
-            HttpStatus.BAD_REQUEST, "The file's extension does not match the assignment's language");
+            HttpStatus.BAD_REQUEST, "The file's extension does not match the assignment's language"),
+    SUBMISSION_DEADLINE_PASSED(
+            HttpStatus.CONFLICT, "The deadline for this assignment has passed; submissions are no longer accepted"),
+    ATTEMPT_LIMIT_REACHED(HttpStatus.CONFLICT, "All the attempts allowed for this assignment have been used");
 
     private final HttpStatus status;
     private final String defaultMessage;

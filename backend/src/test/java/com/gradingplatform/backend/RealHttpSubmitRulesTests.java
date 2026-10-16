@@ -28,18 +28,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import javax.sql.DataSource;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
 
 /**
  * 5.1c: the rules a submission must meet (deadline, attempt limit, size, storable text, language) and
  * that one student's submissions are made one at a time, over real HTTP. 5.1a and 5.1b hold the
  * shapes of the two request kinds.
  */
-@Import(MutableClock.Config.class)
 class RealHttpSubmitRulesTests extends RealHttpTestBase {
 
     private static final int MAX = SubmissionService.SOURCE_MAX_BYTES;
@@ -51,9 +48,6 @@ class RealHttpSubmitRulesTests extends RealHttpTestBase {
     @Autowired
     DataSource dataSource;
 
-    @Autowired
-    MutableClock clock;
-
     private User owner;
     private User student;
     private User classmate;
@@ -63,7 +57,6 @@ class RealHttpSubmitRulesTests extends RealHttpTestBase {
 
     @BeforeEach
     void world() {
-        clock.reset();
         owner = saved("owner@example.com", Role.TEACHER);
         student = saved("student@example.com", Role.STUDENT);
         classmate = saved("classmate@example.com", Role.STUDENT);
@@ -72,11 +65,6 @@ class RealHttpSubmitRulesTests extends RealHttpTestBase {
         enrollments.save(new Enrollment(course.getId(), student.getId()));
         enrollments.save(new Enrollment(course.getId(), classmate.getId()));
         assignment = published(DEADLINE, null);
-    }
-
-    @AfterEach
-    void systemClock() {
-        clock.reset();
     }
 
     private Assignment published(Instant deadline, Integer maxAttempts) {

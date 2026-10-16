@@ -1,4 +1,4 @@
 - Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.1c done)
 - Next commit: 5.2a — Bounded worker pool (`ThreadPoolTaskExecutor`) that picks up `QUEUED` submissions
 - In progress: —
-- Blocked: PR for commit 5.1c awaiting review and a green CI.
+- Blocked: PR #99 (commit 5.1c) awaiting review; CI fix pushed as a second commit (shared Postgres ran out of connections), waiting for its checks.

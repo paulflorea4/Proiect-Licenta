@@ -12,8 +12,9 @@ import org.springframework.context.annotation.Primary;
 /**
  * A clock a test can stop at an exact instant (5.1c: a submission at the deadline, one microsecond
  * after). Until {@link #set} it is the system clock, so tokens and everything else behave as usual;
- * {@link #reset} goes back to it. Wire it with {@code @Import(MutableClock.Config.class)}, which makes
- * it the application's {@code Clock} for that test context.
+ * {@link #reset} goes back to it. {@link TestcontainersConfiguration} imports {@link Config}, so it is
+ * the application's {@code Clock} in every integration test context; never {@code @Import} it on a
+ * test of its own (a new context, and a new connection pool on the shared Postgres).
  */
 public final class MutableClock extends Clock {
 

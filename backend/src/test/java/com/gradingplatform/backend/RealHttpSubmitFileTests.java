@@ -34,7 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /** 5.1b: `POST /assignments/{id}/submissions` with the code uploaded as one file, over real HTTP. */
 class RealHttpSubmitFileTests extends RealHttpTestBase {
 
-    private static final int MAX = SubmissionService.SOURCE_FILE_MAX_BYTES;
+    private static final int MAX = SubmissionService.SOURCE_MAX_BYTES;
 
     @Autowired
     DataSource dataSource;
@@ -253,13 +253,12 @@ class RealHttpSubmitFileTests extends RealHttpTestBase {
 
     @Test
     void aFileOneByteOverTheMaximumIsRefusedAndSizeIsCountedInBytes() throws Exception {
-        assertRefused(
-                upload(student, python, "main.py", "print(1)\n" + "#".repeat(MAX - 8)), 413, "SOURCE_FILE_TOO_LARGE");
+        assertRefused(upload(student, python, "main.py", "print(1)\n" + "#".repeat(MAX - 8)), 413, "SOURCE_TOO_LARGE");
 
         // Fewer characters than the maximum, but two bytes each in UTF-8.
         String accents = "#" + "é".repeat(MAX / 2);
         assertThat(accents.length()).isLessThan(MAX);
-        assertRefused(upload(student, python, "main.py", accents), 413, "SOURCE_FILE_TOO_LARGE");
+        assertRefused(upload(student, python, "main.py", accents), 413, "SOURCE_TOO_LARGE");
         assertThat(submissions.count()).isZero();
     }
 
@@ -267,7 +266,7 @@ class RealHttpSubmitFileTests extends RealHttpTestBase {
     void aFileOverTheServersOwnUploadLimitGetsTheSameAnswer() throws Exception {
         byte[] huge = "#".repeat(1536 * 1024).getBytes(UTF_8);
 
-        assertRefused(upload(student, python, "main.py", huge), 413, "SOURCE_FILE_TOO_LARGE");
+        assertRefused(upload(student, python, "main.py", huge), 413, "SOURCE_TOO_LARGE");
         assertThat(submissions.count()).isZero();
     }
 
@@ -288,7 +287,7 @@ class RealHttpSubmitFileTests extends RealHttpTestBase {
                 bytes(0xFF, 0xFE, 'p', 0, 'r', 0), // UTF-16
                 bytes('p', 'r', 'i', 'n', 't', 0, '\n')); // a NUL, which Postgres TEXT cannot hold
         for (byte[] content : notText) {
-            assertRefused(upload(student, python, "main.py", content), 400, "SOURCE_FILE_NOT_TEXT");
+            assertRefused(upload(student, python, "main.py", content), 400, "SOURCE_NOT_TEXT");
         }
         assertThat(submissions.count()).isZero();
     }

@@ -9,8 +9,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import org.hibernate.annotations.Generated;
-import org.hibernate.generator.EventType;
 
 /**
  * A row of `submissions` (V7): one attempt of a student at an assignment, with the code as sent. The
@@ -47,9 +45,11 @@ public class Submission {
     @Column(name = "attempt_no", nullable = false)
     private int attemptNo;
 
-    /** Set by the database default (`NOW()`); read back after the insert, never written by us. */
-    @Generated(event = EventType.INSERT)
-    @Column(name = "submitted_at", insertable = false, updatable = false)
+    /**
+     * When the request arrived, by the application's clock: the instant the deadline was checked
+     * against (5.1c), so the stored time and the decision cannot disagree. Never changed afterwards.
+     */
+    @Column(name = "submitted_at", nullable = false, updatable = false)
     private Instant submittedAt;
 
     @Column(name = "started_at")
@@ -62,12 +62,14 @@ public class Submission {
     protected Submission() {}
 
     /** A new submission, waiting for the worker. */
-    public Submission(Long assignmentId, Long studentId, String language, String sourceCode, int attemptNo) {
+    public Submission(
+            Long assignmentId, Long studentId, String language, String sourceCode, int attemptNo, Instant submittedAt) {
         this.assignmentId = assignmentId;
         this.studentId = studentId;
         this.language = language;
         this.sourceCode = sourceCode;
         this.attemptNo = attemptNo;
+        this.submittedAt = submittedAt;
         this.status = SubmissionStatus.QUEUED;
     }
 

@@ -4,7 +4,7 @@
 | --- | --- | --- | --- |
 | 5.1a | `POST /assignments/{id}/submissions` (enrolled student): source code as text | Done | Returns `202` with the submission id and status `QUEUED` — never waits for grading. |
 | 5.1b | Same endpoint accepts a single uploaded source file (multipart) | Done | Validate extension against the assignment's language and a max size; read it into `source_code` — files are not stored on disk. |
-| 5.1c | Submission validation: assignment published, before deadline, attempt limit not exceeded, max source size, language matches | Not started | Late → rejected with a clear error (default per CLAUDE.md). Compute `attempt_no` inside a transaction so two simultaneous submits can't get the same number. |
+| 5.1c | Submission validation: assignment published, before deadline, attempt limit not exceeded, max source size, language matches | Done | Late → rejected with a clear error (default per CLAUDE.md). Compute `attempt_no` inside a transaction so two simultaneous submits can't get the same number. |
 | 5.2a | Bounded worker pool (`ThreadPoolTaskExecutor`) that picks up `QUEUED` submissions | Not started | Pool size and queue capacity are configuration. Bounded on purpose — a burst at the deadline must queue, not exhaust the host. |
 | 5.2b | Status transitions `QUEUED` → `RUNNING` → `GRADED` / `ERROR`, with `started_at` / `finished_at` | Not started | Any unexpected exception ends in `ERROR` with the submission preserved — a student's code is never lost because grading crashed. |
 | 5.2c | Startup recovery: re-queue submissions left `QUEUED` or `RUNNING` after a restart | Not started | Idempotent — re-running a submission replaces its previous partial `test_results`. |

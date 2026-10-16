@@ -137,8 +137,8 @@ class RealHttpSubmitTests extends RealHttpTestBase {
         assertThat(submission.getStudentId()).isEqualTo(student.getId());
         assertThat(submission.getLanguage()).isEqualTo("PYTHON");
         assertThat(submission.getSourceCode()).as("stored byte for byte").isEqualTo(code);
-        assertThat(submission.getStatus()).as("nothing grades it yet").isEqualTo(SubmissionStatus.QUEUED);
-        assertThat(submission.getStartedAt()).isNull();
+        // The worker pool (5.2a) may already have taken it; nothing finishes it yet.
+        assertThat(submission.getStatus()).isIn(SubmissionStatus.QUEUED, SubmissionStatus.RUNNING);
         assertThat(submission.getFinishedAt()).isNull();
         assertThat(Instant.parse(JsonPath.read(response.body(), "$.submittedAt")))
                 .isEqualTo(submission.getSubmittedAt());

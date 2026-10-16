@@ -177,7 +177,8 @@ class RealHttpSubmitFileTests extends RealHttpTestBase {
         assertThat(submission.getSourceCode()).as("byte for byte").isEqualTo(code);
         assertThat(submission.getLanguage()).isEqualTo("PYTHON");
         assertThat(submission.getStudentId()).isEqualTo(student.getId());
-        assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.QUEUED);
+        // The worker pool (5.2a) may already have taken it.
+        assertThat(submission.getStatus()).isIn(SubmissionStatus.QUEUED, SubmissionStatus.RUNNING);
     }
 
     @Test

@@ -41,6 +41,15 @@ sandbox:
       source-file-name: main.py
       run-command: [python, main.py]
 
+# The submission worker pool (5.2a, SubmissionWorkerProperties). Placeholders pending tuning: how many
+# submissions are graded at once (each runs its tests one at a time, one CPU per container) and how
+# many more wait in memory. A submission beyond both is never refused: it stays QUEUED in the database
+# and is picked up when a place frees. Both must be at least 1.
+submissions:
+  worker:
+    pool-size: 2
+    queue-capacity: 100
+
 # Datasource: the SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD environment variables bind
 # straight to spring.datasource.* (relaxed binding, see backend/.env.example) and always win over
 # anything below. No profile is active by default: choose one with SPRING_PROFILES_ACTIVE.

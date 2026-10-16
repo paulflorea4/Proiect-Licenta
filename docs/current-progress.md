@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.1f done)
-- Next commit: 5.2a — Bounded worker pool (`ThreadPoolTaskExecutor`) that picks up `QUEUED` submissions
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.2a done)
+- Next commit: 5.2b — Status transitions `QUEUED` → `RUNNING` → `GRADED` / `ERROR`, with `started_at` / `finished_at`
 - In progress: —
-- Blocked: PR for commit 5.1f awaiting review and a green CI.
+- Blocked: PR for commit 5.2a awaiting review and a green CI.

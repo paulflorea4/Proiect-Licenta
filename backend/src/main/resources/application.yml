@@ -6,6 +6,14 @@ spring:
       # Schema changes go through Flyway migrations only. Hibernate just verifies the entities
       # match what the migrations created and never alters the schema.
       ddl-auto: validate
+  servlet:
+    multipart:
+      # Uploads are a submission's source file only (5.1b), capped at SubmissionService.SOURCE_FILE_MAX_BYTES
+      # (128 KiB); these are the server's hard bound above that cap, and must stay above it. The threshold
+      # above the request size keeps every part in memory: an upload is never written to disk.
+      max-file-size: 1MB
+      max-request-size: 1MB
+      file-size-threshold: 2MB
   flyway:
     # The production migration path, stated explicitly: dev-only seed data (db/dev-seed) must
     # never be added here, only by the `dev` profile below.

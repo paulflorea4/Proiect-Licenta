@@ -1,5 +1,6 @@
 package com.gradingplatform.backend.sandbox;
 
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -35,6 +36,18 @@ public record SourceFile(String name, String content) {
         // Windows ignores trailing dots and spaces, which would let "a." and "a" be the same file.
         char last = name.charAt(name.length() - 1);
         return last != '.' && last != ' ' && name.charAt(0) != ' ';
+    }
+
+    /**
+     * The extension of a file name, lower-case and without the dot ({@code java} for
+     * {@code Main.JAVA}), or {@code ""} when it has none (no dot, or a dot at the end). Only the part
+     * after the last {@code /} or {@code \} counts, so a browser's {@code C:\fakepath\main.py} is
+     * {@code py}.
+     */
+    public static String extensionOf(String name) {
+        String base = name.substring(Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\')) + 1);
+        int dot = base.lastIndexOf('.');
+        return dot < 0 ? "" : base.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 
     /** The file name is harmless; the content is student code and stays out of log lines. */

@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
@@ -98,6 +99,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .sorted(FIELD_ORDER)
                 .toList();
         return json(HttpStatus.BAD_REQUEST, ErrorResponse.validation(fields), headers);
+    }
+
+    /**
+     * An upload over the server's multipart limit ({@code spring.servlet.multipart}), refused while
+     * the request is parsed. The only upload is a submission's source file (5.1b), so it is the same
+     * answer as a file over {@code SubmissionService.SOURCE_FILE_MAX_BYTES}.
+     */
+    @Override
+    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        ErrorCode code = ErrorCode.SOURCE_FILE_TOO_LARGE;
+        return json(code.status(), ErrorResponse.of(code), headers);
     }
 
     /** Every other Spring web exception: the status Spring chose, our shape and a fixed message. */

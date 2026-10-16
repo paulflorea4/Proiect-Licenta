@@ -55,7 +55,13 @@ public enum ErrorCode {
     TEST_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "Test case not found"),
     TEST_CRITERION_INVALID(HttpStatus.BAD_REQUEST, "The criterion must be a tests criterion of this assignment"),
     UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, "The language is not supported"),
-    DEADLINE_NOT_IN_FUTURE(HttpStatus.BAD_REQUEST, "The deadline must be in the future");
+    DEADLINE_NOT_IN_FUTURE(HttpStatus.BAD_REQUEST, "The deadline must be in the future"),
+    ONE_SOURCE_FILE_EXPECTED(HttpStatus.BAD_REQUEST, "Exactly one source file is expected, in the part named file"),
+    SOURCE_FILE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "The source file is too large"),
+    SOURCE_FILE_NOT_TEXT(HttpStatus.BAD_REQUEST, "The source file must be UTF-8 text"),
+    SOURCE_FILE_EMPTY(HttpStatus.BAD_REQUEST, "The source file is empty"),
+    SOURCE_FILE_EXTENSION_MISMATCH(
+            HttpStatus.BAD_REQUEST, "The file's extension does not match the assignment's language");
 
     private final HttpStatus status;
     private final String defaultMessage;

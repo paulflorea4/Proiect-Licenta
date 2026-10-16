@@ -104,7 +104,7 @@ public class SubmissionService {
      * it is told), read under {@link AssignmentService#lockVisibleForSubmission}; the student's
      * enrollment is locked ({@link EnrollmentRepository#lockByCourseIdAndStudentId}), so their
      * submissions are made one at a time; the request arrived no later than the deadline; an attempt
-     * is left; the language is still configured; an uploaded file has its extension.
+     * is left (one that ended in {@code ERROR} does not count, 5.1d); the language is still configured; an uploaded file has its extension.
      *
      * @param fileName the uploaded file's name, or null for code sent as text
      * @param arrived when the request arrived: the instant judged against the deadline and stored
@@ -122,7 +122,7 @@ public class SubmissionService {
         }
         int attemptNo = submissions.nextAttemptNo(assignment.getId(), userId);
         Integer maxAttempts = assignment.getMaxAttempts();
-        if (maxAttempts != null && attemptNo > maxAttempts) {
+        if (maxAttempts != null && submissions.countAttemptsUsed(assignment.getId(), userId) >= maxAttempts) {
             throw new AttemptLimitReachedException();
         }
         LanguageSpec language =

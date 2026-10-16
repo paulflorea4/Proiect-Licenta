@@ -11,4 +11,14 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     @Query("select coalesce(max(s.attemptNo), 0) + 1 from Submission s"
             + " where s.assignmentId = :assignmentId and s.studentId = :studentId")
     int nextAttemptNo(@Param("assignmentId") Long assignmentId, @Param("studentId") Long studentId);
+
+    /**
+     * How many of the student's attempts at this assignment count against its {@code max_attempts}:
+     * every submission except those that ended in {@code ERROR}, because a platform failure gives the
+     * attempt back (5.1d, the human's decision). The attempt number ({@link #nextAttemptNo}) still
+     * counts every submission, so numbers stay unique.
+     */
+    @Query("select count(s) from Submission s where s.assignmentId = :assignmentId and s.studentId = :studentId"
+            + " and s.status <> com.gradingplatform.backend.entity.SubmissionStatus.ERROR")
+    long countAttemptsUsed(@Param("assignmentId") Long assignmentId, @Param("studentId") Long studentId);
 }

@@ -248,6 +248,67 @@ class RealHttpSubmitRulesTests extends RealHttpTestBase {
         assertRefused(submit(student, once), 409, "ATTEMPT_LIMIT_REACHED");
     }
 
+    /** Sets a submission's status as the worker (5.2b) will, by SQL: this phase has no worker yet. */
+    private void endAs(Submission submission, String status) {
+        jdbc.update("update submissions set status = ? where id = ?", status, submission.getId());
+    }
+
+    @Test
+    void anAttemptThatEndedInErrorIsGivenBack() throws Exception {
+        Assignment twice = published(DEADLINE, 2);
+        Submission first = stored(submit(student, twice));
+        stored(submit(student, twice));
+        assertRefused(submit(student, twice), 409, "ATTEMPT_LIMIT_REACHED");
+
+        endAs(first, "ERROR");
+
+        assertThat(stored(submit(student, twice)).getAttemptNo())
+                .as("the attempt comes back, the number still counts every submission")
+                .isEqualTo(3);
+        assertRefused(submit(student, twice), 409, "ATTEMPT_LIMIT_REACHED");
+        assertThat(submissions.count()).as("the failed submission is kept").isEqualTo(3);
+    }
+
+    @Test
+    void attemptsInEveryOtherStatusCount() throws Exception {
+        Assignment thrice = published(DEADLINE, 3);
+        endAs(stored(submit(student, thrice)), "GRADED");
+        endAs(stored(submit(student, thrice)), "RUNNING");
+        stored(submit(student, thrice)); // QUEUED
+
+        assertRefused(submit(student, thrice), 409, "ATTEMPT_LIMIT_REACHED");
+    }
+
+    @Test
+    void anotherStudentsErrorDoesNotGiveThisStudentAnAttempt() throws Exception {
+        Assignment once = published(DEADLINE, 1);
+        stored(submit(student, once));
+        endAs(stored(submit(classmate, once)), "ERROR");
+
+        assertRefused(submit(student, once), 409, "ATTEMPT_LIMIT_REACHED");
+    }
+
+    @Test
+    void aBurstAfterAnErrorAcceptsExactlyTheAttemptsLeft() throws Exception {
+        Assignment twice = published(DEADLINE, 2);
+        endAs(stored(submit(student, twice)), "ERROR");
+
+        List<CompletableFuture<HttpResponse<String>>> burst = IntStream.range(0, 6)
+                .mapToObj(i -> async(() -> submit(student, twice)))
+                .toList();
+
+        List<Integer> accepted = new ArrayList<>();
+        for (CompletableFuture<HttpResponse<String>> call : burst) {
+            HttpResponse<String> response = call.get(30, TimeUnit.SECONDS);
+            if (response.statusCode() == 202) {
+                accepted.add(stored(response).getAttemptNo());
+            } else {
+                assertRefused(response, 409, "ATTEMPT_LIMIT_REACHED");
+            }
+        }
+        assertThat(accepted).containsExactlyInAnyOrder(2, 3);
+    }
+
     // --- one student's submissions are made one at a time -----------------------------------
 
     @Test

@@ -19,13 +19,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Students' submissions: accepting them (5.1a, 5.1b) and the rules a submission must meet (5.1c).
- * Grading them is the worker's (5.2).
+ * Grading them is the worker's (5.2): each accepted submission is handed to {@link SubmissionDispatcher}.
  */
 @Service
 public class SubmissionService {
@@ -45,18 +46,21 @@ public class SubmissionService {
     private final EnrollmentRepository enrollments;
     private final SandboxProperties sandboxProperties;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     public SubmissionService(
             AssignmentService assignmentService,
             SubmissionRepository submissions,
             EnrollmentRepository enrollments,
             SandboxProperties sandboxProperties,
-            Clock clock) {
+            Clock clock,
+            ApplicationEventPublisher events) {
         this.assignmentService = assignmentService;
         this.submissions = submissions;
         this.enrollments = enrollments;
         this.sandboxProperties = sandboxProperties;
         this.clock = clock;
+        this.events = events;
     }
 
     /**
@@ -130,8 +134,11 @@ public class SubmissionService {
         if (fileName != null && !SourceFile.extensionOf(fileName).equals(language.sourceFileExtension())) {
             throw new SourceFileExtensionMismatchException();
         }
-        return submissions.saveAndFlush(
+        Submission saved = submissions.saveAndFlush(
                 new Submission(assignment.getId(), userId, assignment.getLanguage(), sourceCode, attemptNo, arrived));
+        // Handed to the worker pool once this transaction commits (5.2a).
+        events.publishEvent(new SubmissionQueuedEvent(saved.getId()));
+        return saved;
     }
 
     /**

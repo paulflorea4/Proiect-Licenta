@@ -1,7 +1,9 @@
 package com.gradingplatform.backend.security;
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -29,10 +31,25 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>CSRF protection is off. It defends against a browser attaching ambient credentials (a session
  * or cookie) to a forged request; the token here is only ever sent by our own client code in a
  * header, never as a cookie (2.4a), so there is nothing for a forged request to ride on.
+ *
+ * <p>Ahead of the chain, {@link RequestBodyLimitFilter} bounds every request body (5.1f).
  */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    /**
+     * Before every other filter that could read a body (the security chain at -100, Spring's form
+     * filter at -9900), right after the character-encoding filter.
+     */
+    static final int REQUEST_BODY_LIMIT_ORDER = Ordered.HIGHEST_PRECEDENCE + 1;
+
+    @Bean
+    FilterRegistrationBean<RequestBodyLimitFilter> requestBodyLimitFilter(JsonMapper jsonMapper) {
+        var registration = new FilterRegistrationBean<>(new RequestBodyLimitFilter(new JsonErrorWriter(jsonMapper)));
+        registration.setOrder(REQUEST_BODY_LIMIT_ORDER);
+        return registration;
+    }
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService, JsonMapper jsonMapper)

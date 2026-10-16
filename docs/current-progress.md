@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.1e done)
-- Next commit: 5.1f — Bound the size of a JSON request body before it is parsed
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.1f done)
+- Next commit: 5.2a — Bounded worker pool (`ThreadPoolTaskExecutor`) that picks up `QUEUED` submissions
 - In progress: —
-- Blocked: PR for commit 5.1e awaiting review and a green CI.
+- Blocked: PR for commit 5.1f awaiting review and a green CI.

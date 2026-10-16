@@ -21,6 +21,7 @@ public enum ErrorCode {
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "Method not allowed"),
     NOT_ACCEPTABLE(HttpStatus.NOT_ACCEPTABLE, "Not acceptable"),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type"),
+    REQUEST_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "The request body is too large"),
     REQUEST_REJECTED(HttpStatus.BAD_REQUEST, "The request was rejected"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"),
 
@@ -96,6 +97,7 @@ public enum ErrorCode {
             case 404 -> NOT_FOUND;
             case 405 -> METHOD_NOT_ALLOWED;
             case 406 -> NOT_ACCEPTABLE;
+            case 413 -> REQUEST_TOO_LARGE;
             case 415 -> UNSUPPORTED_MEDIA_TYPE;
             default -> statusCode.is4xxClientError() ? REQUEST_REJECTED : INTERNAL_ERROR;
         };

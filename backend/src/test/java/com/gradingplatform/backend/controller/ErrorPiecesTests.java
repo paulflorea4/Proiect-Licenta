@@ -37,8 +37,9 @@ class ErrorPiecesTests {
         assertThat(ErrorCode.forStatus(HttpStatus.NOT_FOUND)).isEqualTo(ErrorCode.NOT_FOUND);
         assertThat(ErrorCode.forStatus(HttpStatus.METHOD_NOT_ALLOWED)).isEqualTo(ErrorCode.METHOD_NOT_ALLOWED);
         assertThat(ErrorCode.forStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)).isEqualTo(ErrorCode.UNSUPPORTED_MEDIA_TYPE);
+        assertThat(ErrorCode.forStatus(HttpStatus.CONTENT_TOO_LARGE)).isEqualTo(ErrorCode.REQUEST_TOO_LARGE);
         // No code of their own: 4xx are "rejected", everything else is an internal error.
-        assertThat(ErrorCode.forStatus(HttpStatus.PAYLOAD_TOO_LARGE)).isEqualTo(ErrorCode.REQUEST_REJECTED);
+        assertThat(ErrorCode.forStatus(HttpStatus.TOO_MANY_REQUESTS)).isEqualTo(ErrorCode.REQUEST_REJECTED);
         assertThat(ErrorCode.forStatus(HttpStatus.SERVICE_UNAVAILABLE)).isEqualTo(ErrorCode.INTERNAL_ERROR);
         assertThat(ErrorCode.forStatus(HttpStatusCode.valueOf(599))).isEqualTo(ErrorCode.INTERNAL_ERROR);
     }

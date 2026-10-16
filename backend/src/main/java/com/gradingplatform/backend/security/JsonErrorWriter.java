@@ -23,6 +23,9 @@ class JsonErrorWriter {
         response.setStatus(code.status().value());
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write(mapper.writeValueAsString(ErrorResponse.of(code)));
+        // A declared length frames the answer even when it is flushed early (RequestBodyLimitFilter).
+        byte[] body = mapper.writeValueAsBytes(ErrorResponse.of(code));
+        response.setContentLength(body.length);
+        response.getOutputStream().write(body);
     }
 }

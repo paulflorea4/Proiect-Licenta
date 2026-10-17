@@ -11,9 +11,11 @@ import com.gradingplatform.backend.repository.TestResultRepository;
 import com.gradingplatform.backend.sandbox.ExecutionLimits;
 import com.gradingplatform.backend.sandbox.LanguageSpec;
 import com.gradingplatform.backend.sandbox.SandboxProperties;
+import com.gradingplatform.backend.sandbox.SandboxResult;
 import com.gradingplatform.backend.sandbox.SourceFile;
 import com.gradingplatform.backend.sandbox.SubmissionTestRunner;
 import com.gradingplatform.backend.sandbox.TestCaseInput;
+import com.gradingplatform.backend.sandbox.TestOutcome;
 import com.gradingplatform.backend.sandbox.TestRunResult;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +31,8 @@ import org.springframework.stereotype.Component;
  * decides, 5.2b). The sandbox runs outside any transaction; the results are stored together in one
  * transaction afterwards, so a submission has all of its results or none. A sandbox failure ({@code
  * SandboxFailedException}) is thrown before anything is stored. A language that is no longer
- * configured is also a failure of the platform, not of the student.
+ * configured is also a failure of the platform, not of the student. Code that does not compile is
+ * stored as {@code COMPILE_ERROR} on every test and still graded (5.3b).
  */
 @Component
 public class SubmissionGrader implements SubmissionProcessor {
@@ -81,7 +84,37 @@ public class SubmissionGrader implements SubmissionProcessor {
                         .map(test -> new TestCaseInput(test.getId(), test.getInput(), test.getExpectedOutput()))
                         .toList());
 
-        testResults.saveAll(runs.stream().map(run -> toRow(submissionId, run)).toList());
+        Optional<SandboxResult> build = runs.stream()
+                .filter(run -> run.outcome() == TestOutcome.COMPILE_ERROR)
+                .map(TestRunResult::run)
+                .findFirst();
+        testResults.saveAll(runs.stream()
+                .map(run -> build.isPresent()
+                        ? compileErrorRow(submissionId, run.testCaseId(), build.get())
+                        : toRow(submissionId, run))
+                .toList());
+    }
+
+    /**
+     * A compile error short-circuits (5.3b): every test is {@code COMPILE_ERROR} with the same build,
+     * whatever else the runner returned, so no test can pass on code that did not build. No program
+     * ran, so there is no program output or runtime (NULL, as V8 says); the compiler's own output,
+     * both of its streams, goes in {@code stderr} for the student to read. The submission is still
+     * graded, not an {@code ERROR}: the code was graded, it just did not compile.
+     */
+    private static TestResult compileErrorRow(long submissionId, long testCaseId, SandboxResult build) {
+        return new TestResult(
+                submissionId, testCaseId, TestOutcome.COMPILE_ERROR, null, storable(compilerOutput(build)), null);
+    }
+
+    /** The compiler's stdout then its stderr, each only if it said something. */
+    static String compilerOutput(SandboxResult build) {
+        String out = build.stdout();
+        String err = build.stderr();
+        if (out.isEmpty() || err.isEmpty()) {
+            return out + err;
+        }
+        return out + (out.endsWith("\n") ? "" : "\n") + err;
     }
 
     private static TestResult toRow(long submissionId, TestRunResult result) {

@@ -38,6 +38,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 5.2a: accepted submissions are picked up by the bounded worker pool against the real database. A
  * pool of one with a queue of one, and a processor that holds each claimed submission until the test
  * lets it go, so who is {@code RUNNING} and who is still {@code QUEUED} can be seen at every step.
+ * 5.2b: once let go a submission is {@code GRADED}, or {@code ERROR} when the processor throws, with
+ * {@code finished_at}, and the student's code is kept.
  */
 @Import({TestcontainersConfiguration.class, RealHttpSubmissionWorkerTests.Holding.class})
 @SpringBootTest(
@@ -47,8 +49,13 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
 
     private static final Instant DEADLINE = Instant.parse("2031-06-30T21:59:59Z");
 
-    /** Records each submission it is given and holds it until a permit is released. */
+    /**
+     * Records each submission it is given and holds it until a permit is released; then throws
+     * {@link #failure} if one is set.
+     */
     static class HoldingProcessor implements SubmissionProcessor {
+
+        volatile Throwable failure;
 
         final Semaphore permits = new Semaphore(0);
         final List<Long> processed = Collections.synchronizedList(new ArrayList<>());
@@ -66,9 +73,17 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
             } finally {
                 running.decrementAndGet();
             }
+            Throwable thrown = failure;
+            if (thrown instanceof RuntimeException e) {
+                throw e;
+            }
+            if (thrown instanceof Error e) {
+                throw e;
+            }
         }
 
         void reset() {
+            failure = null;
             permits.drainPermits();
             processed.clear();
             mostAtOnce.set(0);
@@ -171,9 +186,11 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
 
         assertThat(processor.processed).containsExactly(first, second, third, fourth);
         assertThat(processor.mostAtOnce.get()).as("a pool of one").isEqualTo(1);
-        for (long id : List.of(first, second, third, fourth)) {
-            assertThat(status(id)).as("claimed; grading itself comes later").isEqualTo(SubmissionStatus.RUNNING);
+        for (long done : List.of(first, second, third)) {
+            assertThat(status(done)).as("let go, so graded").isEqualTo(SubmissionStatus.GRADED);
         }
+        assertThat(status(fourth)).as("still held").isEqualTo(SubmissionStatus.RUNNING);
+        assertThat(stored(fourth).getFinishedAt()).isNull();
     }
 
     @Test
@@ -193,17 +210,114 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
         long id = submit();
         eventually("taken", () -> processor.processed.contains(id));
         Instant startedAt = stored(id).getStartedAt();
-        processor.permits.release();
-        eventually("done", () -> processor.running.get() == 0);
 
-        worker.work(id); // RUNNING already
+        worker.work(id); // RUNNING
+        assertThat(status(id)).isEqualTo(SubmissionStatus.RUNNING);
+
+        processor.permits.release();
+        eventually("graded", () -> status(id) == SubmissionStatus.GRADED);
+        Instant finishedAt = stored(id).getFinishedAt();
+
+        worker.work(id); // GRADED
         jdbc.update("update submissions set status = 'ERROR' where id = ?", id);
-        worker.work(id); // finished
+        worker.work(id); // ERROR
         worker.work(Long.MAX_VALUE); // no such submission
 
         assertThat(processor.processed).containsExactly(id);
         assertThat(stored(id).getStartedAt()).isEqualTo(startedAt);
+        assertThat(stored(id).getFinishedAt()).isEqualTo(finishedAt);
         assertThat(status(id)).isEqualTo(SubmissionStatus.ERROR);
+    }
+
+    @Test
+    void aProcessedSubmissionIsGradedWithFinishedAtFromTheApplicationClock() throws Exception {
+        Instant started = Instant.parse("2030-01-02T03:04:05.123456Z");
+        Instant finished = Instant.parse("2030-01-02T03:04:17.654321Z");
+        clock.set(started);
+        long id = submit();
+        eventually("taken", () -> processor.processed.contains(id));
+
+        clock.set(finished);
+        processor.permits.release();
+        eventually("graded", () -> status(id) == SubmissionStatus.GRADED);
+
+        assertThat(stored(id).getStartedAt()).isEqualTo(started);
+        assertThat(stored(id).getFinishedAt()).isEqualTo(finished);
+    }
+
+    @Test
+    void anExceptionWhileGradingEndsInErrorWithTheSubmissionKept() throws Exception {
+        jdbc.update("update assignments set max_attempts = 1 where id = ?", assignment.getId());
+        Instant finished = Instant.parse("2030-01-02T03:04:17.654321Z");
+        long id = submit();
+        eventually("taken", () -> processor.processed.contains(id));
+        Submission before = stored(id);
+
+        processor.failure = new IllegalStateException("grading crashed");
+        clock.set(finished);
+        processor.permits.release();
+        eventually("ended", () -> status(id) == SubmissionStatus.ERROR);
+
+        Submission after = stored(id);
+        assertThat(after.getFinishedAt()).isEqualTo(finished);
+        assertThat(after.getSourceCode()).isEqualTo("print(1)");
+        assertThat(after.getLanguage()).isEqualTo("PYTHON");
+        assertThat(after.getAttemptNo()).isEqualTo(before.getAttemptNo());
+        assertThat(after.getSubmittedAt()).isEqualTo(before.getSubmittedAt());
+        assertThat(after.getStartedAt()).isEqualTo(before.getStartedAt());
+
+        // The worker carries on, and the ERROR gave the only attempt back (5.1d).
+        processor.failure = null;
+        long next = submit();
+        eventually("taken", () -> processor.processed.contains(next));
+        processor.permits.release();
+        eventually("graded", () -> status(next) == SubmissionStatus.GRADED);
+        assertThat(status(id)).isEqualTo(SubmissionStatus.ERROR);
+    }
+
+    @Test
+    void anErrorWhileGradingAlsoEndsInErrorAndThePoolCarriesOn() throws Exception {
+        long id = submit();
+        eventually("taken", () -> processor.processed.contains(id));
+        processor.failure = new StackOverflowError("thrown by the test processor");
+        processor.permits.release();
+        eventually("ended", () -> status(id) == SubmissionStatus.ERROR);
+        assertThat(stored(id).getFinishedAt()).isNotNull();
+
+        processor.failure = null;
+        long next = submit();
+        eventually("taken by the replacement thread", () -> processor.processed.contains(next));
+        processor.permits.release();
+        eventually("graded", () -> status(next) == SubmissionStatus.GRADED);
+    }
+
+    @Test
+    void onlyARunningSubmissionCanBeFinished() {
+        Instant at = Instant.parse("2030-01-02T03:04:05.123456Z");
+        for (SubmissionStatus from : SubmissionStatus.values()) {
+            for (SubmissionStatus to : List.of(SubmissionStatus.GRADED, SubmissionStatus.ERROR)) {
+                Submission row = submissions.save(
+                        new Submission(assignment.getId(), student.getId(), "PYTHON", "print(1)", 1, Instant.now()));
+                jdbc.update("update submissions set status = ? where id = ?", from.name(), row.getId());
+
+                int changed = submissions.finish(row.getId(), to, at);
+
+                Submission after = stored(row.getId());
+                if (from == SubmissionStatus.RUNNING) {
+                    assertThat(changed).as(from + " to " + to).isEqualTo(1);
+                    assertThat(after.getStatus()).isEqualTo(to);
+                    assertThat(after.getFinishedAt()).isEqualTo(at);
+                } else {
+                    assertThat(changed).as(from + " to " + to).isZero();
+                    assertThat(after.getStatus()).isEqualTo(from);
+                    assertThat(after.getFinishedAt()).isNull();
+                }
+                assertThat(after.getSourceCode()).isEqualTo("print(1)");
+                submissions.delete(after);
+            }
+        }
+        assertThat(submissions.finish(Long.MAX_VALUE, SubmissionStatus.GRADED, at))
+                .isZero();
     }
 
     @Test

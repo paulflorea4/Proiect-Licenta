@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.2a done)
-- Next commit: 5.2b — Status transitions `QUEUED` → `RUNNING` → `GRADED` / `ERROR`, with `started_at` / `finished_at`
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.2b done)
+- Next commit: 5.2c — Startup recovery: re-queue submissions left `QUEUED` or `RUNNING` after a restart
 - In progress: —
-- Blocked: PR for commit 5.2a awaiting review and a green CI.
+- Blocked: PR for commit 5.2b awaiting review and a green CI.

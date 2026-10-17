@@ -108,7 +108,8 @@ public class SubmissionDispatcher implements DisposableBean {
             pickUpQueued();
             work.accept(submissionId);
         } catch (RuntimeException e) {
-            // Nothing may stop the thread; what a failure does to the submission is 5.2b's.
+            // Nothing may stop the thread. A failed grading is already ERROR (SubmissionWorker); what
+            // gets here is the database failing to claim or finish, and that row is left for 5.2c.
             log.error("Submission {} failed on its worker", submissionId, e);
         } finally {
             handedOver.remove(submissionId);

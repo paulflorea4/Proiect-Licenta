@@ -1,6 +1,7 @@
 package com.gradingplatform.backend.repository;
 
 import com.gradingplatform.backend.entity.Submission;
+import com.gradingplatform.backend.entity.SubmissionStatus;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -39,6 +40,18 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
                     + " where id = :id and status = 'QUEUED'",
             nativeQuery = true)
     int claim(@Param("id") long id, @Param("startedAt") Instant startedAt);
+
+    /**
+     * The worker is done with the submission (5.2b): {@code RUNNING} becomes {@code status} ({@code
+     * GRADED} or {@code ERROR}, the caller's choice) with {@code finished_at}. Only a {@code RUNNING}
+     * row matches, and only the status and {@code finished_at} change, so the student's code is
+     * kept whatever the outcome. Returns 0 when it was not {@code RUNNING} (finished, or deleted).
+     */
+    @Transactional
+    @Modifying
+    @Query("update Submission s set s.status = :status, s.finishedAt = :finishedAt"
+            + " where s.id = :id and s.status = com.gradingplatform.backend.entity.SubmissionStatus.RUNNING")
+    int finish(@Param("id") long id, @Param("status") SubmissionStatus status, @Param("finishedAt") Instant finishedAt);
 
     /** The ids of up to {@code limit} {@code QUEUED} submissions, oldest (lowest id) first. */
     @Query(value = "select id from submissions where status = 'QUEUED' order by id limit :limit", nativeQuery = true)

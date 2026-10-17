@@ -190,3 +190,4 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - the entered range unchecked;
   - tests of non-`TESTS` criteria accepted;
   - a duplicate test accepted.
+- **CI fix on PR #108 (a 5.2c test race, not 5.4a code).** `RealHttpSubmissionWorkerTests.afterARestartEverythingWaitingIsGradedOldestFirst` timed out on CI ("the next one is taken"). The cause was the test's `HoldingProcessor`: it recorded a submission as taken before counting it as running. When the previous test's submission was in that gap, `letGo()` saw `running == 0` and returned. The next test's `reset()` drained the permits, and the leftover submission then waited 30 s for a permit, holding the pool's only thread. Fixed by counting it as running first. Proven by widening the gap with a 300 ms sleep: the old order fails (the same assertion, plus six others), the new order passes.

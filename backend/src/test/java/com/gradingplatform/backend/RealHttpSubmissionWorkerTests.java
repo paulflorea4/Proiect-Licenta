@@ -68,8 +68,11 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
 
         @Override
         public void process(long submissionId) {
-            processed.add(submissionId);
+            // Counted as running before it is seen as taken: letGo() waits for running == 0, and a
+            // submission seen as taken but not yet counted would let letGo() return early, then wait
+            // for a permit after the next test's reset() drained them, holding the only worker.
             mostAtOnce.accumulateAndGet(running.incrementAndGet(), Math::max);
+            processed.add(submissionId);
             try {
                 permits.tryAcquire(30, TimeUnit.SECONDS);
             } catch (InterruptedException e) {

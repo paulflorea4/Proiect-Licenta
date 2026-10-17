@@ -162,6 +162,36 @@ class SubmissionDispatcherTests {
         assertThat(worked).containsExactly(2L, 3L);
     }
 
+    /**
+     * A refused offer must never hide a submission from a pickup running at the same moment. Each
+     * round, with the worker idle, offers two waiting rows back to back as startup recovery does: the
+     * first fills the queue, the second is usually refused, and the worker taking the first offers the
+     * second again. If the refused offer still counted as handed over while the worker looked, both
+     * skipped it and it was never graded (seen on CI, PR #108).
+     */
+    @Test
+    void aRefusedOfferNeverHidesASubmissionFromAPickupAtTheSameMoment() throws Exception {
+        dispatcher(1, 1);
+        permits.release(Integer.MAX_VALUE / 2); // nothing waits: this is about the hand-over only
+
+        for (long round = 0; round < 3000; round++) {
+            long first = 10 + 2 * round;
+            long second = first + 1;
+            queuedRows.add(first);
+            queuedRows.add(second);
+
+            dispatcher.pickUpQueued();
+
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (!worked.contains(second) || !worked.contains(first)) {
+                assertThat(System.nanoTime())
+                        .as("round %d: %d and %d graded (still queued: %s)", round, first, second, queuedRows)
+                        .isLessThan(deadline);
+                Thread.onSpinWait();
+            }
+        }
+    }
+
     @Test
     void thePoolSizeAndQueueCapacityMustBeSetAndPositive() {
         assertThatThrownBy(() -> new SubmissionWorkerProperties(null, 1)).hasMessageContaining("pool-size");

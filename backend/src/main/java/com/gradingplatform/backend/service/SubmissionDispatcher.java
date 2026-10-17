@@ -78,9 +78,15 @@ public class SubmissionDispatcher implements DisposableBean {
     /**
      * Hands the submission to the pool unless it is there already.
      *
+     * <p>Synchronized: between marking a submission handed over and the pool refusing it, a worker
+     * that just took a task may be offering the same submission. Without the lock it would see it
+     * marked, skip it, and nobody would hold it once the mark is undone: it would wait {@code QUEUED}
+     * until the next submission (seen on CI, PR #108). With it, "handed over" only ever means "in the
+     * pool".
+     *
      * @return false only when the pool and its queue are full (the submission stays {@code QUEUED})
      */
-    boolean offer(long submissionId) {
+    synchronized boolean offer(long submissionId) {
         if (!handedOver.add(submissionId)) {
             return true;
         }

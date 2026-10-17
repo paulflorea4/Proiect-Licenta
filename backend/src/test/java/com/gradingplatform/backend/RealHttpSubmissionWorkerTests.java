@@ -10,6 +10,7 @@ import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.Submission;
 import com.gradingplatform.backend.entity.SubmissionStatus;
 import com.gradingplatform.backend.entity.User;
+import com.gradingplatform.backend.service.SubmissionDispatcher;
 import com.gradingplatform.backend.service.SubmissionProcessor;
 import com.gradingplatform.backend.service.SubmissionQueuedEvent;
 import com.gradingplatform.backend.service.SubmissionRecovery;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
@@ -34,6 +36,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -124,7 +128,7 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
     private SubmissionRecovery recovery;
 
     @Autowired
-    private com.gradingplatform.backend.service.SubmissionDispatcher dispatcher;
+    private SubmissionDispatcher dispatcher;
 
     private User student;
     private Assignment assignment;
@@ -227,12 +231,10 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
                 .append(processor.permits.availablePermits())
                 .append("\nsubmissions (id, status, started_at, finished_at)=")
                 .append(jdbc.queryForList("select id, status, started_at, finished_at from submissions order by id"));
-        java.util.concurrent.ThreadPoolExecutor executor =
-                ((org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor)
-                                org.springframework.test.util.ReflectionTestUtils.getField(dispatcher, "pool"))
-                        .getThreadPoolExecutor();
+        ThreadPoolExecutor executor =
+                ((ThreadPoolTaskExecutor) ReflectionTestUtils.getField(dispatcher, "pool")).getThreadPoolExecutor();
         state.append("\ndispatcher handedOver=")
-                .append(org.springframework.test.util.ReflectionTestUtils.getField(dispatcher, "handedOver"))
+                .append(ReflectionTestUtils.getField(dispatcher, "handedOver"))
                 .append(" queue=")
                 .append(executor.getQueue().size())
                 .append(" poolSize=")

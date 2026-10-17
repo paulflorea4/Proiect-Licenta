@@ -144,3 +144,60 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
     - only stderr kept;
     - streams joined without a newline;
     - output not made storable.
+
+## 5.4a — Rubric scoring service: pure function from (rubric, test results) to criterion scores and total
+
+- **A pure static function, `service/RubricScoring.score(criteria, tests, entered)`.** It has no Spring bean, no repository and no clock; the inputs are small records, so 5.6a can hand-compute it and 5.4b/5.4e call it with what they read. A `TESTS` criterion scores `weight × (sum of passed test weights ÷ sum of all its test weights)`, the spec's formula. Only `PASSED` counts, which gives 5.3b's "score zero" for a compile error. A test without a result counts as not passed (the caller decides by setting `passed`).
+- **The function takes entered scores for non-`TESTS` criteria now, although `MANUAL` only becomes available in 5.4d.** The row says non-`TESTS` criteria are reported as pending until their phase lands, and 5.4e must "recompute through the pure scoring function (5.4a)" when a manual score is saved. So the function needs that input from the start rather than a second signature later. With nothing entered, such a criterion is `PENDING`: its score is null, it adds nothing to the total, and it still counts in the maximum. `Result.hasPending()` is what 5.4e will call provisional.
+- **Rounding: each criterion score is rounded once, to 2 decimals (`SCALE`), `HALF_UP` (`ROUNDING`); the total is the exact sum of the rounded criterion scores.**
+  - The scale is V9's `NUMERIC(7, 2)`, whose comment already says the scoring service rounds to it.
+  - The criterion is computed as `weight × passed ÷ total` in one `BigDecimal` division, so no intermediate fraction is rounded.
+  - Summing the rounded criterion scores means the stored total always equals the sum of the stored criterion scores. That is 5.4e's "displayed total can't drift from the criteria"; the price is that it can differ by a cent from the unrounded sum, e.g. 16.67 + 16.67 = 33.34 rather than 33.33.
+  - `HALF_UP` is the usual convention for grades. No `*.md` names a rounding mode, so it is a named constant the human can change; the tests pin the difference from `HALF_EVEN` (0.125 → 0.13, 0.625 → 0.63).
+- **No division by zero:** a `TESTS` criterion with no tests, or tests whose weights add up to 0, scores 0.00. It is graded, not pending, as the row asks; test weights are at least 1 through the API, but the function does not rely on that.
+- **Contradictory inputs throw `IllegalArgumentException` instead of being guessed at:**
+  - a test of an unknown or non-`TESTS` criterion;
+  - a test or criterion listed twice;
+  - an entered score for a `TESTS` or unknown criterion;
+  - an entered score outside 0 to the criterion's weight.
+
+  In grading this ends the submission in `ERROR` (5.2b) rather than storing a wrong grade. 5.4d validates the range at the endpoint first, as its row says.
+- **The nested record is `ScoredTest`, not `TestOutcome`,** so it is not confused with the sandbox's `TestOutcome` enum.
+- **Tests (+15, backend 1854 -> 1869; ai-service and frontend unchanged and passing):** `RubricScoringTests`, every expected value computed by hand in a comment:
+  - a partial pass;
+  - test weights deciding the fraction;
+  - two criteria of different weights;
+  - the total as the sum of rounded scores (33.34);
+  - two half-up roundings;
+  - everything passed;
+  - a compile error (0, graded);
+  - no tests and zero test weight;
+  - a pending manual criterion;
+  - an entered score;
+  - entered scores at 0 and at the weight;
+  - scale and order;
+  - an empty rubric;
+  - each refused contradiction.
+
+  Mutation-checked; each mutant failed at least one test:
+  - `HALF_EVEN`;
+  - the total altered;
+  - test weights ignored;
+  - the criterion weight ignored;
+  - the zero guard removed;
+  - pending scored as 0;
+  - max excluding pending criteria;
+  - the entered range unchecked;
+  - tests of non-`TESTS` criteria accepted;
+  - a duplicate test accepted.
+- **CI failures on PR #108: a lost hand-over in 5.2a's dispatcher, not 5.4a code.** `RealHttpSubmissionWorkerTests.afterARestartEverythingWaitingIsGradedOldestFirst` (5.2c) timed out on CI in 3 of 4 runs and never locally.
+  - **Not the cause:** the first fix (counting the holding processor's submission as running before recording it as taken) closed a real but unrelated race in the test harness, proven by widening its window. It did not stop the CI failure.
+  - **The evidence:** timeout diagnostics added to the test showed every worker idle with an empty queue, after the first submission was graded and three rows still `QUEUED`. The pool was never told about them.
+  - **The cause:** in `SubmissionDispatcher.offer`, a submission marked handed over but refused by a full queue was briefly still marked. In that window, a worker that had just taken a task, and was offering the same submission from its pickup, skipped it as already handed over. The refused offer then removed the mark, so nobody held the submission, and it would wait `QUEUED` until the next submission or a restart.
+  - **When it happens:** the trigger is startup recovery's back-to-back offers with an idle worker. The worker's pickup query finished inside the time the refusal took to build its exceptions, which on CI's slower runner was common.
+  - **The fix:** `offer` is now `synchronized`, so "handed over" only ever means "in the pool".
+  - **Its test:** `SubmissionDispatcherTests.aRefusedOfferNeverHidesASubmissionFromAPickupAtTheSameMoment` runs 3000 rounds of exactly that sequence. It failed on round 1 in 3 of 3 runs before the lock and passes after it. The timeout report stays in the test.
+- **The residual memory-kill flake (4.7a), fixed on this PR at the human's request.**
+  - **The failure:** after the dispatcher fix, a CI run failed on `SandboxExitStatusTests.aHelperKilledForMemoryAndAMainProgramThatThenFailsIsAMemoryLimit`. The parent exits 1 after its helper was killed for memory, and Docker did not record `OOMKilled`, so the run was `RUNTIME_ERROR`. 4.7a had left that path open on purpose.
+  - **The decision:** asked for a recommendation, I proposed (a), letting the test accept either label, over (b), reading the container's cgroup `memory.events`. (b) is not in `docker inspect`, the container is removed straight after the run, it depends on cgroup v1/v2, and it cannot be done from a Windows host with Docker Desktop: fragile code for a label that does not change the score. The human agreed and asked for it on this PR.
+  - **The change:** the test is renamed `…IsAMemoryLimitOrARuntimeError`. It accepts `MEMORY_LIMIT` or `RUNTIME_ERROR` and still asserts exit code 1 and that the run never completes cleanly, so it can never pass a test. "Non-zero exit plus the flag is `MEMORY_LIMIT`" stays pinned without Docker in `ExitClassificationTests` (`1, true, MEMORY_LIMIT`).

@@ -148,16 +148,25 @@ class SandboxExitStatusTests {
         assertThat(result.stdout()).isEqualTo("main done\n");
     }
 
+    /**
+     * A non-137 exit is {@code MEMORY_LIMIT} only when Docker recorded the kernel's out-of-memory
+     * flag, and the CI runner sometimes does not record it (4.7a; seen again on PR #108). So either
+     * label is accepted here; the label is the only difference, the score is the same. What must hold
+     * whatever the host: the program's own exit code is kept and the run never completes cleanly, so
+     * it can never pass a test. The rule itself (non-zero exit plus the flag = {@code MEMORY_LIMIT})
+     * is pinned without Docker in {@code ExitClassificationTests}.
+     */
     @Test
-    void aHelperKilledForMemoryAndAMainProgramThatThenFailsIsAMemoryLimit() {
+    void aMainProgramThatFailsAfterItsHelperWasKilledForMemoryIsAMemoryLimitOrARuntimeError() {
         SandboxResult result = python("""
                 import subprocess, sys
                 subprocess.run([sys.executable, '-c', "x = []\\nwhile True: x.append(bytearray(10_000_000))"])
                 sys.exit(1)
                 """, LIMITS);
 
-        assertThat(result.status()).as(describe(result)).isEqualTo(SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status()).as(describe(result)).isIn(SandboxStatus.MEMORY_LIMIT, SandboxStatus.RUNTIME_ERROR);
         assertThat(result.exitCode()).isEqualTo(1);
+        assertThat(result.completedCleanly()).isFalse();
     }
 
     // --- the other endings are unchanged ---------------------------------------------------------

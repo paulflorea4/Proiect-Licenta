@@ -1,6 +1,7 @@
 package com.gradingplatform.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import com.gradingplatform.backend.entity.Assignment;
 import com.gradingplatform.backend.entity.Course;
@@ -9,6 +10,7 @@ import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.Submission;
 import com.gradingplatform.backend.entity.SubmissionStatus;
 import com.gradingplatform.backend.entity.User;
+import com.gradingplatform.backend.service.SubmissionDispatcher;
 import com.gradingplatform.backend.service.SubmissionProcessor;
 import com.gradingplatform.backend.service.SubmissionQueuedEvent;
 import com.gradingplatform.backend.service.SubmissionRecovery;
@@ -20,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
@@ -33,6 +36,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -68,8 +73,11 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
 
         @Override
         public void process(long submissionId) {
-            processed.add(submissionId);
+            // Counted as running before it is seen as taken: letGo() waits for running == 0, and a
+            // submission seen as taken but not yet counted would let letGo() return early, then wait
+            // for a permit after the next test's reset() drained them, holding the only worker.
             mostAtOnce.accumulateAndGet(running.incrementAndGet(), Math::max);
+            processed.add(submissionId);
             try {
                 permits.tryAcquire(30, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
@@ -118,6 +126,9 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
 
     @Autowired
     private SubmissionRecovery recovery;
+
+    @Autowired
+    private SubmissionDispatcher dispatcher;
 
     private User student;
     private Assignment assignment;
@@ -199,12 +210,50 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
         return stored(id).getStatus();
     }
 
-    private static void eventually(String what, BooleanSupplier condition) throws InterruptedException {
+    private void eventually(String what, BooleanSupplier condition) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (!condition.getAsBoolean()) {
-            assertThat(System.nanoTime()).as(what).isLessThan(deadline);
+            if (System.nanoTime() - deadline > 0) {
+                fail("timed out waiting: " + what + "\n" + state());
+            }
             Thread.sleep(20);
         }
+    }
+
+    /** What the worker side looks like, for a timeout's message: a wait that never ends says why. */
+    private String state() {
+        StringBuilder state = new StringBuilder()
+                .append("processed=")
+                .append(processor.processed)
+                .append(" running=")
+                .append(processor.running.get())
+                .append(" permits=")
+                .append(processor.permits.availablePermits())
+                .append("\nsubmissions (id, status, started_at, finished_at)=")
+                .append(jdbc.queryForList("select id, status, started_at, finished_at from submissions order by id"));
+        ThreadPoolExecutor executor =
+                ((ThreadPoolTaskExecutor) ReflectionTestUtils.getField(dispatcher, "pool")).getThreadPoolExecutor();
+        state.append("\ndispatcher handedOver=")
+                .append(ReflectionTestUtils.getField(dispatcher, "handedOver"))
+                .append(" queue=")
+                .append(executor.getQueue().size())
+                .append(" poolSize=")
+                .append(executor.getPoolSize())
+                .append(" active=")
+                .append(executor.getActiveCount())
+                .append(" tasks=")
+                .append(executor.getTaskCount())
+                .append(" completed=")
+                .append(executor.getCompletedTaskCount());
+        Thread.getAllStackTraces().forEach((thread, stack) -> {
+            if (thread.getName().startsWith("submission-worker")) {
+                state.append("\n").append(thread.getName()).append(" ").append(thread.getState());
+                for (StackTraceElement frame : stack) {
+                    state.append("\n    at ").append(frame);
+                }
+            }
+        });
+        return state.toString();
     }
 
     @Test

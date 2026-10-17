@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.2c done)
-- Next commit: 5.3a — Worker runs the assignment's tests through the Phase 4 runner and persists `test_results`
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.3a done)
+- Next commit: 5.3b — A compile error short-circuits: every test recorded as `COMPILE_ERROR`, score zero for tests criteria
 - In progress: —
-- Blocked: PR for commit 5.2c awaiting review and a green CI.
+- Blocked: PR for commit 5.3a awaiting review and a green CI.

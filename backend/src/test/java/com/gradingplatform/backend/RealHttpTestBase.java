@@ -8,6 +8,7 @@ import com.gradingplatform.backend.repository.EnrollmentRepository;
 import com.gradingplatform.backend.repository.RubricCriterionRepository;
 import com.gradingplatform.backend.repository.SubmissionRepository;
 import com.gradingplatform.backend.repository.TestCaseRepository;
+import com.gradingplatform.backend.repository.TestResultRepository;
 import com.gradingplatform.backend.repository.UserRepository;
 import com.gradingplatform.backend.security.JwtService;
 import java.io.IOException;
@@ -68,6 +69,9 @@ abstract class RealHttpTestBase {
     protected SubmissionRepository submissions;
 
     @Autowired
+    protected TestResultRepository testResults;
+
+    @Autowired
     protected JdbcTemplate jdbc;
 
     @Autowired
@@ -87,6 +91,7 @@ abstract class RealHttpTestBase {
     @AfterEach
     void emptyTables() {
         clock.reset();
+        testResults.deleteAll();
         submissions.deleteAll();
         testCases.deleteAll();
         rubricCriteria.deleteAll();

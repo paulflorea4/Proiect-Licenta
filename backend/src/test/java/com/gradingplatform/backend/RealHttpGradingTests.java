@@ -13,10 +13,12 @@ import com.gradingplatform.backend.entity.TestCase;
 import com.gradingplatform.backend.entity.TestResult;
 import com.gradingplatform.backend.entity.TestVisibility;
 import com.gradingplatform.backend.entity.User;
+import com.gradingplatform.backend.repository.GradeRepository;
 import com.gradingplatform.backend.sandbox.SandboxProperties;
 import com.gradingplatform.backend.sandbox.SandboxTestImages;
 import com.gradingplatform.backend.sandbox.TestOutcome;
 import com.jayway.jsonpath.JsonPath;
+import java.math.BigDecimal;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.List;
@@ -37,6 +39,9 @@ class RealHttpGradingTests extends RealHttpTestBase {
 
     @Autowired
     private SandboxProperties languages;
+
+    @Autowired
+    private GradeRepository grades;
 
     private User student;
     private Assignment assignment;
@@ -107,6 +112,8 @@ class RealHttpGradingTests extends RealHttpTestBase {
         assertThat(rows).extracting(TestResult::getStderr).containsOnly("");
         assertThat(rows).extracting(TestResult::getRuntimeMs).doesNotContainNull();
         assertThat(submissions.findById(id).orElseThrow().getFinishedAt()).isNotNull();
+        // One TESTS criterion of 100 with three equal tests, two passed: 100 × 2/3 = 66.666... = 66.67 (5.4b).
+        assertThat(grades.findBySubmissionId(id).orElseThrow().getTotalScore()).isEqualTo(new BigDecimal("66.67"));
     }
 
     @Test
@@ -155,5 +162,7 @@ class RealHttpGradingTests extends RealHttpTestBase {
         assertThat(submissions.findById(id).orElseThrow().getStatus())
                 .as("graded, not ERROR")
                 .isEqualTo(SubmissionStatus.GRADED);
+        // Nothing passed: 0.00 of 100.00 (5.3b, 5.4b).
+        assertThat(grades.findBySubmissionId(id).orElseThrow().getTotalScore()).isEqualTo(new BigDecimal("0.00"));
     }
 }

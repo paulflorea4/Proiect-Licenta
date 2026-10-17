@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4a done)
-- Next commit: 5.4b — Persist `grades` and `criterion_scores`
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4b done)
+- Next commit: 5.4c — `GET /assignments/{id}/my-grade`: best score across the student's graded attempts
 - In progress: —
-- Blocked: PR #108 (commit 5.4a) awaiting review and a green CI.
+- Blocked: PR for commit 5.4b awaiting review and a green CI.

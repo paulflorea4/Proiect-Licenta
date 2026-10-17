@@ -2,7 +2,10 @@ package com.gradingplatform.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyIterable;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,7 +19,6 @@ import com.gradingplatform.backend.entity.TestVisibility;
 import com.gradingplatform.backend.repository.AssignmentRepository;
 import com.gradingplatform.backend.repository.SubmissionRepository;
 import com.gradingplatform.backend.repository.TestCaseRepository;
-import com.gradingplatform.backend.repository.TestResultRepository;
 import com.gradingplatform.backend.sandbox.ExecutionLimits;
 import com.gradingplatform.backend.sandbox.SandboxFailedException;
 import com.gradingplatform.backend.sandbox.SandboxRequest;
@@ -52,7 +54,7 @@ class SubmissionGraderTests {
     private final SubmissionRepository submissions = mock(SubmissionRepository.class);
     private final AssignmentRepository assignments = mock(AssignmentRepository.class);
     private final TestCaseRepository testCases = mock(TestCaseRepository.class);
-    private final TestResultRepository testResults = mock(TestResultRepository.class);
+    private final SubmissionResultWriter results = mock(SubmissionResultWriter.class);
 
     /** Every request the sandbox was given. */
     private final List<SandboxRequest> requests = new ArrayList<>();
@@ -72,7 +74,7 @@ class SubmissionGraderTests {
                 submissions,
                 assignments,
                 testCases,
-                testResults,
+                results,
                 TestLanguages.javaAndPython(),
                 new SubmissionTestRunner(sandbox));
         Submission submission =
@@ -99,11 +101,9 @@ class SubmissionGraderTests {
 
     @SuppressWarnings("unchecked")
     private List<TestResult> stored() {
-        ArgumentCaptor<Iterable<TestResult>> saved = ArgumentCaptor.forClass(Iterable.class);
-        verify(testResults).saveAll(saved.capture());
-        List<TestResult> rows = new ArrayList<>();
-        saved.getValue().forEach(rows::add);
-        return rows;
+        ArgumentCaptor<List<TestResult>> saved = ArgumentCaptor.forClass(List.class);
+        verify(results).store(eq(SUBMISSION), eq(ASSIGNMENT), anyList(), saved.capture());
+        return saved.getValue();
     }
 
     @Test
@@ -122,6 +122,21 @@ class SubmissionGraderTests {
             assertThat(request.sourceFiles()).containsExactly(new SourceFile("main.py", "print(input())"));
             assertThat(request.limits()).isEqualTo(new ExecutionLimits(1500, 128));
         }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void theTestsAsRunAreHandedOnForScoring() {
+        TestCase a = test(11, "a", "a", TestVisibility.PUBLIC, 1);
+        TestCase b = test(12, "b", "b", TestVisibility.HIDDEN, 2);
+        tests(a, b);
+        answer = SubmissionGraderTests::ok;
+
+        grader.process(SUBMISSION);
+
+        ArgumentCaptor<List<TestCase>> scored = ArgumentCaptor.forClass(List.class);
+        verify(results).store(eq(SUBMISSION), eq(ASSIGNMENT), scored.capture(), anyList());
+        assertThat(scored.getValue()).containsExactly(a, b);
     }
 
     @Test
@@ -178,7 +193,7 @@ class SubmissionGraderTests {
 
         assertThatThrownBy(() -> grader.process(SUBMISSION)).isInstanceOf(SandboxFailedException.class);
 
-        verify(testResults, never()).saveAll(anyIterable());
+        verify(results, never()).store(anyLong(), anyLong(), any(), any());
     }
 
     @Test
@@ -188,7 +203,7 @@ class SubmissionGraderTests {
         grader.process(SUBMISSION);
 
         assertThat(requests).isEmpty();
-        verify(testResults, never()).saveAll(anyIterable());
+        verify(results, never()).store(anyLong(), anyLong(), any(), any());
     }
 
     @Test
@@ -198,7 +213,7 @@ class SubmissionGraderTests {
         grader.process(SUBMISSION);
 
         assertThat(requests).isEmpty();
-        verify(testResults, never()).saveAll(anyIterable());
+        verify(results, never()).store(anyLong(), anyLong(), any(), any());
     }
 
     @Test
@@ -211,7 +226,7 @@ class SubmissionGraderTests {
         assertThatThrownBy(() -> grader.process(SUBMISSION)).isInstanceOf(IllegalStateException.class);
 
         assertThat(requests).isEmpty();
-        verify(testResults, never()).saveAll(anyIterable());
+        verify(results, never()).store(anyLong(), anyLong(), any(), any());
     }
 
     private static SandboxResult compileError(String stdout, String stderr) {

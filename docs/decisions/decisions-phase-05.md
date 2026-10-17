@@ -201,3 +201,32 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - **The failure:** after the dispatcher fix, a CI run failed on `SandboxExitStatusTests.aHelperKilledForMemoryAndAMainProgramThatThenFailsIsAMemoryLimit`. The parent exits 1 after its helper was killed for memory, and Docker did not record `OOMKilled`, so the run was `RUNTIME_ERROR`. 4.7a had left that path open on purpose.
   - **The decision:** asked for a recommendation, I proposed (a), letting the test accept either label, over (b), reading the container's cgroup `memory.events`. (b) is not in `docker inspect`, the container is removed straight after the run, it depends on cgroup v1/v2, and it cannot be done from a Windows host with Docker Desktop: fragile code for a label that does not change the score. The human agreed and asked for it on this PR.
   - **The change:** the test is renamed `…IsAMemoryLimitOrARuntimeError`. It accepts `MEMORY_LIMIT` or `RUNTIME_ERROR` and still asserts exit code 1 and that the run never completes cleanly, so it can never pass a test. "Non-zero exit plus the flag is `MEMORY_LIMIT`" stays pinned without Docker in `ExitClassificationTests` (`1, true, MEMORY_LIMIT`).
+
+## 5.4b — Persist `grades` and `criterion_scores`
+
+- **One transaction for the whole result (`service/SubmissionResultWriter.store`).** `SubmissionGrader` no longer saves `test_results` itself. It hands the rows to the writer, which in one `@Transactional` method reads the rubric, replaces the results, scores them with `RubricScoring` (5.4a), and stores the `TESTS` criteria's `criterion_scores` and the `grades` row. So a submission never has results without a grade, or a grade that disagrees with its results. If scoring refuses its inputs, the transaction rolls back and the earlier state is untouched (tested). The sandbox still runs before, outside any transaction.
+- **Storing replaces, as 5.2c required.** A submission graded again (after a restart cut its first run short) first loses its earlier `test_results`, its `TESTS` criterion rows and its grade. The `grades.submission_id` and `criterion_scores (submission_id, criterion_id)` unique constraints would otherwise refuse the second run. Recovery already deletes `test_results` of `RUNNING` rows; the writer deleting them too makes it idempotent on its own.
+- **Entered scores are kept and counted.** Rows of non-`TESTS` criteria (only `MANUAL` from 5.4d) are never deleted by grading. They are read in the same transaction and passed to `RubricScoring` as entered scores, so the stored total includes a manual score given before a re-run. 5.4e will reuse the same function when a manual score is saved.
+- **A pending criterion has no row,** as V9's comment says ("no row is pending, not zero"). The grade's `max_score` still counts its weight (5.4a).
+- **`graded_at` is written from the application `Clock`** (microseconds), like `submitted_at` / `started_at` / `finished_at`. The column's `DEFAULT NOW()` is only for SQL inserts.
+- **Scores are `BigDecimal` mapped to `NUMERIC(7, 2)`** (`precision = 7, scale = 2` on the new `Grade` and `CriterionScore` entities), as the row requires; never `double`.
+- **No tests still means nothing stored, so no grade row** (5.3a's decision). The 5.1 test fixtures publish assignments without tests by SQL. A grade written in the background for each of their hundreds of submissions would race with `emptyTables` deleting `submissions`, as a foreign-key failure. A published assignment always has tests (3.4b), so every real `GRADED` submission has a grade.
+- **A test case without a criterion fails loudly:** `Objects.requireNonNull`, ending in `ERROR`. The column is nullable, but the service always sets it (3.5a).
+- **Tests (+6, backend 1870 -> 1876; ai-service and frontend unchanged and passing).**
+  - `SubmissionResultWriterTests` (5, real database, values computed by hand in comments):
+    - results, `TESTS` scores and grade stored together, with a pending criterion and no row for it;
+    - grading again replaces results, scores and grade, and keeps one grade row;
+    - an entered score is kept with its comment and counted in the total;
+    - a test without a result is not passed;
+    - a refused scoring changes nothing, not even the earlier grade.
+  - `SubmissionGraderTests` (+1): the tests as run are handed on for scoring; the other tests now verify the writer call.
+  - `RealHttpGradingTests`: the end-to-end runs now check the stored grade (66.67, and 0.00 for a compile error).
+  - Mutation-checked, each failing at least one test:
+    - the earlier grade kept;
+    - entered scores deleted;
+    - entered scores ignored;
+    - every graded criterion stored;
+    - `graded_at` from the system clock;
+    - not transactional;
+    - earlier results kept;
+    - anything but `FAILED` counted as passed.

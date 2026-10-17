@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.3b done)
-- Next commit: 5.4a — Rubric scoring service: pure function from (rubric, test results) to criterion scores and total
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4a done)
+- Next commit: 5.4b — Persist `grades` and `criterion_scores`
 - In progress: —
-- Blocked: PR for commit 5.3b awaiting review and a green CI.
+- Blocked: PR for commit 5.4a awaiting review and a green CI.

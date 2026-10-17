@@ -144,3 +144,49 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
     - only stderr kept;
     - streams joined without a newline;
     - output not made storable.
+
+## 5.4a — Rubric scoring service: pure function from (rubric, test results) to criterion scores and total
+
+- **A pure static function, `service/RubricScoring.score(criteria, tests, entered)`.** It has no Spring bean, no repository and no clock; the inputs are small records, so 5.6a can hand-compute it and 5.4b/5.4e call it with what they read. A `TESTS` criterion scores `weight × (sum of passed test weights ÷ sum of all its test weights)`, the spec's formula. Only `PASSED` counts, which gives 5.3b's "score zero" for a compile error. A test without a result counts as not passed (the caller decides by setting `passed`).
+- **The function takes entered scores for non-`TESTS` criteria now, although `MANUAL` only becomes available in 5.4d.** The row says non-`TESTS` criteria are reported as pending until their phase lands, and 5.4e must "recompute through the pure scoring function (5.4a)" when a manual score is saved. So the function needs that input from the start rather than a second signature later. With nothing entered, such a criterion is `PENDING`: its score is null, it adds nothing to the total, and it still counts in the maximum. `Result.hasPending()` is what 5.4e will call provisional.
+- **Rounding: each criterion score is rounded once, to 2 decimals (`SCALE`), `HALF_UP` (`ROUNDING`); the total is the exact sum of the rounded criterion scores.**
+  - The scale is V9's `NUMERIC(7, 2)`, whose comment already says the scoring service rounds to it.
+  - The criterion is computed as `weight × passed ÷ total` in one `BigDecimal` division, so no intermediate fraction is rounded.
+  - Summing the rounded criterion scores means the stored total always equals the sum of the stored criterion scores. That is 5.4e's "displayed total can't drift from the criteria"; the price is that it can differ by a cent from the unrounded sum, e.g. 16.67 + 16.67 = 33.34 rather than 33.33.
+  - `HALF_UP` is the usual convention for grades. No `*.md` names a rounding mode, so it is a named constant the human can change; the tests pin the difference from `HALF_EVEN` (0.125 → 0.13, 0.625 → 0.63).
+- **No division by zero:** a `TESTS` criterion with no tests, or tests whose weights add up to 0, scores 0.00. It is graded, not pending, as the row asks; test weights are at least 1 through the API, but the function does not rely on that.
+- **Contradictory inputs throw `IllegalArgumentException` instead of being guessed at:**
+  - a test of an unknown or non-`TESTS` criterion;
+  - a test or criterion listed twice;
+  - an entered score for a `TESTS` or unknown criterion;
+  - an entered score outside 0 to the criterion's weight.
+
+  In grading this ends the submission in `ERROR` (5.2b) rather than storing a wrong grade. 5.4d validates the range at the endpoint first, as its row says.
+- **The nested record is `ScoredTest`, not `TestOutcome`,** so it is not confused with the sandbox's `TestOutcome` enum.
+- **Tests (+15, backend 1854 -> 1869; ai-service and frontend unchanged and passing):** `RubricScoringTests`, every expected value computed by hand in a comment:
+  - a partial pass;
+  - test weights deciding the fraction;
+  - two criteria of different weights;
+  - the total as the sum of rounded scores (33.34);
+  - two half-up roundings;
+  - everything passed;
+  - a compile error (0, graded);
+  - no tests and zero test weight;
+  - a pending manual criterion;
+  - an entered score;
+  - entered scores at 0 and at the weight;
+  - scale and order;
+  - an empty rubric;
+  - each refused contradiction.
+
+  Mutation-checked; each mutant failed at least one test:
+  - `HALF_EVEN`;
+  - the total altered;
+  - test weights ignored;
+  - the criterion weight ignored;
+  - the zero guard removed;
+  - pending scored as 0;
+  - max excluding pending criteria;
+  - the entered range unchecked;
+  - tests of non-`TESTS` criteria accepted;
+  - a duplicate test accepted.

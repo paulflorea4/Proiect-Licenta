@@ -1,6 +1,7 @@
 package com.gradingplatform.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import com.gradingplatform.backend.entity.Assignment;
 import com.gradingplatform.backend.entity.Course;
@@ -202,12 +203,36 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
         return stored(id).getStatus();
     }
 
-    private static void eventually(String what, BooleanSupplier condition) throws InterruptedException {
+    private void eventually(String what, BooleanSupplier condition) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (!condition.getAsBoolean()) {
-            assertThat(System.nanoTime()).as(what).isLessThan(deadline);
+            if (System.nanoTime() - deadline > 0) {
+                fail("timed out waiting: " + what + "\n" + state());
+            }
             Thread.sleep(20);
         }
+    }
+
+    /** What the worker side looks like, for a timeout's message: a wait that never ends says why. */
+    private String state() {
+        StringBuilder state = new StringBuilder()
+                .append("processed=")
+                .append(processor.processed)
+                .append(" running=")
+                .append(processor.running.get())
+                .append(" permits=")
+                .append(processor.permits.availablePermits())
+                .append("\nsubmissions (id, status, started_at, finished_at)=")
+                .append(jdbc.queryForList("select id, status, started_at, finished_at from submissions order by id"));
+        Thread.getAllStackTraces().forEach((thread, stack) -> {
+            if (thread.getName().startsWith("submission-worker")) {
+                state.append("\n").append(thread.getName()).append(" ").append(thread.getState());
+                for (StackTraceElement frame : stack) {
+                    state.append("\n    at ").append(frame);
+                }
+            }
+        });
+        return state.toString();
     }
 
     @Test

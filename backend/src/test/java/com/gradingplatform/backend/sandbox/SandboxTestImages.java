@@ -10,7 +10,7 @@ import java.util.Locale;
 import java.util.Set;
 
 /** Builds the runner images from {@code infra/sandbox} for the tests that need them, once per test run. */
-final class SandboxTestImages {
+public final class SandboxTestImages {
 
     private static final Duration BUILD = Duration.ofMinutes(10);
     private static final Path SANDBOX_DIR = Path.of("../infra/sandbox");
@@ -23,7 +23,7 @@ final class SandboxTestImages {
     }
 
     /** Builds the image of a language under the name in the config (cached by Docker), and returns that name. */
-    static synchronized String ensureBuilt(SandboxProperties languages, String languageId) {
+    public static synchronized String ensureBuilt(SandboxProperties languages, String languageId) {
         String image = languages.find(languageId).orElseThrow().image();
         if (BUILT.contains(image)) {
             return image;

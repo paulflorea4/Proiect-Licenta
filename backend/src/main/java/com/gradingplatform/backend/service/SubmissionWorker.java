@@ -50,7 +50,8 @@ public class SubmissionWorker {
         }
         SubmissionProcessor grading = processor.getIfAvailable();
         if (grading == null) {
-            // No grading yet (5.3a adds it): the claimed submission stays RUNNING.
+            // Only when no processor bean exists at all (the application has SubmissionGrader, 5.3a):
+            // the claimed submission stays RUNNING.
             return;
         }
         try {

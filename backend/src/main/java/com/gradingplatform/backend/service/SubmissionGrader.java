@@ -7,7 +7,6 @@ import com.gradingplatform.backend.entity.TestResult;
 import com.gradingplatform.backend.repository.AssignmentRepository;
 import com.gradingplatform.backend.repository.SubmissionRepository;
 import com.gradingplatform.backend.repository.TestCaseRepository;
-import com.gradingplatform.backend.repository.TestResultRepository;
 import com.gradingplatform.backend.sandbox.ExecutionLimits;
 import com.gradingplatform.backend.sandbox.LanguageSpec;
 import com.gradingplatform.backend.sandbox.SandboxProperties;
@@ -28,8 +27,9 @@ import org.springframework.stereotype.Component;
  * student is shown differs (5.5a).
  *
  * <p>Nothing here writes a status: returning means graded, throwing means {@code ERROR} (the worker
- * decides, 5.2b). The sandbox runs outside any transaction; the results are stored together in one
- * transaction afterwards, so a submission has all of its results or none. A sandbox failure ({@code
+ * decides, 5.2b). The sandbox runs outside any transaction; afterwards {@link SubmissionResultWriter}
+ * stores the results with the rubric scores and the grade (5.4b) in one transaction, so a submission
+ * has its whole result or none of it. A sandbox failure ({@code
  * SandboxFailedException}) is thrown before anything is stored. A language that is no longer
  * configured is also a failure of the platform, not of the student. Code that does not compile is
  * stored as {@code COMPILE_ERROR} on every test and still graded (5.3b).
@@ -40,7 +40,7 @@ public class SubmissionGrader implements SubmissionProcessor {
     private final SubmissionRepository submissions;
     private final AssignmentRepository assignments;
     private final TestCaseRepository testCases;
-    private final TestResultRepository testResults;
+    private final SubmissionResultWriter results;
     private final SandboxProperties languages;
     private final SubmissionTestRunner runner;
 
@@ -48,13 +48,13 @@ public class SubmissionGrader implements SubmissionProcessor {
             SubmissionRepository submissions,
             AssignmentRepository assignments,
             TestCaseRepository testCases,
-            TestResultRepository testResults,
+            SubmissionResultWriter results,
             SandboxProperties languages,
             SubmissionTestRunner runner) {
         this.submissions = submissions;
         this.assignments = assignments;
         this.testCases = testCases;
-        this.testResults = testResults;
+        this.results = results;
         this.languages = languages;
         this.runner = runner;
     }
@@ -88,11 +88,15 @@ public class SubmissionGrader implements SubmissionProcessor {
                 .filter(run -> run.outcome() == TestOutcome.COMPILE_ERROR)
                 .map(TestRunResult::run)
                 .findFirst();
-        testResults.saveAll(runs.stream()
-                .map(run -> build.isPresent()
-                        ? compileErrorRow(submissionId, run.testCaseId(), build.get())
-                        : toRow(submissionId, run))
-                .toList());
+        results.store(
+                submissionId,
+                submission.getAssignmentId(),
+                tests,
+                runs.stream()
+                        .map(run -> build.isPresent()
+                                ? compileErrorRow(submissionId, run.testCaseId(), build.get())
+                                : toRow(submissionId, run))
+                        .toList());
     }
 
     /**

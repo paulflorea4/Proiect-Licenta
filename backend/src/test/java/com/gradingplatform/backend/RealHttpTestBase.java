@@ -92,6 +92,8 @@ abstract class RealHttpTestBase {
     void emptyTables() {
         clock.reset();
         testResults.deleteAll();
+        jdbc.update("delete from criterion_scores");
+        jdbc.update("delete from grades");
         submissions.deleteAll();
         testCases.deleteAll();
         rubricCriteria.deleteAll();

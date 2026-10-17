@@ -122,3 +122,25 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - `SubmissionGraderTests` (7, mocked repositories and a scripted `SandboxRunner` behind the real `SubmissionTestRunner`): inputs in run order with the configured file name, code and limits; one row per test with outcome, output, stderr and runtime, public and hidden alike; NUL replaced after a passing comparison; sandbox failure throws and stores nothing; no tests, a missing submission, and an unconfigured language each run and store nothing.
   - `RealHttpGradingTests` (3, real Docker and Postgres through the HTTP endpoint and the application's own worker): passed/passed/failed across public and hidden tests with real outputs; a crashing program is `GRADED` with `RUNTIME_ERROR` rows and the traceback in `stderr`; a printed NUL is stored as U+FFFD and the submission is still `GRADED`.
   - Mutation-checked, each failing at least one test: NUL kept, results not stored, limits swapped, hidden tests skipped, the no-tests guard removed, the missing-submission guard removed, stdout and stderr swapped.
+
+## 5.3b — A compile error short-circuits: every test recorded as `COMPILE_ERROR`, score zero for tests criteria
+
+- **The short-circuit is enforced in `SubmissionGrader`, not only trusted to the runner.** `DockerCliSandboxRunner.runAll` already builds once and gives every input the same `COMPILE_ERROR` without starting a test container (4.4b, 4.6a). But `SandboxRunner`'s default `runAll` builds per input, and could in principle disagree with itself. So the grader checks: if any result is `COMPILE_ERROR`, every row is stored as `COMPILE_ERROR` from that one build, and no test can pass on code that did not build.
+- **Row shape: `actual_output` NULL, `runtime_ms` NULL, the compiler's output in `stderr`.** V8's column comment already says a compile error has no program output (NULL), and no program ran, so there is no runtime: the build's time is not the program's. The compiler's output is what the student needs to read ("compile errors are reported as such", spec). It is stored in `stderr` as the compiler's stdout followed by its stderr, each only if non-empty, with a newline between them if the first does not end with one (`compilerOutput`). javac reports on stderr, but a configured compiler might report on stdout, and adding a language must never need code. The text is repeated on every row, because the schema has no per-submission place for it; adding a column was not part of this row. NULs are replaced as in 5.3a.
+- **Still `GRADED`:** the grader returns normally, so the worker writes `GRADED` (5.2b). Only a `SANDBOX_ERROR` during the build (the sandbox failed, not the code) is `ERROR`; it stays a `SandboxFailedException`, as before.
+- **"Score zero for tests criteria"** needs no code here: scoring is 5.4a, and its passed fraction counts only `PASSED` rows, which a compile error never has. This is noted in `backend/CLAUDE.md` for 5.4a, and 5.6a's hand-computed compile-error case will check it.
+- **Tests (+6, backend 1848 -> 1854; ai-service and frontend unchanged and passing).**
+  - `SubmissionGraderTests` (+5):
+    - every test `COMPILE_ERROR` with the compiler's output and no program output or runtime, public and hidden, and the grader returns;
+    - one `COMPILE_ERROR` among passing results turns every row into `COMPILE_ERROR`;
+    - the joining of the compiler's two streams;
+    - a compiler that reports on stdout;
+    - a NUL in the compiler's output.
+  - `RealHttpGradingTests` (+1): real Java that does not compile, submitted over HTTP, is `GRADED` with two `COMPILE_ERROR` rows holding javac's message, the same text on both, and NULL output and runtime.
+  - Mutation-checked: each of these makes at least one test fail:
+    - no short-circuit;
+    - program output kept;
+    - runtime kept;
+    - only stderr kept;
+    - streams joined without a newline;
+    - output not made storable.

@@ -213,4 +213,71 @@ class SubmissionGraderTests {
         assertThat(requests).isEmpty();
         verify(testResults, never()).saveAll(anyIterable());
     }
+
+    private static SandboxResult compileError(String stdout, String stderr) {
+        return new SandboxResult(SandboxStatus.COMPILE_ERROR, 1, stdout, stderr, false, false, Duration.ofSeconds(3));
+    }
+
+    @Test
+    void aCompileErrorIsStoredOnEveryTestWithTheCompilersOutputAndNoProgramOutputOrRuntime() {
+        tests(test(11, "a", "a", TestVisibility.PUBLIC, 1), test(12, "b", "b", TestVisibility.HIDDEN, 2));
+        answer = stdin -> compileError("", "Main.java:1: error: ';' expected\n");
+
+        grader.process(SUBMISSION); // returns: graded, not an ERROR
+
+        List<TestResult> rows = stored();
+        assertThat(rows).extracting(TestResult::getTestCaseId).containsExactly(11L, 12L);
+        assertThat(rows).extracting(TestResult::getStatus).containsOnly(TestOutcome.COMPILE_ERROR);
+        assertThat(rows).extracting(TestResult::getActualOutput).containsOnlyNulls();
+        assertThat(rows).extracting(TestResult::getRuntimeMs).containsOnlyNulls();
+        assertThat(rows).extracting(TestResult::getStderr).containsOnly("Main.java:1: error: ';' expected\n");
+    }
+
+    @Test
+    void aCompileErrorOnAnyTestShortCircuitsEveryTest() {
+        tests(
+                test(11, "a", "a", TestVisibility.PUBLIC, 1),
+                test(12, "b", "b", TestVisibility.HIDDEN, 2),
+                test(13, "c", "c", TestVisibility.PUBLIC, 3));
+        // A runner that builds per input (SandboxRunner's default runAll) could disagree with itself.
+        answer = stdin -> stdin.equals("b") ? compileError("", "broken\n") : ok(stdin);
+
+        grader.process(SUBMISSION);
+
+        List<TestResult> rows = stored();
+        assertThat(rows).extracting(TestResult::getTestCaseId).containsExactly(11L, 12L, 13L);
+        assertThat(rows).extracting(TestResult::getStatus).containsOnly(TestOutcome.COMPILE_ERROR);
+        assertThat(rows).extracting(TestResult::getStderr).containsOnly("broken\n");
+        assertThat(rows).extracting(TestResult::getActualOutput).containsOnlyNulls();
+    }
+
+    @Test
+    void theCompilersOutputIsBothOfItsStreamsInOrder() {
+        assertThat(SubmissionGrader.compilerOutput(compileError("", "err\n"))).isEqualTo("err\n");
+        assertThat(SubmissionGrader.compilerOutput(compileError("out\n", ""))).isEqualTo("out\n");
+        assertThat(SubmissionGrader.compilerOutput(compileError("out\n", "err\n")))
+                .isEqualTo("out\nerr\n");
+        assertThat(SubmissionGrader.compilerOutput(compileError("out", "err"))).isEqualTo("out\nerr");
+        assertThat(SubmissionGrader.compilerOutput(compileError("", ""))).isEmpty();
+    }
+
+    @Test
+    void aCompilerThatReportsOnStdoutIsStoredToo() {
+        tests(test(11, "a", "a", TestVisibility.PUBLIC, 1));
+        answer = stdin -> compileError("1 error found\n", "file.x:3: bad token\n");
+
+        grader.process(SUBMISSION);
+
+        assertThat(stored().get(0).getStderr()).isEqualTo("1 error found\nfile.x:3: bad token\n");
+    }
+
+    @Test
+    void aNulInTheCompilersOutputIsStorableToo() {
+        tests(test(11, "a", "a", TestVisibility.PUBLIC, 1));
+        answer = stdin -> compileError("", "bad\u0000char");
+
+        grader.process(SUBMISSION);
+
+        assertThat(stored().get(0).getStderr()).isEqualTo("bad�char");
+    }
 }

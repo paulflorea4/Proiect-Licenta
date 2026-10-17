@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.3a done)
-- Next commit: 5.3b — A compile error short-circuits: every test recorded as `COMPILE_ERROR`, score zero for tests criteria
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.3b done)
+- Next commit: 5.4a — Rubric scoring service: pure function from (rubric, test results) to criterion scores and total
 - In progress: —
-- Blocked: PR for commit 5.3a awaiting review and a green CI.
+- Blocked: PR for commit 5.3b awaiting review and a green CI.

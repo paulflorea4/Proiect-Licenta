@@ -132,4 +132,28 @@ class RealHttpGradingTests extends RealHttpTestBase {
         assertThat(row.getStatus()).isEqualTo(TestOutcome.FAILED);
         assertThat(row.getActualOutput()).isEqualTo("a�b");
     }
+
+    @Test
+    void javaThatDoesNotCompileIsGradedWithEveryTestACompileError() throws Exception {
+        SandboxTestImages.ensureBuilt(languages, "JAVA");
+        jdbc.update("update assignments set language = 'JAVA' where id = ?", assignment.getId());
+        long first = test("1 2", "3", TestVisibility.PUBLIC, 1);
+        long second = test("5 7", "12", TestVisibility.HIDDEN, 2);
+
+        long id = submitAndWaitForGrading("public class Main {\n    public static void main(String[] a) {\n"
+                + "        System.out.println(1)\n    }\n}\n");
+
+        List<TestResult> rows = testResults.findBySubmissionIdOrderByIdAsc(id);
+        assertThat(rows).extracting(TestResult::getTestCaseId).containsExactly(first, second);
+        assertThat(rows).extracting(TestResult::getStatus).containsOnly(TestOutcome.COMPILE_ERROR);
+        assertThat(rows).extracting(TestResult::getActualOutput).containsOnlyNulls();
+        assertThat(rows).extracting(TestResult::getRuntimeMs).containsOnlyNulls();
+        assertThat(rows)
+                .allSatisfy(
+                        row -> assertThat(row.getStderr()).contains("Main.java").contains("error"));
+        assertThat(rows.get(0).getStderr()).isEqualTo(rows.get(1).getStderr());
+        assertThat(submissions.findById(id).orElseThrow().getStatus())
+                .as("graded, not ERROR")
+                .isEqualTo(SubmissionStatus.GRADED);
+    }
 }

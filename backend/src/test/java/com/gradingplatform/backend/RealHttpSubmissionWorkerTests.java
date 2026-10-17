@@ -11,6 +11,7 @@ import com.gradingplatform.backend.entity.SubmissionStatus;
 import com.gradingplatform.backend.entity.User;
 import com.gradingplatform.backend.service.SubmissionProcessor;
 import com.gradingplatform.backend.service.SubmissionQueuedEvent;
+import com.gradingplatform.backend.service.SubmissionRecovery;
 import com.gradingplatform.backend.service.SubmissionWorker;
 import com.jayway.jsonpath.JsonPath;
 import java.net.http.HttpResponse;
@@ -39,7 +40,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * pool of one with a queue of one, and a processor that holds each claimed submission until the test
  * lets it go, so who is {@code RUNNING} and who is still {@code QUEUED} can be seen at every step.
  * 5.2b: once let go a submission is {@code GRADED}, or {@code ERROR} when the processor throws, with
- * {@code finished_at}, and the student's code is kept.
+ * {@code finished_at}, and the student's code is kept. 5.2c: after a restart, what was left {@code
+ * RUNNING} is {@code QUEUED} again without its partial results, and everything waiting is graded
+ * (the recovery's two startup steps are called here as Spring calls them at startup).
  */
 @Import({TestcontainersConfiguration.class, RealHttpSubmissionWorkerTests.Holding.class})
 @SpringBootTest(
@@ -111,6 +114,9 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
     @Autowired
     private ApplicationEventPublisher events;
 
+    @Autowired
+    private SubmissionRecovery recovery;
+
     private User student;
     private Assignment assignment;
 
@@ -131,6 +137,46 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
     void letGo() throws InterruptedException {
         processor.permits.release(1000);
         eventually("the worker is idle", () -> processor.running.get() == 0);
+        jdbc.update("delete from test_results");
+    }
+
+    /** A submission stored as a restart would find it, without going through the pool. */
+    private long left(SubmissionStatus status) {
+        int attemptNo = submissions.nextAttemptNo(assignment.getId(), student.getId());
+        Submission row = submissions.save(
+                new Submission(assignment.getId(), student.getId(), "PYTHON", "print(1)", attemptNo, Instant.now()));
+        if (status != SubmissionStatus.QUEUED) {
+            jdbc.update(
+                    "update submissions set status = ?, started_at = now() where id = ?", status.name(), row.getId());
+        }
+        return row.getId();
+    }
+
+    private long testCase(String name) {
+        Long criterion = jdbc.queryForObject(
+                "insert into rubric_criteria (assignment_id, name, type, weight) values (?, 'Tests', 'TESTS', 100)"
+                        + " returning id",
+                Long.class,
+                assignment.getId());
+        return jdbc.queryForObject(
+                "insert into test_cases (assignment_id, criterion_id, name, input, expected_output, visibility,"
+                        + " position) values (?, ?, ?, '', '1', 'PUBLIC', 0) returning id",
+                Long.class,
+                assignment.getId(),
+                criterion,
+                name);
+    }
+
+    private void result(long submissionId, long testCaseId) {
+        jdbc.update(
+                "insert into test_results (submission_id, test_case_id, status) values (?, ?, 'PASSED')",
+                submissionId,
+                testCaseId);
+    }
+
+    private int results(long submissionId) {
+        return jdbc.queryForObject(
+                "select count(*) from test_results where submission_id = ?", Integer.class, submissionId);
     }
 
     private long submit() throws Exception {
@@ -355,5 +401,86 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
         Thread.sleep(200);
         assertThat(processor.processed).containsExactly(id);
         assertThat(submissions.count()).isEqualTo(1);
+    }
+
+    @Test
+    void aRestartRequeuesWhatWasRunningWithoutItsPartialResults() throws Exception {
+        long first = testCase("first");
+        long second = testCase("second");
+        long running = left(SubmissionStatus.RUNNING);
+        result(running, first);
+        long queued = left(SubmissionStatus.QUEUED);
+        long graded = left(SubmissionStatus.GRADED);
+        result(graded, first);
+        result(graded, second);
+        long error = left(SubmissionStatus.ERROR);
+        Submission before = stored(running);
+        Instant gradedStartedAt = stored(graded).getStartedAt();
+
+        recovery.afterSingletonsInstantiated();
+
+        Submission after = stored(running);
+        assertThat(after.getStatus()).isEqualTo(SubmissionStatus.QUEUED);
+        assertThat(after.getStartedAt()).isNull();
+        assertThat(after.getFinishedAt()).isNull();
+        assertThat(after.getSourceCode()).isEqualTo(before.getSourceCode());
+        assertThat(after.getAttemptNo()).isEqualTo(before.getAttemptNo());
+        assertThat(after.getSubmittedAt()).isEqualTo(before.getSubmittedAt());
+        assertThat(results(running)).as("partial results dropped").isZero();
+
+        assertThat(status(queued)).isEqualTo(SubmissionStatus.QUEUED);
+        assertThat(status(graded)).isEqualTo(SubmissionStatus.GRADED);
+        assertThat(stored(graded).getStartedAt()).isEqualTo(gradedStartedAt);
+        assertThat(results(graded)).as("a finished grading keeps its results").isEqualTo(2);
+        assertThat(status(error)).isEqualTo(SubmissionStatus.ERROR);
+
+        Thread.sleep(200);
+        assertThat(processor.processed)
+                .as("step one offers nothing to the pool")
+                .isEmpty();
+    }
+
+    @Test
+    void afterARestartEverythingWaitingIsGradedOldestFirst() throws Exception {
+        long q1 = left(SubmissionStatus.QUEUED);
+        long r1 = left(SubmissionStatus.RUNNING);
+        long q2 = left(SubmissionStatus.QUEUED);
+        long r2 = left(SubmissionStatus.RUNNING);
+        long done = left(SubmissionStatus.GRADED);
+
+        recovery.afterSingletonsInstantiated();
+        recovery.run(null);
+
+        List<Long> order = List.of(q1, r1, q2, r2);
+        for (int i = 1; i <= order.size(); i++) {
+            int taken = i;
+            eventually("the next one is taken", () -> processor.processed.size() == taken);
+            processor.permits.release();
+        }
+        for (long id : order) {
+            eventually("graded", () -> status(id) == SubmissionStatus.GRADED);
+        }
+        assertThat(processor.processed).containsExactlyElementsOf(order);
+        assertThat(processor.processed).doesNotContain(done);
+        assertThat(processor.mostAtOnce.get()).as("still a pool of one").isEqualTo(1);
+    }
+
+    @Test
+    void recoveringTwiceGradesEachSubmissionOnce() throws Exception {
+        long testCase = testCase("only");
+        long running = left(SubmissionStatus.RUNNING);
+        result(running, testCase);
+
+        recovery.afterSingletonsInstantiated();
+        recovery.afterSingletonsInstantiated();
+        recovery.run(null);
+        recovery.run(null);
+
+        eventually("taken", () -> processor.processed.contains(running));
+        processor.permits.release();
+        eventually("graded", () -> status(running) == SubmissionStatus.GRADED);
+        Thread.sleep(200);
+        assertThat(processor.processed).containsExactly(running);
+        assertThat(results(running)).isZero();
     }
 }

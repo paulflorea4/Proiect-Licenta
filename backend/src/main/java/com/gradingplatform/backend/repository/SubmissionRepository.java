@@ -53,6 +53,28 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             + " where s.id = :id and s.status = com.gradingplatform.backend.entity.SubmissionStatus.RUNNING")
     int finish(@Param("id") long id, @Param("status") SubmissionStatus status, @Param("finishedAt") Instant finishedAt);
 
+    /**
+     * Startup recovery (5.2c), step one: deletes the {@code test_results} of every {@code RUNNING}
+     * submission, the partial results of a grading a restart cut short. Needs the caller's
+     * transaction, the same one as {@link #requeueRunning}.
+     */
+    @Modifying
+    @Query(
+            value = "delete from test_results"
+                    + " where submission_id in (select id from submissions where status = 'RUNNING')",
+            nativeQuery = true)
+    int deleteTestResultsOfRunning();
+
+    /**
+     * Startup recovery (5.2c), step two: every {@code RUNNING} submission is {@code QUEUED} again,
+     * without {@code started_at}, so a worker claims and grades it from the start. Returns how many.
+     */
+    @Modifying
+    @Query(
+            value = "update submissions set status = 'QUEUED', started_at = null where status = 'RUNNING'",
+            nativeQuery = true)
+    int requeueRunning();
+
     /** The ids of up to {@code limit} {@code QUEUED} submissions, oldest (lowest id) first. */
     @Query(value = "select id from submissions where status = 'QUEUED' order by id limit :limit", nativeQuery = true)
     List<Long> findQueuedIds(@Param("limit") int limit);

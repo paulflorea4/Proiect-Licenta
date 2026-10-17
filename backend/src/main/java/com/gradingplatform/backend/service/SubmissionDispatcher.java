@@ -25,8 +25,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * full it is not refused and not lost, it just stays {@code QUEUED} in the table. Each time a worker
  * takes a task from the in-memory queue, which frees one place in it, it first offers the oldest
  * {@code QUEUED} submissions (by id, i.e. arrival) that are not handed over yet, until the pool
- * refuses one. Nothing runs at startup: the sandbox sweep must come first, and re-queueing what a
- * restart left behind is 5.2c.
+ * refuses one. The dispatcher starts nothing at startup by itself: {@link SubmissionRecovery} (5.2c)
+ * offers what a restart left behind, once the sandbox sweep is done.
  *
  * <p>The pool is owned here rather than a bean, so it never becomes the application's default
  * executor. One backend instance is assumed (as for the sandbox sweep, 4.3e); several would need a
@@ -118,7 +118,8 @@ public class SubmissionDispatcher implements DisposableBean {
 
     @Override
     public void destroy() {
-        // Waiting submissions stay QUEUED and a running one RUNNING; 5.2c takes them up again.
+        // Waiting submissions stay QUEUED and a running one RUNNING; SubmissionRecovery takes them
+        // up again at the next start.
         pool.shutdown();
     }
 }

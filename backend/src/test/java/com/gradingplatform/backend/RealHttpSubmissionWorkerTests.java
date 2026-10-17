@@ -123,6 +123,9 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
     @Autowired
     private SubmissionRecovery recovery;
 
+    @Autowired
+    private com.gradingplatform.backend.service.SubmissionDispatcher dispatcher;
+
     private User student;
     private Assignment assignment;
 
@@ -224,6 +227,22 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
                 .append(processor.permits.availablePermits())
                 .append("\nsubmissions (id, status, started_at, finished_at)=")
                 .append(jdbc.queryForList("select id, status, started_at, finished_at from submissions order by id"));
+        java.util.concurrent.ThreadPoolExecutor executor =
+                ((org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor)
+                                org.springframework.test.util.ReflectionTestUtils.getField(dispatcher, "pool"))
+                        .getThreadPoolExecutor();
+        state.append("\ndispatcher handedOver=")
+                .append(org.springframework.test.util.ReflectionTestUtils.getField(dispatcher, "handedOver"))
+                .append(" queue=")
+                .append(executor.getQueue().size())
+                .append(" poolSize=")
+                .append(executor.getPoolSize())
+                .append(" active=")
+                .append(executor.getActiveCount())
+                .append(" tasks=")
+                .append(executor.getTaskCount())
+                .append(" completed=")
+                .append(executor.getCompletedTaskCount());
         Thread.getAllStackTraces().forEach((thread, stack) -> {
             if (thread.getName().startsWith("submission-worker")) {
                 state.append("\n").append(thread.getName()).append(" ").append(thread.getState());

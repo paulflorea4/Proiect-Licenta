@@ -4,6 +4,7 @@ import com.gradingplatform.backend.entity.Submission;
 import com.gradingplatform.backend.entity.SubmissionStatus;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,6 +12,19 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
+
+    /** Only the assignment of a submission, for the access check before anything is locked or loaded. */
+    @Query("select s.assignmentId from Submission s where s.id = :id")
+    Optional<Long> findAssignmentIdById(@Param("id") Long id);
+
+    /**
+     * The submission, locked until the transaction ends, so changes to its score are made one at a
+     * time (5.4e: each recompute sees the scores saved before it). {@code FOR NO KEY UPDATE}, not
+     * {@code FOR UPDATE}: it does not hold up rows being inserted that reference the submission
+     * (their foreign key takes a key-share lock), only another lock like this one.
+     */
+    @Query(value = "select * from submissions where id = :id for no key update", nativeQuery = true)
+    Optional<Submission> findByIdForScoreChange(@Param("id") Long id);
 
     /** The attempt number the student's next submission to this assignment gets (1 for the first). */
     @Query("select coalesce(max(s.attemptNo), 0) + 1 from Submission s"

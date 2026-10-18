@@ -119,7 +119,7 @@ class RealHttpManualScoreTests extends RealHttpTestBase {
         assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
         Map<String, Object> body = JsonPath.read(response.body(), "$");
         assertThat(body)
-                .containsOnlyKeys("submissionId", "criterionId", "score", "maxScore", "comment")
+                .containsOnlyKeys("submissionId", "criterionId", "score", "maxScore", "comment", "grade")
                 .containsEntry("comment", "Clear names, long main.");
         assertThat(JsonPath.<Number>read(response.body(), "$.submissionId").longValue())
                 .isEqualTo(id);
@@ -130,7 +130,9 @@ class RealHttpManualScoreTests extends RealHttpTestBase {
         assertThat(row.getScore()).isEqualTo(new BigDecimal("12.50"));
         assertThat(row.getMaxScore()).as("the criterion's weight").isEqualTo(new BigDecimal("20.00"));
         assertThat(row.getComment()).isEqualTo("Clear names, long main.");
-        assertThat(criterionScores.findAll()).hasSize(1);
+        assertThat(criterionScores.findAll())
+                .filteredOn(s -> s.getCriterionId().equals(manual.getId()))
+                .hasSize(1);
     }
 
     @Test
@@ -143,7 +145,10 @@ class RealHttpManualScoreTests extends RealHttpTestBase {
 
         assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
         assertThat(JsonPath.<Object>read(response.body(), "$.comment")).isNull();
-        assertThat(criterionScores.findAll()).hasSize(1);
+        assertThat(criterionScores.findAll())
+                .as("one row for the criterion, replaced")
+                .filteredOn(s -> s.getCriterionId().equals(manual.getId()))
+                .hasSize(1);
         assertThat(stored(id).getScore()).isEqualTo(new BigDecimal("15.00"));
         assertThat(stored(id).getComment()).isNull();
     }

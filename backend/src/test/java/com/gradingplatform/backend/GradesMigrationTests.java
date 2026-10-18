@@ -14,7 +14,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-/** V9 (1.2i): the `grades` and `criterion_scores` tables exist with the agreed constraints. */
+/**
+ * V9 (1.2i): the `grades` and `criterion_scores` tables exist with the agreed constraints; V11
+ * (5.4e): a grade's `provisional` flag.
+ */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @Transactional
@@ -86,6 +89,26 @@ class GradesMigrationTests {
                 .isEqualByComparingTo("66.67");
         assertThat(jdbcTemplate.queryForObject("SELECT max_score FROM grades", BigDecimal.class))
                 .isEqualByComparingTo("100");
+    }
+
+    @Test
+    void v11AddsAProvisionalFlagThatSqlInsertsLeaveFalse() {
+        assertThat(jdbcTemplate.queryForObject(
+                        "SELECT success FROM flyway_schema_history WHERE version = '11'", Boolean.class))
+                .isTrue();
+        assertThat(dataType("grades", "provisional")).isEqualTo("boolean");
+        jdbcTemplate.update(INSERT_GRADE, submissionId, new BigDecimal("50.00"), new BigDecimal("100.00"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT provisional FROM grades", Boolean.class))
+                .isFalse();
+    }
+
+    @Test
+    void theProvisionalFlagIsRequired() {
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "INSERT INTO grades (submission_id, total_score, max_score, provisional) VALUES (?, 1, 1, NULL)",
+                        submissionId))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test

@@ -34,6 +34,30 @@ class DevSeedSubmissionsTests {
     }
 
     @Test
+    void provisionalFlagSeedWasApplied() {
+        Boolean applied = jdbcTemplate.queryForObject(
+                "SELECT success FROM flyway_schema_history WHERE version = '1003'", Boolean.class);
+
+        assertThat(applied).isTrue();
+    }
+
+    @Test
+    void theGradesWithAPendingManualCriterionAreTheProvisionalOnes() {
+        // 5.4e (V1003): the four grades whose MANUAL criterion is pending (V1002 header), no others.
+        List<String> provisional = jdbcTemplate.queryForList(
+                "SELECT " + SUBMISSION_LABEL + SUBMISSION_JOINS
+                        + " JOIN grades g ON g.submission_id = s.id WHERE g.provisional ORDER BY s.id",
+                String.class);
+
+        assertThat(provisional)
+                .containsExactlyInAnyOrder(
+                        "student1@dev.example.com | Sum of Two Numbers | #1",
+                        "student1@dev.example.com | Palindrome Check | #1",
+                        "student1@dev.example.com | Palindrome Check | #2",
+                        "student2@dev.example.com | Palindrome Check | #1");
+    }
+
+    @Test
     void sevenSubmissionsAllGraded() {
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM submissions", Integer.class))
                 .isEqualTo(7);

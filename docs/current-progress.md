@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4d done)
-- Next commit: 5.4e — Recompute the total through `RubricScoring` when a manual score is saved; provisional flag
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4e done)
+- Next commit: 5.5a — `GET /submissions/{id}`: student view (own submissions only)
 - In progress: —
-- Blocked: PR for commit 5.4d awaiting review and a green CI.
+- Blocked: PR for commit 5.4e awaiting review and a green CI.

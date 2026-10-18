@@ -114,6 +114,12 @@ class RealHttpGradingTests extends RealHttpTestBase {
         assertThat(submissions.findById(id).orElseThrow().getFinishedAt()).isNotNull();
         // One TESTS criterion of 100 with three equal tests, two passed: 100 × 2/3 = 66.666... = 66.67 (5.4b).
         assertThat(grades.findBySubmissionId(id).orElseThrow().getTotalScore()).isEqualTo(new BigDecimal("66.67"));
+        // And it is the student's grade for the assignment (5.4c).
+        HttpResponse<String> myGrade = get("/assignments/" + assignment.getId() + "/my-grade", tokenFor(student));
+        assertThat(myGrade.statusCode()).as(myGrade.body()).isEqualTo(200);
+        assertThat(JsonPath.<Number>read(myGrade.body(), "$.best.submissionId").longValue())
+                .isEqualTo(id);
+        assertThat(myGrade.body()).contains("\"totalScore\":66.67");
     }
 
     @Test

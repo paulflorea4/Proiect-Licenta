@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4e done)
-- Next commit: 5.5a — `GET /submissions/{id}`: student view (own submissions only)
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.5a done)
+- Next commit: 5.5b — Teacher view of `GET /submissions/{id}` (course owner or admin): full detail including hidden tests
 - In progress: —
-- Blocked: PR for commit 5.4e awaiting review and a green CI.
+- Blocked: PR for commit 5.5a awaiting review and a green CI.

@@ -214,6 +214,9 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     "/assignments/987654321/submissions",
                     "{\"sourceCode\":\"print(1)\"}",
                     Role.STUDENT),
+            // A student's own submission (RealHttpStudentSubmissionViewTests); teachers and admins wait
+            // for 5.5b; a student who passes gets the 404 of a missing id.
+            Endpoint.rolesOnly("GET", "/submissions/{submissionId}", "/submissions/987654321", "{}", Role.STUDENT),
             // A student's own grade (RealHttpMyGradeTests); a student who passes gets the 404.
             Endpoint.rolesOnly(
                     "GET",

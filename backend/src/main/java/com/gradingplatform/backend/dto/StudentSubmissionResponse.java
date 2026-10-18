@@ -2,12 +2,10 @@ package com.gradingplatform.backend.dto;
 
 import com.gradingplatform.backend.entity.CriterionScore;
 import com.gradingplatform.backend.entity.CriterionType;
-import com.gradingplatform.backend.entity.Grade;
 import com.gradingplatform.backend.entity.RubricCriterion;
 import com.gradingplatform.backend.entity.Submission;
 import com.gradingplatform.backend.entity.SubmissionStatus;
 import com.gradingplatform.backend.entity.TestResult;
-import com.gradingplatform.backend.sandbox.TestOutcome;
 import com.gradingplatform.backend.service.SubmissionViewService.SubmissionDetails;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -44,10 +42,8 @@ public record StudentSubmissionResponse(
         String compilerOutput,
         GradeView grade,
         List<CriterionView> criteria,
-        List<StudentTestResultResponse> tests) {
-
-    /** The submission's total; provisional while a criterion is pending (5.4e). */
-    public record GradeView(BigDecimal totalScore, BigDecimal maxScore, boolean provisional, Instant gradedAt) {}
+        List<StudentTestResultResponse> tests)
+        implements SubmissionResponse {
 
     /** One rubric criterion's score; {@code score} is null while it is pending (no row, V9). */
     public record CriterionView(
@@ -66,26 +62,10 @@ public record StudentSubmissionResponse(
                 s.getSubmittedAt(),
                 s.getStartedAt(),
                 s.getFinishedAt(),
-                graded ? compilerOutput(details.results()) : null,
-                graded
-                        ? details.grade()
-                                .map(StudentSubmissionResponse::gradeView)
-                                .orElse(null)
-                        : null,
+                graded ? SubmissionResponse.compilerOutput(details.results()) : null,
+                graded ? details.grade().map(GradeView::of).orElse(null) : null,
                 graded ? criteria(details.rubric(), details.scores()) : List.of(),
                 graded ? tests(details) : List.of());
-    }
-
-    private static GradeView gradeView(Grade g) {
-        return new GradeView(g.getTotalScore(), g.getMaxScore(), g.isProvisional(), g.getGradedAt());
-    }
-
-    private static String compilerOutput(List<TestResult> results) {
-        return results.stream()
-                .filter(r -> r.getStatus() == TestOutcome.COMPILE_ERROR)
-                .map(TestResult::getStderr)
-                .findFirst()
-                .orElse(null);
     }
 
     private static List<CriterionView> criteria(List<RubricCriterion> rubric, List<CriterionScore> scores) {

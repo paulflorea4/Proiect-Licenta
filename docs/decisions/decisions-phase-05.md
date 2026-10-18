@@ -396,3 +396,37 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
     - results before `GRADED`;
     - the grade before `GRADED`.
   - **Found by mutation:** the "results before `GRADED`" mutant first survived, until the `RUNNING`-with-stored-results test was added.
+
+## 5.5b — Teacher view of `GET /submissions/{id}` (course owner or admin)
+
+- **One authorization path, a shape per role, as 3.5b's test list.**
+  - `SubmissionViewService.view(userId, role, id)` decides who may read; the controller picks `StudentSubmissionResponse` or `TeacherSubmissionResponse` by the token's role, behind the sealed `SubmissionResponse`.
+  - The role rule moved from `hasRole('STUDENT')` to "any signed-in user" (no annotation, 2.5a). The role-matrix row now says everyone reaches the 404 of a missing id.
+- **Another teacher gets the 404 of a missing id, not a 403.** The human's 403 at 5.5a was for "other student" (5.6c's wording) and is scoped to students. For teachers, the 3.1c convention has a default. The manual score of the same submission (5.4d) already answers another teacher with this 404. A 403 here would tell them which submission ids exist in other teachers' courses. An admin reads every submission.
+- **The teacher's shape is everything stored**:
+  - the student's id (not their email: the roster has it, 3.2b, and the view stays one row);
+  - each criterion with its `id`, the ids the manual-score endpoint takes, and its `weight`;
+  - every test in full with its `criterionId`, hidden ones included, and its whole result.
+
+  A separate record from the student's, so the student's masking stays in the type (3.5b).
+- **The same `GRADED` gating as the student's view**: a stored grade or result of a submission that is not `GRADED` is not its result (a stale grade can survive on an `ERROR` re-run, 5.4c). The teacher sees the status, the code and the times meanwhile.
+- **Shared, harmless parts moved to `SubmissionResponse`:** `GradeView` and `compilerOutput`. The student's JSON is unchanged (5.5a's tests pass as they were).
+- **Tests (+6, backend 1942 -> 1948; ai-service and frontend unchanged and passing).**
+  - `RealHttpTeacherSubmissionViewTests` (6):
+    - the owner sees everything: raw key sets, the hidden test's name, input, expected and actual output and stderr, the criterion ids and weights, and a hand-computed 35.00 provisional;
+    - an admin's body is byte-identical to the owner's;
+    - the view's criterion id works with the manual-score endpoint (59.00 after);
+    - nothing before `GRADED`;
+    - another teacher byte-identical to a missing id;
+    - the student gets their own shape on the same URL.
+  - `RealHttpHiddenTestSweepTests`: the positive control now also requires the owner's and the admin's submission view to show all five markers, including the hidden result's actual output and stderr (5.5a promised it).
+  - `RealHttpStudentSubmissionViewTests`: the test that expected teachers to be refused became "anonymous 401" only.
+  - `RoleMatrixIntegrationTests`: the row is now "any signed-in user".
+  - Mutation-checked, each failing at least one test:
+    - teachers reading any submission;
+    - another teacher told the submission exists (403);
+    - students judged as teachers;
+    - students given the teacher shape;
+    - teachers given the student shape;
+    - results before `GRADED` for the teacher;
+    - a wrong criterion id.

@@ -5,13 +5,13 @@ package com.gradingplatform.backend.entity;
  * the phase that scores it has landed: until then it exists here, so its name is reserved, but
  * {@link #isAvailable()} is false and the API refuses it with a clear "not available yet" error
  * rather than accepting a criterion nothing can score. The phase that adds the scoring flips the
- * flag: `MANUAL` in 5.4d, `STATIC_ANALYSIS` in 13.4a, `OPEN_ANSWER` in 15.2a.
+ * flag: `MANUAL` in 5.4d (scored by a teacher), `STATIC_ANALYSIS` in 13.4a, `OPEN_ANSWER` in 15.2a.
  */
 public enum CriterionType {
     TESTS(true),
     STATIC_ANALYSIS(false),
     OPEN_ANSWER(false),
-    MANUAL(false);
+    MANUAL(true);
 
     private final boolean available;
 

@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4c done)
-- Next commit: 5.4d — `MANUAL` criterion type: `PUT /submissions/{id}/manual-scores/{criterionId}`
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4d done)
+- Next commit: 5.4e — Recompute the total through `RubricScoring` when a manual score is saved; provisional flag
 - In progress: —
-- Blocked: PR for commit 5.4c awaiting review and a green CI.
+- Blocked: PR for commit 5.4d awaiting review and a green CI.

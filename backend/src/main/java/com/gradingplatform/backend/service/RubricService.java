@@ -1,9 +1,11 @@
 package com.gradingplatform.backend.service;
 
 import com.gradingplatform.backend.dto.RubricCriterionRequest;
+import com.gradingplatform.backend.entity.CriterionType;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.RubricCriterion;
 import com.gradingplatform.backend.repository.RubricCriterionRepository;
+import com.gradingplatform.backend.repository.TestCaseRepository;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -28,10 +30,13 @@ public class RubricService {
     static final String TEST_CASE_FOREIGN_KEY = "test_cases_criterion_id_fkey";
 
     private final RubricCriterionRepository criteria;
+    private final TestCaseRepository testCases;
     private final AssignmentService assignmentService;
 
-    public RubricService(RubricCriterionRepository criteria, AssignmentService assignmentService) {
+    public RubricService(
+            RubricCriterionRepository criteria, TestCaseRepository testCases, AssignmentService assignmentService) {
         this.criteria = criteria;
+        this.testCases = testCases;
         this.assignmentService = assignmentService;
     }
 
@@ -63,11 +68,14 @@ public class RubricService {
     }
 
     /**
-     * Replaces a criterion's name, type and weight.
+     * Replaces a criterion's name, type and weight. A {@code TESTS} criterion that still has test
+     * cases keeps its type (5.4d): tests of another type of criterion could never be scored. The
+     * assignment's row lock (taken first) also guards adding a test, so the check is exact.
      *
      * @throws AssignmentNotFoundException if there is no such assignment or the user may not manage it
      * @throws CriterionNotFoundException if the assignment has no such criterion
      * @throws CriterionTypeNotAvailableException if no phase has enabled the type yet
+     * @throws CriterionTypeHasTestsException if the type changes from {@code TESTS} and tests belong to it
      * @throws RubricLockedException if the assignment has submissions
      * @throws AssignmentPublishedException if the assignment is published
      */
@@ -78,6 +86,11 @@ public class RubricService {
         requireAvailable(request);
         RubricCriterion criterion = criteria.findByIdAndAssignmentId(criterionId, assignmentId)
                 .orElseThrow(CriterionNotFoundException::new);
+        if (criterion.getType() == CriterionType.TESTS
+                && request.type() != CriterionType.TESTS
+                && testCases.existsByCriterionId(criterionId)) {
+            throw new CriterionTypeHasTestsException();
+        }
         criterion.revise(request.name(), request.type(), request.weight());
         return criteria.saveAndFlush(criterion);
     }

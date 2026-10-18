@@ -258,3 +258,52 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
     - another student's attempts counted;
     - another assignment's attempts counted;
     - no visibility check.
+
+## 5.4d — Enable `MANUAL`: `PUT /submissions/{id}/manual-scores/{criterionId}`
+
+- **`MANUAL` is available (`CriterionType.MANUAL(true)`), with one guard it needs: a `TESTS` criterion that has test cases cannot change type** (409 `CRITERION_TYPE_HAS_TESTS`). Before 5.4d no other type could be chosen, so this never came up. Changing such a criterion to `MANUAL` would leave test cases under a non-`TESTS` criterion. `RubricScoring` refuses that input (5.4a), so every submission to the assignment would end in `ERROR`. The check runs under the assignment's row lock, which adding a test also takes, so it is exact. Without tests the type may change either way. A new error code rather than `CRITERION_HAS_TESTS`, whose fixed message is about deleting.
+- **Who: `hasAnyRole('TEACHER', 'ADMIN')` plus `requireManageable` on the submission's assignment** ("course teacher or admin"). A caller who may not manage it gets the new 404 `SUBMISSION_NOT_FOUND`, byte-identical to a missing id, before anything about the body is checked: the 404 convention of 3.1c, applied to submissions. Students are 403 by role, even on their own submission.
+- **The order of the other checks:** criterion of this assignment (404 `CRITERION_NOT_FOUND`, the rubric's code), then `MANUAL` (400 `CRITERION_NOT_MANUAL`), then the submission `GRADED` (409 `SUBMISSION_NOT_GRADED`), then the range (400 `MANUAL_SCORE_OUT_OF_RANGE`). Path problems come before state, and state before the value.
+- **Only `GRADED` submissions can be scored.** A `QUEUED`/`RUNNING` one has no result yet for the teacher to judge, and an `ERROR` one gave its attempt back (5.1d): it is not an attempt with a score. A score would be safe from re-grading either way, because grading never deletes non-`TESTS` rows (5.4b).
+- **The score: 0 to the weight inclusive, at most two decimals, never rounded.** `NUMERIC(7, 2)` is the stored scale. A third decimal is refused as `VALIDATION_FAILED` (`@Digits(integer = 3, fraction = 2)`; weights are at most 100) rather than rounded, so the teacher's value is stored exactly. The range depends on the criterion, so it is a check in the service with its own code, not a bean-validation field error.
+- **The comment:** optional, blank = none, otherwise stored as sent. Cap `COMMENT_MAX` 5000 is a placeholder, the same as a course description (flagged in the PR).
+- **PUT replaces the whole entry**: saving again overwrites the score and the comment, and a body without a comment clears it. That is PUT's usual meaning, and the teacher always sends the form's current state.
+- **One native upsert (`INSERT ... ON CONFLICT (submission_id, criterion_id) DO UPDATE`):** the unique constraint decides, so two teachers saving at the same moment never cause a 500. The later write wins, as with any PUT. `max_score` is the criterion's weight, as for computed rows. `comment` is cast to `text` in the statement, so a null binds with a type.
+- **The grade is not touched here.** The `grades` total is recomputed through `RubricScoring` in 5.4e, its own row ("never patch totals by hand"). Until then a saved manual score shows in `criterion_scores` only, and is counted the next time the submission is graded (5.4b).
+- **Found while enabling `MANUAL`, left for the human (`docs/suggestions.md`):** an all-`MANUAL` rubric publishes, and its submissions are `GRADED` with no grade row (no tests = nothing stored, 5.3a).
+- **Tests (+22, backend 1888 -> 1910; ai-service and frontend unchanged and passing).**
+  - `RealHttpManualScoreTests` (13, real HTTP, submissions inserted by SQL with their final status):
+    - the owner's score and comment stored (key set, two decimals, `max_score` = weight);
+    - saving again replaces both;
+    - a blank comment stored as none;
+    - an admin;
+    - a weaker attempt;
+    - 0 and the weight accepted;
+    - -0.01, weight + 0.01 and 100 refused with nothing changed;
+    - three decimals, missing or null score, a comment over the cap are `VALIDATION_FAILED` (the cap itself accepted);
+    - a `TESTS` criterion;
+    - another assignment's criterion byte-identical to a missing one;
+    - `QUEUED`/`RUNNING`/`ERROR` refused;
+    - another teacher byte-identical to a missing submission, whatever the body;
+    - the student 403 and anonymous 401.
+  - `RealHttpRubricTests` (+2 net):
+    - `MANUAL` added;
+    - `TESTS` without tests to `MANUAL` and back;
+    - `TESTS` with tests refused with nothing changed (a rename that keeps the type still allowed);
+    - the "not available" cases now `STATIC_ANALYSIS`/`OPEN_ANSWER` only.
+  - `RealHttpPublishRulesTests` (+1): `TESTS` 80 + `MANUAL` 20 without tests publishes.
+  - `RealHttpTestCaseTests` (+1): a `MANUAL` criterion takes no tests.
+  - `RoleMatrixIntegrationTests` (+5): a row for the endpoint.
+  - Mutation-checked, each failing at least one test:
+    - `MANUAL` still unavailable;
+    - no type guard;
+    - a guard that also refuses keeping the type;
+    - any criterion type scored;
+    - any status scored;
+    - no lower bound;
+    - no upper bound;
+    - no access check;
+    - the assignment's 404 shown;
+    - `max_score` from the score;
+    - an upsert that keeps the old row;
+    - an upsert that keeps the old comment.

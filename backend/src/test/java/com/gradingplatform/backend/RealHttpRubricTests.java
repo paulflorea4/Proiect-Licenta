@@ -159,7 +159,7 @@ class RealHttpRubricTests extends RealHttpTestBase {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"STATIC_ANALYSIS", "OPEN_ANSWER", "MANUAL"})
+    @ValueSource(strings = {"STATIC_ANALYSIS", "OPEN_ANSWER"})
     void aTypeNoPhaseHasEnabledYetIsRefusedClearly(String type) throws Exception {
         HttpResponse<String> response = add(owner, assignment, body("X", type, 10));
 
@@ -271,11 +271,58 @@ class RealHttpRubricTests extends RealHttpTestBase {
     void anUpdateToAnUnavailableTypeIsRefusedAndChangesNothing() throws Exception {
         RubricCriterion c = criterion(assignment, "Old", 10);
 
-        HttpResponse<String> response = replace(owner, assignment, c.getId(), body("New", "MANUAL", 60));
+        HttpResponse<String> response = replace(owner, assignment, c.getId(), body("New", "STATIC_ANALYSIS", 60));
 
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat(code(response)).isEqualTo("CRITERION_TYPE_NOT_AVAILABLE");
         assertThat(rubricCriteria.findById(c.getId()).orElseThrow().getName()).isEqualTo("Old");
+    }
+
+    // --- MANUAL (5.4d) -----------------------------------------------------------------------
+
+    @Test
+    void theOwnerAddsAManualCriterion() throws Exception {
+        HttpResponse<String> response = add(owner, assignment, body("Readability", "MANUAL", 20));
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
+        assertThat(JsonPath.<String>read(response.body(), "$.type")).isEqualTo("MANUAL");
+        assertThat(rubricCriteria.findByAssignmentIdOrderByIdAsc(assignment.getId()))
+                .extracting(RubricCriterion::getType)
+                .containsExactly(CriterionType.MANUAL);
+    }
+
+    @Test
+    void aTestsCriterionWithoutTestsMayBecomeManualAndBack() throws Exception {
+        RubricCriterion c = criterion(assignment, "Design", 20);
+
+        assertThat(replace(owner, assignment, c.getId(), body("Design", "MANUAL", 20))
+                        .statusCode())
+                .isEqualTo(200);
+        assertThat(rubricCriteria.findById(c.getId()).orElseThrow().getType()).isEqualTo(CriterionType.MANUAL);
+        assertThat(replace(owner, assignment, c.getId(), body("Design", "TESTS", 20))
+                        .statusCode())
+                .isEqualTo(200);
+        assertThat(rubricCriteria.findById(c.getId()).orElseThrow().getType()).isEqualTo(CriterionType.TESTS);
+    }
+
+    @Test
+    void aTestsCriterionWithTestsKeepsItsTypeAndNothingChanges() throws Exception {
+        // Its tests could never be scored under another type (RubricScoring refuses them).
+        RubricCriterion c = criterion(assignment, "Old", 10);
+        addTestTo(c);
+
+        HttpResponse<String> response = replace(owner, assignment, c.getId(), body("New", "MANUAL", 60));
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("CRITERION_TYPE_HAS_TESTS");
+        RubricCriterion stored = rubricCriteria.findById(c.getId()).orElseThrow();
+        assertThat(stored.getType()).isEqualTo(CriterionType.TESTS);
+        assertThat(stored.getName()).isEqualTo("Old");
+        assertThat(stored.getWeight()).isEqualTo(10);
+        // Keeping the type while renaming it is still allowed.
+        assertThat(replace(owner, assignment, c.getId(), body("New", "TESTS", 60))
+                        .statusCode())
+                .isEqualTo(200);
     }
 
     @Test

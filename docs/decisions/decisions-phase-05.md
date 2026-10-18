@@ -355,3 +355,44 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
     - `my-grade` never provisional;
     - the seed's flags inverted;
     - `rescore` in a transaction of its own.
+
+## 5.5a — `GET /submissions/{id}`: student view (own submissions only)
+
+- **Another student's existing submission is a 403, a missing id a 404: the human's decision, asked before writing (it was a gate).** Task 5.6c says "other student gets 403". Every endpoint before this answers the 404 of a missing id to anyone who may not see the thing (3.1c), because a 403 tells which ids exist. I recommended the 404; the human chose the 403. It is recorded in `backend/CLAUDE.md` as the one exception. The 403 body is the standard `ACCESS_DENIED` and shows nothing of the submission.
+- **Students see the rubric breakdown: the human's decision, asked at the same time.** 3.4a kept the rubric teacher-only and left open what a student may see, while the spec's result page shows a "rubric breakdown".
+  - **What is shown:** per criterion, in rubric order: name, type, score (null while pending), max (the weight), and a teacher's comment.
+  - **No criterion ids, and the tests carry none either,** so which hidden test belongs to which criterion stays hidden.
+  - `GET /assignments/{id}/rubric` stays teacher-only: the breakdown comes with a submission, not before one.
+- **Ownership alone decides who may read it (my call).** "Own submissions only" is the row's rule. A student who has left the course (3.2b: "past work stays") or whose assignment was unpublished still reads their own submission. `my-grade` (5.4c) follows the assignment's visibility instead, because it is a read of the assignment. Teachers and admins are 403 by role until 5.5b adds their projection to the same URL.
+- **Hidden tests: pass or fail only, built on 3.5b's masked types.** The row says no hidden input, expected output or actual output.
+  - **Also left out: stderr.** A student's program can print its stdin to stderr, so a hidden test's stderr would hand the student the hidden input.
+  - **Also left out: the outcome** (`TIMEOUT`, `RUNTIME_ERROR`, …) **and the runtime.** "Pass/fail" is the rule CLAUDE.md sets for the AI, and both say something about the hidden input.
+  - **How:** the test list comes from `StudentTestCasesResponse.of` (the only place a `TestCase` becomes student-visible), and a hidden one becomes a `HiddenResult` record that has no component for any of these. A test without a result counts as not passed.
+- **Compiler output is shown once, at the top (`compilerOutput`).** It is built from the student's own code before any test input exists, and the same text is on every row (5.3b). Shown at the top, a student whose tests are all hidden still sees why the build failed.
+- **Nothing of the result before `GRADED`.** The worker stores results and grade, then marks the submission `GRADED` (5.2b). In between, a `RUNNING` submission already has everything stored. The view waits for the status, so a student never sees a result whose status says it is not finished. `ERROR` shows none either.
+- **One service, two shapes:** `SubmissionViewService` loads `SubmissionDetails` (everything stored, hidden content included). 5.5b adds the teacher's projection of the same record and the same URL, as its row asks.
+- **Tests (+19, backend 1923 -> 1942; ai-service and frontend unchanged and passing).**
+  - `RealHttpStudentSubmissionViewTests` (10, real HTTP, graded through `SubmissionResultWriter.store`). Raw JSON key sets and a search of the raw body for every hidden string (name, input, expected, actual output, stderr):
+    - the full view with a hand-computed grade and breakdown (35.00 provisional; A 35.00/70.00, M pending);
+    - a passed hidden test;
+    - a teacher's manual score and comment (59.00);
+    - a compile error;
+    - `RUNNING` and `ERROR`;
+    - results stored while still `RUNNING`;
+    - graded without a grade;
+    - after leaving the course and an unpublish;
+    - another student 403 and a missing id 404;
+    - teacher/admin 403, anonymous 401.
+  - `StudentTestResultResponseTests` (3): the component names of `HiddenResult`, `PublicResult`, the view and `CriterionView`.
+  - `RealHttpHiddenTestSweepTests` (+1): its world has the student's graded submission with two more markers in the hidden result (actual output, stderr), and it resolves `{submissionId}`.
+  - `RoleMatrixIntegrationTests` (+5): a row for the endpoint.
+  - Mutation-checked, each failing at least one test:
+    - any student reading any submission;
+    - hidden tests unmasked (the sweep fails too);
+    - the hidden result's output and stderr leaked through its name (the sweep fails too);
+    - a wrong pass flag;
+    - the comment dropped;
+    - no compiler output;
+    - results before `GRADED`;
+    - the grade before `GRADED`.
+  - **Found by mutation:** the "results before `GRADED`" mutant first survived, until the `RUNNING`-with-stored-results test was added.

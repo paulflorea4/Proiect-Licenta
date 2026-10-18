@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4b done)
-- Next commit: 5.4c — `GET /assignments/{id}/my-grade`: best score across the student's graded attempts
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.4c done)
+- Next commit: 5.4d — `MANUAL` criterion type: `PUT /submissions/{id}/manual-scores/{criterionId}`
 - In progress: —
-- Blocked: PR for commit 5.4b awaiting review and a green CI.
+- Blocked: PR for commit 5.4c awaiting review and a green CI.

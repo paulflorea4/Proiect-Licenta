@@ -230,3 +230,31 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
     - not transactional;
     - earlier results kept;
     - anything but `FAILED` counted as passed.
+
+## 5.4c — `GET /assignments/{id}/my-grade`: best score across the student's graded attempts
+
+- **Answer shape: 200 `{assignmentId, best}`, with `best` = `{submissionId, attemptNo, totalScore, maxScore, gradedAt}` or `null`.** No `*.md` names one. "No graded attempt yet" is an ordinary state for the course page (9.2a), not an error, so it is a 200 with `best: null` (the key is sent) rather than a 404 the frontend would have to tell apart from `ASSIGNMENT_NOT_FOUND`. `submissionId` and `attemptNo` are the row's "returns which submission produced it". `maxScore` goes with the total so the client can show "85.50 / 100.00". Scores go out as stored, two decimals (`85.50`).
+- **Ties: of equal totals, the earliest attempt counts.** CLAUDE.md says only "the best score counts". The earliest attempt is the one that first reached the score, and the choice is stable: a later attempt with the same total never changes which submission is named.
+- **A graded attempt is a `GRADED` submission with a `grades` row; any other grade row is ignored.** A crash after the grade commit but before `GRADED` leaves a grade on a submission that recovery puts back to `QUEUED` (5.2c only deletes `test_results`). Until it is graded again it can be `QUEUED` or `RUNNING`, and a re-run that then fails ends `ERROR` with the old grade still there (the writer only replaces on success). Those totals are not results the student has, so they never count. A submission graded without tests has no grade row (5.3a) and is not an attempt with a score.
+- **Totals are compared directly, not as a percentage.** The rubric is locked after the first submission (3.4a), so every attempt's `max_score` is the same.
+- **Who may ask: students only, with `getVisibleTo`'s rule.** "My" grade has no meaning for a teacher or admin (they get grades through 5.5b/10.x), so they are 403 by role. A student who is not enrolled, or whose assignment was unpublished after they submitted, gets the 404 of a missing id, as for every other read of the assignment (3.3b). The student's grade is not lost: re-publishing shows it again.
+- **One query, best first, `Limit.of(1)`:** `GradeRepository.findGradedAttemptsBestFirst` joins `grades` to `submissions` in JPQL (a constructor expression into the `GradedAttempt` record) and orders by `total_score desc, attempt_no asc`. It uses the `(assignment_id, student_id, …)` unique index (1.2g). Phase 10's statistics and progress table can take the same rule from it.
+- **Tests (+12, backend 1876 -> 1888; ai-service and frontend unchanged and passing).**
+  - `RealHttpMyGradeTests` (7, real HTTP, submissions and grades inserted by SQL with their final status so no worker grades them):
+    - the highest total counts and the answer names its submission (exact key sets, attempt number, scale);
+    - of equal totals the earliest attempt;
+    - no graded attempt (queued, running, error, graded without tests) is `best: null`;
+    - a grade row on a non-`GRADED` submission never counts;
+    - only the student's own attempts at this assignment count;
+    - not enrolled and a draft are byte-identical to the 404 of a missing id;
+    - teacher and admin 403, anonymous 401.
+  - `RoleMatrixIntegrationTests`: a row for the endpoint (+5).
+  - `RealHttpGradingTests`: after a real grading run, `my-grade` names that submission with 66.67.
+  - `RealHttpHiddenTestSweepTests` now sweeps the endpoint too (found by itself, no change).
+  - Mutation-checked, each failing at least one test:
+    - no `GRADED` filter;
+    - lowest total first;
+    - the latest of equal totals;
+    - another student's attempts counted;
+    - another assignment's attempts counted;
+    - no visibility check.

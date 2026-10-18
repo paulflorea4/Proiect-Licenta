@@ -11,7 +11,8 @@ import java.time.Instant;
 
 /**
  * A row of `grades` (V9): a submission's total, one per submission (5.4b). Always the exact sum of
- * its graded `criterion_scores`, as {@code RubricScoring} computes it; never patched by hand.
+ * its graded `criterion_scores`, as {@code RubricScoring} computes it; never patched by hand. It is
+ * provisional (V11, 5.4e) while a criterion that tests do not score is still pending.
  */
 @Entity
 @Table(name = "grades")
@@ -35,14 +36,19 @@ public class Grade {
     @Column(name = "graded_at", nullable = false)
     private Instant gradedAt;
 
+    /** True while a criterion is pending (a {@code MANUAL} one not yet scored by the teacher). */
+    @Column(name = "provisional", nullable = false)
+    private boolean provisional;
+
     /** For JPA only. */
     protected Grade() {}
 
-    public Grade(Long submissionId, BigDecimal totalScore, BigDecimal maxScore, Instant gradedAt) {
+    public Grade(Long submissionId, BigDecimal totalScore, BigDecimal maxScore, Instant gradedAt, boolean provisional) {
         this.submissionId = submissionId;
         this.totalScore = totalScore;
         this.maxScore = maxScore;
         this.gradedAt = gradedAt;
+        this.provisional = provisional;
     }
 
     public Long getId() {
@@ -63,5 +69,9 @@ public class Grade {
 
     public Instant getGradedAt() {
         return gradedAt;
+    }
+
+    public boolean isProvisional() {
+        return provisional;
     }
 }

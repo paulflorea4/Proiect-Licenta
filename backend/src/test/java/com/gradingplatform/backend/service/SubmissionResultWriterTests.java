@@ -38,11 +38,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 5.4b: what grading stores, against the real database: test results, the {@code TESTS} criterion
- * scores and the grade, together, replacing an earlier run and keeping entered scores. Expected
- * values are worked out by hand in the comments.
+ * scores and the grade, together, replacing an earlier run and keeping entered scores; 5.4e: the
+ * provisional flag, and {@code rescore} recomputing from what is stored. Expected values are worked
+ * out by hand in the comments.
  *
  * <p>The rubric: A ({@code TESTS}, 60) with tests a1 (weight 1) and a2 (weight 3); B ({@code TESTS},
  * 10) with test b1 (weight 1); C ({@code MANUAL}, 30), entered by a teacher or pending.
@@ -88,6 +92,9 @@ class SubmissionResultWriterTests {
 
     @Autowired
     MutableClock clock;
+
+    @Autowired
+    PlatformTransactionManager transactionManager;
 
     private long assignment;
     private long submission;
@@ -160,6 +167,23 @@ class SubmissionResultWriterTests {
         return criterionScores.findBySubmissionIdOrderByCriterionIdAsc(submission);
     }
 
+    /** {@code rescore} in a transaction of its own, as the manual-score save gives it one. */
+    private RubricScoring.Result rescore(long submissionId, long assignmentId) {
+        return new TransactionTemplate(transactionManager)
+                .execute(status -> writer.rescore(submissionId, assignmentId));
+    }
+
+    private void storeA1PassedA2FailedB1Passed() {
+        writer.store(
+                submission,
+                assignment,
+                tests(),
+                List.of(
+                        result(a1, TestOutcome.PASSED),
+                        result(a2, TestOutcome.FAILED),
+                        result(b1, TestOutcome.PASSED)));
+    }
+
     @Test
     void theResultsTheComputedScoresAndTheGradeAreStoredTogether() {
         // A: a1 passed (1 of 1 + 3) = 60 × 1/4 = 15.00. B: b1 passed = 10 × 1/1 = 10.00. C pending: no row.
@@ -188,6 +212,7 @@ class SubmissionResultWriterTests {
         assertThat(grade.getTotalScore()).isEqualTo(points("25.00"));
         assertThat(grade.getMaxScore()).isEqualTo(points("100.00"));
         assertThat(grade.getGradedAt()).isEqualTo(NOW);
+        assertThat(grade.isProvisional()).as("C is pending").isTrue();
     }
 
     @Test
@@ -243,8 +268,86 @@ class SubmissionResultWriterTests {
                         tuple(a.getId(), points("45.00"), null),
                         tuple(b.getId(), points("0.00"), null),
                         tuple(c.getId(), points("12.50"), "clear"));
-        assertThat(grades.findBySubmissionId(submission).orElseThrow().getTotalScore())
-                .isEqualTo(points("57.50"));
+        Grade grade = grades.findBySubmissionId(submission).orElseThrow();
+        assertThat(grade.getTotalScore()).isEqualTo(points("57.50"));
+        assertThat(grade.isProvisional()).as("nothing is pending").isFalse();
+    }
+
+    // --- rescore (5.4e) ----------------------------------------------------------------------
+
+    @Test
+    void rescoreRecomputesFromTheStoredResultsAndCountsANewEnteredScore() {
+        storeA1PassedA2FailedB1Passed();
+        Instant later = NOW.plusSeconds(3600);
+        clock.set(later);
+        criterionScores.save(new CriterionScore(submission, c.getId(), points("21.00"), points("30.00"), null));
+
+        // From the stored results, as when graded: A 15.00, B 10.00; C 21.00 as entered. Total 46.00.
+        RubricScoring.Result result = rescore(submission, assignment);
+
+        assertThat(result.total()).isEqualTo(points("46.00"));
+        Grade grade = grades.findBySubmissionId(submission).orElseThrow();
+        assertThat(grade.getTotalScore()).isEqualTo(points("46.00"));
+        assertThat(grade.getMaxScore()).isEqualTo(points("100.00"));
+        assertThat(grade.isProvisional()).isFalse();
+        assertThat(grade.getGradedAt()).as("when it was recomputed").isEqualTo(later);
+        assertThat(grades.findAll()).hasSize(1);
+        assertThat(scores())
+                .extracting(CriterionScore::getCriterionId, CriterionScore::getScore)
+                .containsExactly(
+                        tuple(a.getId(), points("15.00")),
+                        tuple(b.getId(), points("10.00")),
+                        tuple(c.getId(), points("21.00")));
+        assertThat(testResults.findBySubmissionIdOrderByIdAsc(submission))
+                .as("the results are read, never rewritten")
+                .hasSize(3);
+    }
+
+    @Test
+    void rescoreCreatesTheGradeOfASubmissionGradedWithoutTests() {
+        // An all-MANUAL rubric (the human's choice after 5.4d): grading stored nothing (no tests).
+        long manualOnly = assignments
+                .save(new Assignment(
+                        assignments.findById(assignment).orElseThrow().getCourseId(),
+                        "Essay",
+                        "d",
+                        "PYTHON",
+                        Instant.parse("2031-01-01T00:00:00Z"),
+                        null,
+                        2000,
+                        128,
+                        null))
+                .getId();
+        RubricCriterion design =
+                rubricCriteria.save(new RubricCriterion(manualOnly, "Design", CriterionType.MANUAL, 60));
+        rubricCriteria.save(new RubricCriterion(manualOnly, "Style", CriterionType.MANUAL, 40));
+        long essay = submissions
+                .save(new Submission(
+                        manualOnly,
+                        submissions.findById(submission).orElseThrow().getStudentId(),
+                        "PYTHON",
+                        "print(1)",
+                        1,
+                        NOW))
+                .getId();
+        jdbc.update("update submissions set status = 'GRADED' where id = ?", essay);
+        criterionScores.save(new CriterionScore(essay, design.getId(), points("45.50"), points("60.00"), null));
+
+        // Design 45.50 entered, Style pending: 45.50 of 100.00, provisional.
+        rescore(essay, manualOnly);
+
+        Grade grade = grades.findBySubmissionId(essay).orElseThrow();
+        assertThat(grade.getTotalScore()).isEqualTo(points("45.50"));
+        assertThat(grade.getMaxScore()).isEqualTo(points("100.00"));
+        assertThat(grade.isProvisional()).isTrue();
+        assertThat(testResults.findBySubmissionIdOrderByIdAsc(essay)).isEmpty();
+    }
+
+    @Test
+    void rescoreNeedsTheCallersTransaction() {
+        assertThatThrownBy(() -> writer.rescore(submission, assignment))
+                .isInstanceOf(IllegalTransactionStateException.class);
+        assertThat(grades.findAll()).isEmpty();
     }
 
     @Test

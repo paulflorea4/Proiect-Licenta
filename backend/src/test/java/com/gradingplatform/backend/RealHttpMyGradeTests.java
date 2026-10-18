@@ -115,12 +115,27 @@ class RealHttpMyGradeTests extends RealHttpTestBase {
                 .isEqualTo(assignment.getId());
         Map<String, Object> bestAttempt = JsonPath.read(response.body(), "$.best");
         assertThat(bestAttempt)
-                .containsOnlyKeys("submissionId", "attemptNo", "totalScore", "maxScore", "gradedAt")
+                .containsOnlyKeys("submissionId", "attemptNo", "totalScore", "maxScore", "gradedAt", "provisional")
                 .containsEntry("attemptNo", 2)
+                .containsEntry("provisional", false)
                 .containsEntry("gradedAt", "2030-01-02T03:04:05.123456Z");
         assertThat(bestSubmission(response)).isEqualTo(best);
         // The scores go out as stored, with their two decimals.
         assertThat(response.body()).contains("\"totalScore\":85.50", "\"maxScore\":100.00");
+    }
+
+    @Test
+    void aProvisionalBestIsFlaggedAndCountsAsItStands() throws Exception {
+        // 5.4e: a manual criterion still waits for the teacher; the total so far is what counts.
+        long provisional = graded(student, assignment, 1, "70.00");
+        jdbc.update("update grades set provisional = true where submission_id = ?", provisional);
+        graded(student, assignment, 2, "60.00");
+
+        HttpResponse<String> response = myGrade(student, assignment.getId());
+
+        assertThat(bestSubmission(response)).isEqualTo(provisional);
+        assertThat(JsonPath.<Boolean>read(response.body(), "$.best.provisional"))
+                .isTrue();
     }
 
     @Test

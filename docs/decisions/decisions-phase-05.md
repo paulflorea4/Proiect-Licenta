@@ -307,3 +307,51 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
     - `max_score` from the score;
     - an upsert that keeps the old row;
     - an upsert that keeps the old comment.
+
+## 5.4e — Recompute the total when a manual score is saved; the provisional flag
+
+- **One code path writes a score: `SubmissionResultWriter.scoreAndStore`, used by grading (`store`) and by the new `rescore`.** `rescore` reads what is stored: the submission's `test_results`, the assignment's tests, and every entered score. It feeds them to `RubricScoring` and replaces the `TESTS` rows and the grade, exactly as grading does. "Never patch totals by hand": the save does not add the new points to the old total, and nothing outside the writer computes one. Re-writing the `TESTS` rows from the same inputs gives the same values, and keeps the rule "the total is the sum of the stored criterion rows" true by construction.
+- **In the save's transaction, under the submission's row lock.** Two teachers saving different criteria of one submission at the same moment would otherwise each total the scores without the other's, under READ COMMITTED. The last total to commit would then miss a score. The save locks the submission (`findByIdForScoreChange`) after the access check, so a caller who may not manage it never takes the lock, and before anything is read. The second save waits, and its recompute counts the first's score. Tested with a held lock and an uncommitted score, as in 3.6b, and mutation-checked.
+  - **`FOR NO KEY UPDATE`, not `FOR UPDATE`:** it only has to exclude another save. `FOR UPDATE` would also make every insert that references the submission (`criterion_scores` of another request, `ai_feedback` hints in Phase 7) wait, because their foreign keys take a key-share lock.
+  - **Native SQL**, so the lock taken is the one written.
+- **A submission without a grade gets one at its first save** (the human's choice after 5.4d, option 1, `docs/suggestions.md`). With an all-`MANUAL` rubric, grading stores nothing (no tests, 5.3a). `rescore` creates the grade, provisional until the last criterion is scored. Grading is unchanged and still stores nothing without tests.
+- **The provisional flag is stored: `grades.provisional` (V11), written with the total from the same `RubricScoring` result (`hasPending()`).** 1.2i left the representation to 5.4e. Deriving the flag at every read (a not-exists subquery over the rubric and the criterion rows) was the alternative. Storing it was chosen because:
+  - it is written in the same statement as the total, from the same computation, so the two cannot disagree;
+  - every later reader can take it from the grade row as it is (5.5a/b views, Phase 10 statistics, CSV export), instead of repeating a subquery;
+  - the rubric is locked after the first submission, and entered scores are never deleted, so nothing else can change it between writes.
+
+  The flag is generic: any non-`TESTS` criterion still pending (only `MANUAL` today; `OPEN_ANSWER`'s AI-proposed scores in Phase 15 will need their own rule).
+- **The migration, V11:** `provisional BOOLEAN NOT NULL DEFAULT FALSE`, then backfills existing grades with the same rule. The default only serves SQL inserts: the application always writes the value.
+  - **Dev seed, V1003:** on a new dev database V11 runs before V1002, whose grade inserts then get `false`, so V1003 sets the seeded flags with the same rule. On an existing dev database V11 is applied out of order (2.2a) and V1003 changes nothing.
+  - The four seeded grades with a pending `MANUAL` criterion are provisional (tested).
+  - V11's own backfill is not tested on its own. Migrations run before any test can insert data, and V1003 runs the same `WHERE` condition.
+- **`graded_at` is the time of the last recompute**, from the `Clock`: the grade is "when it was computed" (5.4b).
+- **The answers:**
+  - the save now includes the recomputed `grade: {totalScore, maxScore, provisional}`, which is what 9.6c's form shows after a save;
+  - `my-grade`'s `best` has `provisional`. A provisional total counts as it stands: it is the student's score until the teacher adds the rest.
+- **Tests (+13, backend 1910 -> 1923; ai-service and frontend unchanged and passing).**
+  - `RealHttpManualRecomputeTests` (5, real HTTP, graded through `SubmissionResultWriter.store`, totals hand-computed):
+    - each save recomputes (15.00 -> 37.50 provisional -> 44.50 -> 52.00, B replaced, not added) and the last pending criterion clears the flag, with `graded_at`, one grade row, total = sum of rows, and `my-grade`;
+    - the best attempt switches when a recompute lifts attempt 2 (55.00) above attempt 1 (45.00);
+    - an all-`MANUAL` rubric gets its grade at the first save (63.50 provisional, then 93.50);
+    - a refused save leaves the grade untouched;
+    - a save waits for a held lock and counts the other save's score (55.00).
+  - `SubmissionResultWriterTests` (+3):
+    - `rescore` from stored results with a new entered score (46.00);
+    - creating the grade without tests (45.50 provisional);
+    - refusing to run outside a transaction.
+  - The flag is also asserted on the existing store cases.
+  - `RealHttpMyGradeTests` (+1): a provisional best.
+  - `GradesMigrationTests` (+2): the column (boolean, `false` by default, required).
+  - `DevSeedSubmissionsTests` (+2): V1003 applied, and exactly the four pending grades provisional.
+  - `RealHttpManualScoreTests`: the answer's key set includes `grade`, and row counts look at the manual criterion only (the recompute now stores the `TESTS` row too).
+  - `FlywayProdProfileTests` / `FlywayDevProfileTests`: the applied-migration counts go from 10 to 11 and from 13 to 15. The first full run failed on exactly these, and `backend/CLAUDE.md` now says a new migration bumps them.
+  - Mutation-checked, each failing at least one test:
+    - no recompute;
+    - never provisional;
+    - no submission lock;
+    - `rescore` ignoring the stored results;
+    - `rescore` ignoring the tests;
+    - `my-grade` never provisional;
+    - the seed's flags inverted;
+    - `rescore` in a transaction of its own.

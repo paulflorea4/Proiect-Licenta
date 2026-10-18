@@ -29,7 +29,7 @@ class FlywayProdProfileTests {
                 .containsExactly("db/migration");
         assertThat(jdbcTemplate.queryForObject(
                         "SELECT COUNT(*) FROM flyway_schema_history WHERE success", Integer.class))
-                .isEqualTo(10);
+                .isEqualTo(11);
     }
 
     @Test

@@ -22,7 +22,12 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
 
     /** A graded attempt with its grade, as {@link #findGradedAttemptsBestFirst} reads it. */
     record GradedAttempt(
-            long submissionId, int attemptNo, BigDecimal totalScore, BigDecimal maxScore, Instant gradedAt) {}
+            long submissionId,
+            int attemptNo,
+            BigDecimal totalScore,
+            BigDecimal maxScore,
+            Instant gradedAt,
+            boolean provisional) {}
 
     /**
      * The student's graded attempts at the assignment, best first: highest total, and of equal totals
@@ -32,7 +37,7 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
      * tests, 5.3a) is not listed.
      */
     @Query("select new com.gradingplatform.backend.repository.GradeRepository$GradedAttempt("
-            + "s.id, s.attemptNo, g.totalScore, g.maxScore, g.gradedAt)"
+            + "s.id, s.attemptNo, g.totalScore, g.maxScore, g.gradedAt, g.provisional)"
             + " from Grade g join Submission s on s.id = g.submissionId"
             + " where s.assignmentId = :assignmentId and s.studentId = :studentId"
             + " and s.status = com.gradingplatform.backend.entity.SubmissionStatus.GRADED"

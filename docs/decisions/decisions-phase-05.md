@@ -430,3 +430,37 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
     - teachers given the student shape;
     - results before `GRADED` for the teacher;
     - a wrong criterion id.
+
+## 5.5c — `GET /assignments/{id}/submissions` (teacher) and `GET /assignments/{id}/my-submissions` (student)
+
+- **Who:**
+  - **The teacher's list** follows the rubric's read rule: `hasAnyRole('TEACHER', 'ADMIN')` plus `requireManageable`. Another teacher gets the 404 of a missing assignment. A draft's submissions are listed: unpublishing never hides work from its teacher.
+  - **The student's list** follows `my-grade`: `hasRole('STUDENT')` plus `getVisibleTo`. Not enrolled, or a draft, is the 404 of a missing id. A single own submission stays readable through `GET /submissions/{id}` (5.5a), which only asks for ownership. The list is a read of the assignment; the view is a read of the student's own work.
+- **What a row carries:**
+  - id, attempt, status, `submittedAt`, `finishedAt`, and the grade summary `{totalScore, maxScore, provisional}`;
+  - **for the teacher, also the student** as the roster's `{id, email, fullName}` (3.2b), so the list can be read without a lookup per row;
+  - **no code and no results:** those are one `GET /submissions/{id}` away.
+- **The grade shows only on a `GRADED` row with a grade**, for the same reason as the submission view: a grade on a re-queued or failed re-run is not a result (5.4c). A submission graded without tests shows none (until a teacher's first score, 5.4e).
+- **Order: id, oldest first**, the fixed sort of every list so far (2.5c). It also reads as attempts 1, 2, 3 in a student's history. No filters (by student, by status): the row does not ask for them, and they can be added without changing the shape.
+- **One projection query per list** (`SubmissionRow`: submission join user, left join grade). The `countQuery` is explicit, because Spring Data cannot derive a count from a constructor expression over joins. `Sort.by("id")` comes from the controller, as in the other lists.
+- **Tests (+19, backend 1948 -> 1967; ai-service and frontend unchanged and passing).**
+  - `RealHttpSubmissionListTests` (9, real HTTP):
+    - the teacher's list: order, row and student key sets, grade summary, another assignment's left out, no code;
+    - grades shown only for `GRADED` rows (stale grades on `QUEUED`/`ERROR`, graded without tests);
+    - pagination and an admin;
+    - a draft's submissions for the owner;
+    - another teacher byte-identical to a missing assignment, student 403, anonymous 401;
+    - the student's own list: order, key set, grade, a classmate's and another assignment's left out;
+    - the student's pagination and a bad page;
+    - not enrolled and a draft byte-identical to a missing assignment;
+    - teacher and admin 403 on the student's list.
+  - `RoleMatrixIntegrationTests` (+10): a row for each endpoint.
+  - The hidden-test sweep covers both endpoints by itself (`{assignmentId}`).
+  - Mutation-checked, each failing at least one test:
+    - the teacher's list without its access check;
+    - the student's list without its visibility check;
+    - the student's list showing classmates;
+    - the teacher's list showing another assignment's submissions;
+    - a grade shown before `GRADED`;
+    - newest first;
+    - an inner join that drops rows without a grade.

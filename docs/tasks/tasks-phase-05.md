@@ -20,7 +20,7 @@
 | 5.4e | Recompute the submission's total through the pure scoring function (5.4a) whenever a manual score is saved; until all `MANUAL` criteria are scored the grade is flagged provisional | Done | Never patch totals by hand — always recompute, so the displayed total can't drift from the criteria. The best-score query (5.4c) reads the recomputed totals. |
 | 5.5a | `GET /submissions/{id}`: student view (own submissions only) | Done | Public tests in full; hidden tests as name-masked pass/fail via 3.5b's DTO rules; no hidden input, expected output, or actual output. |
 | 5.5b | Teacher view of the same endpoint (course owner or admin): full detail including hidden tests | Done | Same URL, different projection by role — one authorization path, tested in 5.6c. |
-| 5.5c | `GET /assignments/{id}/submissions` (teacher) and `GET /assignments/{id}/my-submissions` (student) | Not started | Paginated. |
+| 5.5c | `GET /assignments/{id}/submissions` (teacher) and `GET /assignments/{id}/my-submissions` (student) | Done | Paginated. |
 | 5.6a | Scoring unit tests with hand-computed expected values (mixed weights, partial pass, compile error, zero tests passed) | Not started | This is the test that would catch a wrong weighting formula — do the arithmetic by hand, don't derive expected values by running the code. |
 | 5.6b | Integration test (with Docker): submit → worker runs → `GRADED` → results and grade match expectations | Not started | Use the seeded Java and Python assignments from 1.4b. |
 | 5.6c | Authorization and masking tests: other student gets 403, hidden-test fields absent from the student JSON, late and over-limit submissions rejected | Not started | Assert on raw JSON keys, as in 3.6b. |

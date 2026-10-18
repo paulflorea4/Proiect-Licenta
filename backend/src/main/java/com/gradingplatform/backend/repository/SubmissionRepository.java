@@ -2,9 +2,12 @@ package com.gradingplatform.backend.repository;
 
 import com.gradingplatform.backend.entity.Submission;
 import com.gradingplatform.backend.entity.SubmissionStatus;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +15,48 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
+
+    /**
+     * One submission of a list (5.5c), with its student and its grade if it has one; never its code
+     * or any result. The grade fields are null without a grade row, and are only meant to be shown
+     * for a {@code GRADED} submission (the caller decides, as for the submission view).
+     */
+    record SubmissionRow(
+            long id,
+            long studentId,
+            String studentEmail,
+            String studentName,
+            int attemptNo,
+            SubmissionStatus status,
+            Instant submittedAt,
+            Instant finishedAt,
+            BigDecimal totalScore,
+            BigDecimal maxScore,
+            Boolean provisional) {}
+
+    /** Every submission to the assignment, for the people who run its course (5.5c). */
+    @Query(
+            value = "select new com.gradingplatform.backend.repository.SubmissionRepository$SubmissionRow("
+                    + "s.id, u.id, u.email, u.fullName, s.attemptNo, s.status, s.submittedAt, s.finishedAt,"
+                    + " g.totalScore, g.maxScore, g.provisional)"
+                    + " from Submission s join User u on u.id = s.studentId"
+                    + " left join Grade g on g.submissionId = s.id"
+                    + " where s.assignmentId = :assignmentId",
+            countQuery = "select count(s) from Submission s where s.assignmentId = :assignmentId")
+    Page<SubmissionRow> findRowsByAssignmentId(@Param("assignmentId") Long assignmentId, Pageable pageable);
+
+    /** One student's submissions to the assignment (5.5c). */
+    @Query(
+            value = "select new com.gradingplatform.backend.repository.SubmissionRepository$SubmissionRow("
+                    + "s.id, u.id, u.email, u.fullName, s.attemptNo, s.status, s.submittedAt, s.finishedAt,"
+                    + " g.totalScore, g.maxScore, g.provisional)"
+                    + " from Submission s join User u on u.id = s.studentId"
+                    + " left join Grade g on g.submissionId = s.id"
+                    + " where s.assignmentId = :assignmentId and s.studentId = :studentId",
+            countQuery = "select count(s) from Submission s"
+                    + " where s.assignmentId = :assignmentId and s.studentId = :studentId")
+    Page<SubmissionRow> findRowsByAssignmentIdAndStudentId(
+            @Param("assignmentId") Long assignmentId, @Param("studentId") Long studentId, Pageable pageable);
 
     /** Only the assignment of a submission, for the access check before anything is locked or loaded. */
     @Query("select s.assignmentId from Submission s where s.id = :id")

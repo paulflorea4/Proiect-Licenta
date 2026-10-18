@@ -217,6 +217,21 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
             // Any signed-in user; ownership or the course then decides (RealHttpStudentSubmissionViewTests,
             // RealHttpTeacherSubmissionViewTests), and this id does not exist, so everyone gets the 404.
             Endpoint.signedIn("GET", "/submissions/{submissionId}", "/submissions/987654321"),
+            // Submission lists (RealHttpSubmissionListTests): every submission for the people who run the
+            // course, one's own for a student; a caller who passes gets the 404 of a missing assignment.
+            Endpoint.rolesOnly(
+                    "GET",
+                    "/assignments/{assignmentId}/submissions",
+                    "/assignments/987654321/submissions",
+                    "{}",
+                    Role.TEACHER,
+                    Role.ADMIN),
+            Endpoint.rolesOnly(
+                    "GET",
+                    "/assignments/{assignmentId}/my-submissions",
+                    "/assignments/987654321/my-submissions",
+                    "{}",
+                    Role.STUDENT),
             // A student's own grade (RealHttpMyGradeTests); a student who passes gets the 404.
             Endpoint.rolesOnly(
                     "GET",

@@ -11,10 +11,13 @@ import com.gradingplatform.backend.repository.CriterionScoreRepository;
 import com.gradingplatform.backend.repository.GradeRepository;
 import com.gradingplatform.backend.repository.RubricCriterionRepository;
 import com.gradingplatform.backend.repository.SubmissionRepository;
+import com.gradingplatform.backend.repository.SubmissionRepository.SubmissionRow;
 import com.gradingplatform.backend.repository.TestCaseRepository;
 import com.gradingplatform.backend.repository.TestResultRepository;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,6 +95,32 @@ public class SubmissionViewService {
             }
         }
         return details(submission);
+    }
+
+    /**
+     * One page of every submission to the assignment (5.5c), for the people who run its course
+     * (owner or admin); anyone else who cannot see the course gets the 404 of an assignment that
+     * does not exist, as for the rubric.
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not manage it
+     */
+    @Transactional(readOnly = true)
+    public Page<SubmissionRow> listForTeacher(long userId, Role role, long assignmentId, Pageable pageable) {
+        assignmentService.requireManageable(userId, role, assignmentId);
+        return submissions.findRowsByAssignmentId(assignmentId, pageable);
+    }
+
+    /**
+     * One page of the student's own submissions to the assignment (5.5c). The assignment must be one
+     * the student may see, as for {@code my-grade} (5.4c): enrolled, published; otherwise the 404 of
+     * an id that does not exist. A single submission stays readable after that (5.5a).
+     *
+     * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
+     */
+    @Transactional(readOnly = true)
+    public Page<SubmissionRow> listForStudent(long userId, Role role, long assignmentId, Pageable pageable) {
+        assignmentService.getVisibleTo(userId, role, assignmentId);
+        return submissions.findRowsByAssignmentIdAndStudentId(assignmentId, userId, pageable);
     }
 
     private SubmissionDetails details(Submission submission) {

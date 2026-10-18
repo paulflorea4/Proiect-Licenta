@@ -42,7 +42,6 @@ class RealHttpStudentSubmissionViewTests extends RealHttpTestBase {
     private SubmissionResultWriter writer;
 
     private User owner;
-    private User admin;
     private User student;
     private User classmate;
     private Course course;
@@ -54,7 +53,6 @@ class RealHttpStudentSubmissionViewTests extends RealHttpTestBase {
     @BeforeEach
     void world() {
         owner = saved("owner@example.com", Role.TEACHER);
-        admin = saved("root@example.com", Role.ADMIN);
         student = saved("student@example.com", Role.STUDENT);
         classmate = saved("classmate@example.com", Role.STUDENT);
         course = courses.save(new Course("Algorithms", null, owner.getId(), "ABCD2345"));
@@ -323,14 +321,10 @@ class RealHttpStudentSubmissionViewTests extends RealHttpTestBase {
     }
 
     @Test
-    void teachersAndAdminsAreRefusedUntilTheirViewAndNobodyIsAskedToSignIn() throws Exception {
+    void nobodyIsAskedToSignIn() throws Exception {
+        // The people who run the course get their own view since 5.5b (RealHttpTeacherSubmissionViewTests).
         long id = graded(student);
 
-        for (User staff : new User[] {owner, admin}) {
-            HttpResponse<String> response = view(staff, id);
-            assertThat(response.statusCode()).as(staff.getEmail()).isEqualTo(403);
-            assertThat(code(response)).isEqualTo("ACCESS_DENIED");
-        }
         HttpResponse<String> anonymous = view(null, id);
         assertThat(anonymous.statusCode()).isEqualTo(401);
         assertThat(code(anonymous)).isEqualTo("UNAUTHENTICATED");

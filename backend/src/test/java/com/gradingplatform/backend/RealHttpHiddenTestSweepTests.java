@@ -44,7 +44,7 @@ class RealHttpHiddenTestSweepTests extends RealHttpTestBase {
     /**
      * Strings only in the student's result for the hidden test (5.5a): what their program printed on
      * it and its stderr, which may echo the hidden input. Only the people who run the course may see
-     * them; the positive control for these comes with their view of a submission (5.5b).
+     * them, in their view of the submission (5.5b), which is this marker set's positive control.
      */
     private static final String[] RESULT_MARKERS = {"MARK-ACTUAL-9f3a", "MARK-STDERR-9f3a"};
 
@@ -200,6 +200,12 @@ class RealHttpHiddenTestSweepTests extends RealHttpTestBase {
             assertThat(found)
                     .as("a GET endpoint shows the hidden test to %s", runner.getEmail())
                     .isTrue();
+            String submissionView =
+                    get("/submissions/" + submission, tokenFor(runner)).body();
+            assertThat(submissionView)
+                    .as("the submission view shows the hidden result to %s", runner.getEmail())
+                    .contains(MARKERS)
+                    .contains(RESULT_MARKERS);
         }
     }
 

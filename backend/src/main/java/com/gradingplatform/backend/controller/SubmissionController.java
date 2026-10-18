@@ -3,6 +3,9 @@ package com.gradingplatform.backend.controller;
 import com.gradingplatform.backend.dto.StudentSubmissionResponse;
 import com.gradingplatform.backend.dto.SubmissionAcceptedResponse;
 import com.gradingplatform.backend.dto.SubmissionRequest;
+import com.gradingplatform.backend.dto.SubmissionResponse;
+import com.gradingplatform.backend.dto.TeacherSubmissionResponse;
+import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.security.AuthenticatedUser;
 import com.gradingplatform.backend.service.SubmissionService;
 import com.gradingplatform.backend.service.SubmissionViewService;
@@ -50,16 +53,18 @@ public class SubmissionController {
     }
 
     /**
-     * A student's own submission with its result (5.5a): code, status, grade, rubric breakdown and
-     * test results, hidden tests reduced to pass or fail. Another student's is a 403, an id that does
-     * not exist a 404. Students only until the teacher's view (5.5b).
+     * A submission with its result. The token's role picks the shape: a student gets their own with
+     * hidden tests reduced to pass or fail (5.5a; another student's is a 403), the teacher or admin
+     * who runs the course gets everything (5.5b; another teacher the 404 of an id that does not
+     * exist). One authorization path for both, in {@link SubmissionViewService#view}.
      */
     @GetMapping("/submissions/{submissionId}")
-    @PreAuthorize("hasRole('STUDENT')")
-    public StudentSubmissionResponse get(
+    public SubmissionResponse get(
             @AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long submissionId) {
-        return StudentSubmissionResponse.of(
-                submissionViewService.studentView(principal.id(), principal.role(), submissionId));
+        var details = submissionViewService.view(principal.id(), principal.role(), submissionId);
+        return principal.role() == Role.STUDENT
+                ? StudentSubmissionResponse.of(details)
+                : TeacherSubmissionResponse.of(details);
     }
 
     /**

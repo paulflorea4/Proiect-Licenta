@@ -163,6 +163,15 @@ class RealHttpPublishRulesTests extends RealHttpTestBase {
     }
 
     @Test
+    void aManualCriterionNeedsNoTests() throws Exception {
+        criterion(80, true);
+        rubricCriteria.save(new RubricCriterion(assignment.getId(), "Readability", CriterionType.MANUAL, 20));
+
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+        assertThat(stored().isPublished()).isTrue();
+    }
+
+    @Test
     void oneCriterionWorth100IsPublishable() throws Exception {
         criterion(100, true);
 

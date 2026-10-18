@@ -45,6 +45,9 @@ public enum ErrorCode {
     RUBRIC_LOCKED(HttpStatus.CONFLICT, "The assignment has submissions, so its rubric can no longer be changed"),
     CRITERION_HAS_TESTS(
             HttpStatus.CONFLICT, "The criterion has test cases and cannot be deleted; delete its tests first"),
+    CRITERION_TYPE_HAS_TESTS(
+            HttpStatus.CONFLICT,
+            "The criterion has test cases, so it must stay a tests criterion; delete its tests first"),
     RUBRIC_WEIGHTS_INVALID(
             HttpStatus.CONFLICT, "The rubric weights must add up to 100 before the assignment can be published"),
     CRITERION_HAS_NO_TESTS(
@@ -65,7 +68,11 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST, "The file's extension does not match the assignment's language"),
     SUBMISSION_DEADLINE_PASSED(
             HttpStatus.CONFLICT, "The deadline for this assignment has passed; submissions are no longer accepted"),
-    ATTEMPT_LIMIT_REACHED(HttpStatus.CONFLICT, "All the attempts allowed for this assignment have been used");
+    ATTEMPT_LIMIT_REACHED(HttpStatus.CONFLICT, "All the attempts allowed for this assignment have been used"),
+    SUBMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "Submission not found"),
+    SUBMISSION_NOT_GRADED(HttpStatus.CONFLICT, "The submission has not been graded, so it cannot be scored by hand"),
+    CRITERION_NOT_MANUAL(HttpStatus.BAD_REQUEST, "Only a manual criterion can be scored by hand"),
+    MANUAL_SCORE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "The score must be between 0 and the criterion's weight");
 
     private final HttpStatus status;
     private final String defaultMessage;

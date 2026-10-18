@@ -15,6 +15,9 @@ public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
     /** The test, only if it belongs to this assignment. */
     Optional<TestCase> findByIdAndAssignmentId(Long id, Long assignmentId);
 
+    /** Whether any test case belongs to the criterion. */
+    boolean existsByCriterionId(Long criterionId);
+
     /** The position after the last test of the assignment (1 for the first). */
     @Query("select coalesce(max(t.position), 0) + 1 from TestCase t where t.assignmentId = :assignmentId")
     int nextPosition(@Param("assignmentId") Long assignmentId);

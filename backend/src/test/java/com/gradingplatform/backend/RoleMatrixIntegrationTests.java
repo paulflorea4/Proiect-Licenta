@@ -221,6 +221,14 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     "/assignments/987654321/my-grade",
                     "{}",
                     Role.STUDENT),
+            // The people who run the course (RealHttpManualScoreTests); a caller who passes gets the 404.
+            Endpoint.rolesOnly(
+                    "PUT",
+                    "/submissions/{submissionId}/manual-scores/{criterionId}",
+                    "/submissions/987654321/manual-scores/987654321",
+                    "{\"score\":1}",
+                    Role.TEACHER,
+                    Role.ADMIN),
             // Teachers only (admin excluded, as for creating a course); ownership then decides, and
             // this course does not exist, so a teacher who passes is answered by a 404.
             Endpoint.rolesOnly(

@@ -365,6 +365,18 @@ class RealHttpTestCaseTests extends RealHttpTestBase {
         assertThat(testCases.findAll()).isEmpty();
     }
 
+    @Test
+    void aManualCriterionOfTheSameAssignmentTakesNoTests() throws Exception {
+        RubricCriterion manual =
+                rubricCriteria.save(new RubricCriterion(assignment.getId(), "Readability", CriterionType.MANUAL, 10));
+
+        HttpResponse<String> response = add(owner, assignment, body(manual.getId()));
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(code(response)).isEqualTo("TEST_CRITERION_INVALID");
+        assertThat(testCases.findAll()).isEmpty();
+    }
+
     // --- list --------------------------------------------------------------------------------
 
     @Test

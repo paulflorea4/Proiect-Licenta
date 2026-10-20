@@ -2,7 +2,7 @@
 
 | Commit | Task | Status | Notes |
 | --- | --- | --- | --- |
-| 6.1a | FastAPI app skeleton, `GET /health` | Not started |  |
+| 6.1a | FastAPI app skeleton, `GET /health` | Done | Delivered by 0.1c; closed without code (the human's decision, see decisions-phase-06). |
 | 6.1b | `pydantic-settings` config class reading env vars (API key, model name) | Not started | Reads the vars defined in `ai-service/.env.example` (0.3b). No database settings — this service never connects to the DB. Also reads `AI_SERVICE_TOKEN`; the service refuses to start if it is empty (tests may override it). |
 | 6.1c | Authentication dependency: every route except `GET /health` requires `Authorization: Bearer <AI_SERVICE_TOKEN>`; missing or wrong token → `401` | Not started | Apply it at the router level so a future endpoint can't forget it. Compare with `hmac.compare_digest` (constant time). No new dependency — plain FastAPI. `/health` stays open for the hosting health checks (16.8a). |
 | 6.2a | LLM provider interface + Gemini httpx implementation: prompt in, text out | Not started | **GATE**: needs `GEMINI_API_KEY` from you to actually call the real API. Model name comes from `GEMINI_MODEL`, never hardcoded. The interface exists so the thesis can compare providers later. |

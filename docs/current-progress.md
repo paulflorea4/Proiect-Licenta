@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6e done, phase complete); next is Phase 6 — `docs/tasks/tasks-phase-06.md`
-- Next commit: 6.1a — FastAPI app skeleton, `GET /health`
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.1a done)
+- Next commit: 6.1b — `pydantic-settings` config class reading env vars (API key, model name)
 - In progress: —
-- Blocked: PR for commit 5.6e awaiting review and a green CI.
+- Blocked: PR for commit 6.1a awaiting review and a green CI.

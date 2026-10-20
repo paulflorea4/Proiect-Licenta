@@ -464,3 +464,13 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
     - a grade shown before `GRADED`;
     - newest first;
     - an inner join that drops rows without a grade.
+
+## 5.6a — Scoring unit tests with hand-computed expected values
+
+- **Most of the row was already done by 5.4a, so this commit adds only what was missing.** `RubricScoringTests` (15 tests, each value worked out by hand in a comment) already had a partial pass, mixed criterion and test weights, a compile error, and no tests / zero weight. Repeating those would only be noise. What it lacked were combinations, and a rounding-down case.
+- **Tests (+3, backend 1967 -> 1970; ai-service and frontend unchanged and passing), values by hand in the comments:**
+  - nothing passed across two criteria with different test weights: 0.00 each, total 0.00 of 100.00, graded not pending;
+  - a compile error with a teacher's manual score of 22.5 entered: the total is 22.50, the tests criterion adds nothing;
+  - a full rubric: 50 × 7/10 = 35.00, 30 × 4/7 = 17.142857... = 17.14, a manual 15.50, total 67.64 of 100.00, and the same result with the test list reversed.
+- **Mutation-checked:** rounding `UP` instead of `HALF_UP` was not caught by any 5.4a test (they only had values that round up or to a half); it now fails the full-rubric test through 17.14. The `HALF_EVEN` and total mutants stay caught by the 5.4a tests.
+- **The row's wording matched the repo closely enough not to be a gate:** it asks for tests, and tests exist; the gap was coverage, not scope.

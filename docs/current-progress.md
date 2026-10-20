@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6c done)
-- Next commit: 5.6d — Test: restart recovery and no lost submissions when execution throws
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6d done)
+- Next commit: 5.6e — Tests: manual score range validation, recompute after saving, provisional flag clears when the last manual criterion is scored, students get 403 on the manual-score endpoint
 - In progress: —
-- Blocked: PR for commit 5.6c awaiting review and a green CI.
+- Blocked: PR for commit 5.6d awaiting review and a green CI.

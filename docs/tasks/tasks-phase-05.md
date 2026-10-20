@@ -25,4 +25,4 @@
 | 5.6b | Integration test (with Docker): submit → worker runs → `GRADED` → results and grade match expectations | Done | Use the seeded Java and Python assignments from 1.4b. |
 | 5.6c | Authorization and masking tests: other student gets 403, hidden-test fields absent from the student JSON, late and over-limit submissions rejected | Done | Assert on raw JSON keys, as in 3.6b. |
 | 5.6d | Test: restart recovery and no lost submissions when execution throws | Done | Directly tests 5.2b and 5.2c. |
-| 5.6e | Tests: manual score range validation, recompute after saving, provisional flag clears when the last manual criterion is scored, students get 403 on the manual-score endpoint | Not started | Expected totals hand-computed, as in 5.6a. |
+| 5.6e | Tests: manual score range validation, recompute after saving, provisional flag clears when the last manual criterion is scored, students get 403 on the manual-score endpoint | Done | Expected totals hand-computed, as in 5.6a. |

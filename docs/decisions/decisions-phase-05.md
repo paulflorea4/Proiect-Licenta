@@ -489,3 +489,23 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - correct Python: 40.00 + 40.00 = 80.00, two criterion rows.
 - **Mutation-checked, each failing at least one test:** test weights counted as 1 (the overflow case: 64.00 instead of 53.33); a hidden result always `passed`.
 - **Not in this row:** manual scoring and recompute (5.6e), restart recovery (5.6d), 403/masking matrices (5.6c).
+
+## 5.6c — Authorization and masking tests
+
+- **Most single cases of the row already existed** (5.1c's deadline and attempt tests, 5.5a's 403 for another student and its key sets, the 3.6b sweep). What was missing was the Phase 5 counterpart of 3.6a: one table of who may call what, checked the same way for every endpoint, and a guard so a new endpoint cannot ship without a row. That is what this adds; the single-case tests stay where they are.
+- **`SubmissionAuthorizationMatrixTests` is a separate class from `AuthorizationMatrixTests`,** not extra rows there: the callers differ (author and classmate are both enrolled, so "enrolled student" is no longer one actor) and the worlds differ (submissions, results and grades). It follows the same structure on purpose: rows with a status per caller, three checks per row, a completeness guard.
+- **Six callers:** owner, other teacher, author, classmate, outsider (a student not in the course), admin. **Rows (11):**
+  - submitting, once per state: open (students of the course 202, outsider 404, teachers and admin 403), draft (404 for every student), past deadline (409 for students of the course, still 404 for the outsider), attempt used (409 for the author, 202 for the classmate, whose count is their own);
+  - `GET /submissions/{id}`: author 200, owner and admin 200, classmate and outsider 403 (5.5a's decision), other teacher 404;
+  - `GET .../submissions` (teachers; a draft's too), `GET .../my-submissions` and `GET .../my-grade` (students; a draft is 404);
+  - `PUT .../manual-scores/{criterionId}` (owner and admin 200, other teacher 404, every student 403).
+- **A 409 counts as a refusal in "changes nothing":** a late or over-limit call must not leave a submission row. The snapshot covers courses, enrollments, assignments, rubric, tests, submissions, results, grades and criterion scores.
+- **The worlds for submitting have no test cases,** so an accepted submission is graded without starting a container and the matrix needs no Docker.
+- **Raw JSON, as in 3.6b:** the student's submission view has exactly the 13 documented keys, its criteria `{name, type, score, maxScore, comment}` (no id, no weight), its hidden result `{id, name, visibility, position, passed}`; the student's list rows and `best` have only their keys; none of five markers that exist only inside the hidden test and its result is in anything a student gets. Positive control: the teacher's view holds all of them and has `studentId`. A student's own list holds only their own submission, never the classmate's.
+- **The multipart upload shares its row.** The guard keys on method and path, which the JSON and multipart `POST` share, so a separate test sends a real multipart body as each caller (five of them; the author is the 202 case in the status row) and expects the open row's statuses and no change on a refusal.
+- **Mutation-checked, each failing at least one test:**
+  - the ownership check removed (5 failures);
+  - the deadline check removed (5);
+  - the attempt limit removed (3);
+  - the student's own list not filtered by student (2).
+- **Tests (+239, backend 1975 -> 2214; ai-service and frontend unchanged and passing).**

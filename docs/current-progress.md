@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6b done)
-- Next commit: 5.6c — Authorization and masking tests: other student gets 403, hidden-test fields absent from the student JSON, late and over-limit submissions rejected
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6c done)
+- Next commit: 5.6d — Test: restart recovery and no lost submissions when execution throws
 - In progress: —
-- Blocked: PR for commit 5.6b awaiting review and a green CI.
+- Blocked: PR for commit 5.6c awaiting review and a green CI.

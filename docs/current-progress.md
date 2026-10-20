@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.1a done)
-- Next commit: 6.1b — `pydantic-settings` config class reading env vars (API key, model name)
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.1b done)
+- Next commit: 6.1c — Authentication dependency: every route except `GET /health` requires `Authorization: Bearer <AI_SERVICE_TOKEN>`
 - In progress: —
-- Blocked: PR for commit 6.1a awaiting review and a green CI.
+- Blocked: PR for commit 6.1b awaiting review and a green CI.

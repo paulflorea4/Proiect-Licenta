@@ -5,6 +5,7 @@ description = "Stateless AI and analysis service for the Grading Platform"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi",
+    "pydantic-settings",
     "uvicorn",
 ]
 

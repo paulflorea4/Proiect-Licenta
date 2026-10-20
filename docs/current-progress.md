@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.5c done)
-- Next commit: 5.6a — Scoring unit tests with hand-computed expected values (mixed weights, partial pass, compile error, zero tests passed)
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6a done)
+- Next commit: 5.6b — Integration test (with Docker): submit → worker runs → `GRADED` → results and grade match expectations
 - In progress: —
-- Blocked: PR for commit 5.5c awaiting review and a green CI.
+- Blocked: PR for commit 5.6a awaiting review and a green CI.

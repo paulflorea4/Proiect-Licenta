@@ -12,6 +12,7 @@ import com.gradingplatform.backend.service.RubricScoring.ScoredTest;
 import com.gradingplatform.backend.service.RubricScoring.Status;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -213,6 +214,72 @@ class RubricScoringTests {
         });
         assertThat(result.total().scale()).isEqualTo(2);
         assertThat(result.max().scale()).isEqualTo(2);
+    }
+
+    @Test
+    void nothingPassedInSeveralCriteriaScoresZeroInEachWhateverTheOutcomesWere() {
+        // A (40): weights 1, 2, 3, none passed = 40 × 0/6 = 0.00. B (60): weights 4, 1, none passed = 60 × 0/5 = 0.00.
+        // Total 0.00 of 100.00, graded (not pending), nothing waiting.
+        Result result = score(
+                List.of(tests(1, 40), tests(2, 60)),
+                List.of(failed(11, 1, 1), failed(12, 1, 2), failed(13, 1, 3), failed(21, 2, 4), failed(22, 2, 1)));
+
+        assertThat(result.criteria())
+                .extracting(CriterionResult::status, CriterionResult::score)
+                .containsExactly(tuple(Status.GRADED, points("0.00")), tuple(Status.GRADED, points("0.00")));
+        assertThat(result.total()).isEqualTo(points("0.00"));
+        assertThat(result.max()).isEqualTo(points("100.00"));
+        assertThat(result.hasPending()).isFalse();
+    }
+
+    @Test
+    void aCompileErrorLeavesATeachersManualScoreAsTheWholeTotal() {
+        // Tests (70): nothing passed (compile error) = 0.00. Manual (30): 22.5 entered = 22.50.
+        // Total 0.00 + 22.50 = 22.50 of 100.00; nothing pending.
+        Result result = RubricScoring.score(
+                List.of(tests(1, 70), manual(2, 30)),
+                List.of(failed(11, 1, 1), failed(12, 1, 1)),
+                Map.of(2L, points("22.5")));
+
+        assertThat(result.criteria())
+                .extracting(CriterionResult::score)
+                .containsExactly(points("0.00"), points("22.50"));
+        assertThat(result.total()).isEqualTo(points("22.50"));
+        assertThat(result.max()).isEqualTo(points("100.00"));
+        assertThat(result.hasPending()).isFalse();
+    }
+
+    @Test
+    void aFullRubricOfMixedWeightsAddsUpAndDoesNotDependOnTheOrderOfTheTests() {
+        // Correctness (50): weights 2, 3, 5, passed the 2 and the 5 = 50 × 7/10 = 35.00.
+        // Edge cases (30): seven tests of weight 1, passed four = 30 × 4/7 = 17.142857... = 17.14 (rounded down).
+        // Style (20, manual): 15.5 entered = 15.50.
+        // Total 35.00 + 17.14 + 15.50 = 67.64 of 100.00.
+        List<Criterion> rubric = List.of(tests(1, 50), tests(2, 30), manual(3, 20));
+        List<ScoredTest> outcomes = new ArrayList<>(List.of(
+                passed(11, 1, 2),
+                failed(12, 1, 3),
+                passed(13, 1, 5),
+                passed(21, 2, 1),
+                passed(22, 2, 1),
+                failed(23, 2, 1),
+                passed(24, 2, 1),
+                failed(25, 2, 1),
+                passed(26, 2, 1),
+                failed(27, 2, 1)));
+        Map<Long, BigDecimal> entered = Map.of(3L, points("15.5"));
+
+        Result result = RubricScoring.score(rubric, outcomes, entered);
+
+        assertThat(result.criteria())
+                .extracting(CriterionResult::score)
+                .containsExactly(points("35.00"), points("17.14"), points("15.50"));
+        assertThat(result.total()).isEqualTo(points("67.64"));
+        assertThat(result.max()).isEqualTo(points("100.00"));
+        assertThat(result.hasPending()).isFalse();
+
+        Collections.reverse(outcomes);
+        assertThat(RubricScoring.score(rubric, outcomes, entered)).isEqualTo(result);
     }
 
     @Test

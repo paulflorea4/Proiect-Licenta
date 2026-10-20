@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6d done)
-- Next commit: 5.6e — Tests: manual score range validation, recompute after saving, provisional flag clears when the last manual criterion is scored, students get 403 on the manual-score endpoint
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6e done, phase complete); next is Phase 6 — `docs/tasks/tasks-phase-06.md`
+- Next commit: 6.1a — FastAPI app skeleton, `GET /health`
 - In progress: —
-- Blocked: PR for commit 5.6d awaiting review and a green CI.
+- Blocked: PR for commit 5.6e awaiting review and a green CI.

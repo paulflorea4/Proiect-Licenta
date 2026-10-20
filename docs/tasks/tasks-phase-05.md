@@ -22,7 +22,7 @@
 | 5.5b | Teacher view of the same endpoint (course owner or admin): full detail including hidden tests | Done | Same URL, different projection by role — one authorization path, tested in 5.6c. |
 | 5.5c | `GET /assignments/{id}/submissions` (teacher) and `GET /assignments/{id}/my-submissions` (student) | Done | Paginated. |
 | 5.6a | Scoring unit tests with hand-computed expected values (mixed weights, partial pass, compile error, zero tests passed) | Done | This is the test that would catch a wrong weighting formula — do the arithmetic by hand, don't derive expected values by running the code. |
-| 5.6b | Integration test (with Docker): submit → worker runs → `GRADED` → results and grade match expectations | Not started | Use the seeded Java and Python assignments from 1.4b. |
+| 5.6b | Integration test (with Docker): submit → worker runs → `GRADED` → results and grade match expectations | Done | Use the seeded Java and Python assignments from 1.4b. |
 | 5.6c | Authorization and masking tests: other student gets 403, hidden-test fields absent from the student JSON, late and over-limit submissions rejected | Not started | Assert on raw JSON keys, as in 3.6b. |
 | 5.6d | Test: restart recovery and no lost submissions when execution throws | Not started | Directly tests 5.2b and 5.2c. |
 | 5.6e | Tests: manual score range validation, recompute after saving, provisional flag clears when the last manual criterion is scored, students get 403 on the manual-score endpoint | Not started | Expected totals hand-computed, as in 5.6a. |

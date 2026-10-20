@@ -474,3 +474,18 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - a full rubric: 50 × 7/10 = 35.00, 30 × 4/7 = 17.142857... = 17.14, a manual 15.50, total 67.64 of 100.00, and the same result with the test list reversed.
 - **Mutation-checked:** rounding `UP` instead of `HALF_UP` was not caught by any 5.4a test (they only had values that round up or to a half); it now fails the full-rubric test through 17.14. The `HALF_EVEN` and total mutants stay caught by the 5.4a tests.
 - **The row's wording matched the repo closely enough not to be a gate:** it asks for tests, and tests exist; the gap was coverage, not scope.
+
+## 5.6b — Integration test: submit → worker runs → `GRADED` → results and grade
+
+- **A new class on the dev seed, not more cases in `RealHttpGradingTests`.** The row says to use the seeded Java and Python assignments (1.4b). `RealHttpGradingTests` builds its own small Python world; the seed has the real rubrics (a weight-2 test, two `TESTS` criteria, a `MANUAL` one), so the weighted arithmetic is exercised on the data a developer actually runs against.
+- **`RealHttpSeededGradingTests` does not extend `RealHttpTestBase`,** because its `emptyTables` would delete the seed before every test. It is a `@SpringBootTest` with `spring.flyway.locations` including `db/dev-seed` (as the `DevSeed*Tests`), so it has its own context and database: the cost is one more cached context.
+- **Everything goes through HTTP as the seeded people:** `POST /auth/signin` with the passwords documented in V1000, `POST .../submissions`, polling the student's own `GET /submissions/{id}` until `GRADED` (QUEUED/RUNNING allowed, anything else fails; 3 minutes), then the same id as the teacher. Local dev host and seed values only.
+- **No test assumes an attempt number.** The 7 seeded submissions stay, so Java (unlimited) tests can run in any order; each Python student has exactly one attempt left (max 3, two seeded), used by one test each.
+- **Tests (+5, backend 1970 -> 1975; ai-service and frontend unchanged and passing), totals by hand from V1001:**
+  - correct Java: five tests of weights 1, 1, 1, 1, 2 all pass, 80 × 6/6 = 80.00, Code quality pending, total 80.00 of 100.00, provisional; one `criterion_scores` row only; the student sees two public tests in full and three hidden as `{id, name: "Hidden test N", visibility, position, passed}` with `4000000000` nowhere in the body; the teacher sees the hidden test's input, expected and actual output;
+  - `int` overflow: weight-2 test fails, 80 × 4/6 = 53.333... = 53.33; the teacher sees `-294967296`;
+  - missing semicolon: 0.00, graded, `compilerOutput` mentions `Main.java`, every test `COMPILE_ERROR`;
+  - Python ignoring case: Basic 40 × 3/3 = 40.00 plus Edge 40 × 1/2 = 20.00 = 60.00, then a fourth attempt is 409 `ATTEMPT_LIMIT_REACHED`;
+  - correct Python: 40.00 + 40.00 = 80.00, two criterion rows.
+- **Mutation-checked, each failing at least one test:** test weights counted as 1 (the overflow case: 64.00 instead of 53.33); a hidden result always `passed`.
+- **Not in this row:** manual scoring and recompute (5.6e), restart recovery (5.6d), 403/masking matrices (5.6c).

@@ -1,4 +1,4 @@
-- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6a done)
-- Next commit: 5.6b — Integration test (with Docker): submit → worker runs → `GRADED` → results and grade match expectations
+- Phase: Phase 5 — `docs/tasks/tasks-phase-05.md` (5.6b done)
+- Next commit: 5.6c — Authorization and masking tests: other student gets 403, hidden-test fields absent from the student JSON, late and over-limit submissions rejected
 - In progress: —
-- Blocked: PR for commit 5.6a awaiting review and a green CI.
+- Blocked: PR for commit 5.6b awaiting review and a green CI.

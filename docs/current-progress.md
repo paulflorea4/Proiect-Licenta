@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.2a done)
-- Next commit: 6.2b — Prove it with one hardcoded prompt
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.2b done)
+- Next commit: 6.3a — Pydantic request/response models for `POST /feedback`
 - In progress: —
-- Blocked: PR for commit 6.2a awaiting review and a green CI.
+- Blocked: PR for commit 6.2b awaiting review and a green CI.

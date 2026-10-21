@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.1b done)
-- Next commit: 6.1c — Authentication dependency: every route except `GET /health` requires `Authorization: Bearer <AI_SERVICE_TOKEN>`
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.1c done)
+- Next commit: 6.2a — LLM provider interface + Gemini httpx implementation (**GATE**: needs `GEMINI_API_KEY` from the human)
 - In progress: —
-- Blocked: PR for commit 6.1b awaiting review and a green CI.
+- Blocked: PR for commit 6.1c awaiting review and a green CI.

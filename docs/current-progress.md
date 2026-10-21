@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.2b done)
-- Next commit: 6.3a — Pydantic request/response models for `POST /feedback`
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.3a done)
+- Next commit: 6.3b — Prompt builder: pure function from request to prompt, hint levels 1-3, the code as delimited, quoted data
 - In progress: —
-- Blocked: PR for commit 6.2b awaiting review and a green CI.
+- Blocked: PR for commit 6.3a awaiting review and a green CI.

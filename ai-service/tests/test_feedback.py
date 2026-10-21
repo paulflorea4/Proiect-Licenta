@@ -6,13 +6,15 @@ import pytest
 
 from ai_service import config, feedback
 from ai_service.config import Settings
-from ai_service.feedback import HARDCODED_PROMPT, generate_feedback, main
+from ai_service.feedback import SAMPLE_REQUEST, generate_feedback, main
 from ai_service.llm import (
     LlmBadResponse,
     LlmProvider,
     LlmUnavailable,
     gemini_from_settings,
 )
+from ai_service.prompts import build_prompt
+from ai_service.schemas import FeedbackRequest
 
 
 class FakeProvider(LlmProvider):
@@ -36,19 +38,24 @@ class FakeProvider(LlmProvider):
         self.closed = True
 
 
+def at_level(level: int) -> FeedbackRequest:
+    return SAMPLE_REQUEST.model_copy(update={"hint_level": level})
+
+
 # ---- generate_feedback ----
 
 
-def test_the_hardcoded_prompt_is_sent_once_and_the_answer_returned() -> None:
+@pytest.mark.parametrize("level", [1, 2, 3])
+def test_the_requests_prompt_is_sent_once_and_the_answer_returned(level: int) -> None:
     fake = FakeProvider("Check which operator you used.")
 
-    assert generate_feedback(fake) == "Check which operator you used."
-    assert fake.prompts == [HARDCODED_PROMPT]
+    assert generate_feedback(fake, at_level(level)) == "Check which operator you used."
+    assert fake.prompts == [build_prompt(at_level(level))]
 
 
-def test_the_prompt_asks_for_a_hint_and_not_for_the_solution() -> None:
-    assert "hint" in HARDCODED_PROMPT
-    assert "Do not write the corrected code" in HARDCODED_PROMPT
+def test_the_sample_request_is_a_made_up_failing_submission() -> None:
+    assert SAMPLE_REQUEST.hint_level == 1
+    assert SAMPLE_REQUEST.public_tests[0].status.value == "FAILED"
 
 
 @pytest.mark.parametrize(
@@ -56,7 +63,7 @@ def test_the_prompt_asks_for_a_hint_and_not_for_the_solution() -> None:
 )
 def test_a_provider_error_is_not_hidden(error: Exception) -> None:
     with pytest.raises(type(error)):
-        generate_feedback(FakeProvider(error=error))
+        generate_feedback(FakeProvider(error=error), SAMPLE_REQUEST)
 
 
 # ---- the command ----
@@ -68,13 +75,34 @@ def test_the_command_prints_the_answer_and_succeeds(
     fake = FakeProvider("Check which operator you used.")
     monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: fake)
 
-    assert main() == 0
+    assert main([]) == 0
 
     out, err = capsys.readouterr()
     assert out == "Check which operator you used.\n"
     assert err == ""
-    assert fake.prompts == [HARDCODED_PROMPT]
+    assert fake.prompts == [build_prompt(SAMPLE_REQUEST)]
     assert fake.closed
+
+
+@pytest.mark.parametrize("level", ["1", "2", "3"])
+def test_the_command_takes_the_hint_level(
+    monkeypatch: pytest.MonkeyPatch, level: str
+) -> None:
+    fake = FakeProvider()
+    monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: fake)
+
+    assert main([level]) == 0
+
+    assert fake.prompts == [build_prompt(at_level(int(level)))]
+
+
+@pytest.mark.parametrize("args", [["0"], ["4"], ["x"], ["1", "2"]])
+def test_the_command_refuses_other_arguments(
+    args: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main(args) == 2
+
+    assert capsys.readouterr().err.startswith("Usage:")
 
 
 def test_the_command_reports_a_failed_call_in_one_line(
@@ -83,7 +111,7 @@ def test_the_command_reports_a_failed_call_in_one_line(
     fake = FakeProvider(error=LlmUnavailable("Gemini answered HTTP 503"))
     monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: fake)
 
-    assert main() == 1
+    assert main([]) == 1
 
     out, err = capsys.readouterr()
     assert out == ""
@@ -95,7 +123,7 @@ def test_the_command_reports_missing_gemini_settings(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     # The fixture's settings have no Gemini key or model.
-    assert main() == 1
+    assert main([]) == 1
 
     out, err = capsys.readouterr()
     assert out == ""
@@ -107,7 +135,7 @@ def test_the_command_reports_a_missing_token(
 ) -> None:
     monkeypatch.delenv("AI_SERVICE_TOKEN")
 
-    assert main() == 1
+    assert main([]) == 1
 
     assert "ai_service_token" in capsys.readouterr().err
 
@@ -123,7 +151,7 @@ def test_python_dash_m_runs_the_command() -> None:
     }
 
     run = subprocess.run(
-        [sys.executable, "-m", "ai_service.feedback"],
+        [sys.executable, "-m", "ai_service.feedback", "2"],
         env=env,
         capture_output=True,
         text=True,
@@ -142,10 +170,10 @@ def test_python_dash_m_runs_the_command() -> None:
     os.environ.get("RUN_LIVE_GEMINI") != "1",
     reason="calls the real Gemini API; set RUN_LIVE_GEMINI=1 to run it",
 )
-def test_the_real_gemini_api_gives_feedback_for_the_hardcoded_prompt() -> None:
+def test_the_real_gemini_api_gives_feedback_for_the_sample_request() -> None:
     gemini = gemini_from_settings(Settings(_env_file=config.DEFAULT_ENV_FILE))
     try:
-        text = generate_feedback(gemini)
+        text = generate_feedback(gemini, SAMPLE_REQUEST)
     finally:
         gemini.close()
 

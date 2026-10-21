@@ -5,6 +5,7 @@ description = "Stateless AI and analysis service for the Grading Platform"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi",
+    "httpx",
     "pydantic-settings",
     "uvicorn",
 ]
@@ -12,7 +13,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest",
-    "httpx",
     "ruff>=0.16.10",
     "black>=26.10.0",
 ]

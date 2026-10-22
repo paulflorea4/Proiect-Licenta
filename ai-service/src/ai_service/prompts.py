@@ -37,6 +37,8 @@ LEVEL_INSTRUCTIONS: dict[int, str] = {
     3: (
         "Hint level 3 (a partial explanation). Explain concretely what is wrong and "
         "why, and the reasoning the fix needs, step by step, in one short paragraph. "
+        "Stop short of the exact change: do not name the operator, value, condition "
+        "or line the student should write instead; the last step is theirs. "
         "You may add one illustrative snippet of at most "
         f"{MAX_SNIPPET_LINES} lines that shows the idea on a different, small example; "
         "it must not be the corrected program, nor a piece that can be pasted into "

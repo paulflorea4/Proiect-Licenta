@@ -27,13 +27,26 @@ READ_TIMEOUT_SECONDS = 30.0
 # What a model name may contain: it is put into the URL's path.
 _MODEL_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
+# Gemini's error status words are one uppercase word such as UNAVAILABLE or
+# RESOURCE_EXHAUSTED. Only a value of this shape is ever put into a message.
+_STATUS_WORD = re.compile(r"[A-Z][A-Z_]{0,39}")
+
 
 class LlmError(Exception):
     """The provider gave no usable text. The message is fixed text."""
 
 
 class LlmUnavailable(LlmError):
-    """No answer: the request failed, timed out, or got an HTTP error status."""
+    """No answer: the request failed, timed out, or got an HTTP error status.
+
+    ``status_code`` is the HTTP status when the provider answered with an error, and
+    None when there was no answer (a timeout or a failed connection), which 6.3c
+    never retries.
+    """
+
+    def __init__(self, message: str, *, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class LlmBadResponse(LlmError):
@@ -86,7 +99,12 @@ class GeminiProvider(LlmProvider):
         except httpx.HTTPError as e:
             raise LlmUnavailable("The Gemini request failed") from e
         if not response.is_success:
-            raise LlmUnavailable(f"Gemini answered HTTP {response.status_code}")
+            word = _status_word(response)
+            raise LlmUnavailable(
+                f"Gemini answered HTTP {response.status_code}"
+                + (f" ({word})" if word else ""),
+                status_code=response.status_code,
+            )
         try:
             body = response.json()
         except ValueError:
@@ -98,6 +116,18 @@ class GeminiProvider(LlmProvider):
 
     def __repr__(self) -> str:
         return f"GeminiProvider(url={self._url!r})"
+
+
+def _status_word(response: httpx.Response) -> str | None:
+    """Gemini's ``error.status`` (e.g. ``UNAVAILABLE``) if it is one plain uppercase
+    word; nothing else of the error body is ever read into a message."""
+    try:
+        status = response.json()["error"]["status"]
+    except (ValueError, KeyError, TypeError):
+        return None
+    if isinstance(status, str) and _STATUS_WORD.fullmatch(status):
+        return status
+    return None
 
 
 def _text_of(body: Any) -> str:

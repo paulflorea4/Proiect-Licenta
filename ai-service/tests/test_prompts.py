@@ -351,3 +351,13 @@ def test_the_prompt_says_hidden_details_are_not_available() -> None:
 
     assert "Their inputs and expected outputs are not available." in prompt
     assert "do not guess what they contain" in prompt
+
+
+def test_level_3_stops_short_of_naming_the_exact_change() -> None:
+    # The human's decision at 6.3c, after a live level-3 hint said "change * to +".
+    text = LEVEL_INSTRUCTIONS[3]
+
+    assert "Stop short of the exact change" in text
+    assert "do not name the operator, value, condition or line" in text
+    for level in (1, 2):
+        assert "Stop short of the exact change" not in LEVEL_INSTRUCTIONS[level]

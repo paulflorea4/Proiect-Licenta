@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.3b done)
-- Next commit: 6.3c — Validate the LLM response; on a malformed or empty response retry once, then return a clean error
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.3c done)
+- Next commit: 6.4a — Solution-leak guard: reject and regenerate a response whose code exceeds a per-level named threshold
 - In progress: —
-- Blocked: PR for commit 6.3b awaiting review and a green CI.
+- Blocked: PR for commit 6.3c awaiting review and a green CI.

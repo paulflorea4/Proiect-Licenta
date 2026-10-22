@@ -327,3 +327,80 @@ def test_the_real_gemini_api_answers_a_prompt() -> None:
 
     print(f"\nlive Gemini call: {len(text)} characters of text")
     assert text.strip()
+
+
+# ---- 6.3c: what an error says about itself ----
+
+
+@pytest.mark.parametrize(
+    ("status", "word"),
+    [(503, "UNAVAILABLE"), (429, "RESOURCE_EXHAUSTED"), (500, "INTERNAL")],
+)
+def test_an_error_status_carries_geminis_status_word(status: int, word: str) -> None:
+    body = {
+        "error": {"code": status, "message": "details, maybe echoing", "status": word}
+    }
+    gemini, _ = replying(status, body)
+
+    with pytest.raises(LlmUnavailable) as raised:
+        gemini.generate("secret student code")
+
+    assert str(raised.value) == f"Gemini answered HTTP {status} ({word})"
+    assert raised.value.status_code == status
+    assert "details" not in str(raised.value)
+
+
+@pytest.mark.parametrize(
+    "status_field",
+    [
+        "unavailable",
+        "UNAVAILABLE please retry",
+        "UNAVAILABLE\nsecret student code",
+        "A" * 41,
+        42,
+        None,
+        ["UNAVAILABLE"],
+    ],
+    ids=["lower case", "words", "newline", "too long", "number", "null", "list"],
+)
+def test_a_status_that_is_not_one_plain_word_is_left_out(status_field: object) -> None:
+    gemini, _ = replying(503, {"error": {"code": 503, "status": status_field}})
+
+    with pytest.raises(LlmUnavailable) as raised:
+        gemini.generate("secret student code")
+
+    assert str(raised.value) == "Gemini answered HTTP 503"
+    assert_says_nothing_secret(raised.value, "secret student code")
+
+
+@pytest.mark.parametrize(
+    "raw", [b"", b"<html>Service Unavailable</html>", b'{"error": "UNAVAILABLE"}']
+)
+def test_an_error_body_without_a_status_gives_the_code_alone(raw: bytes) -> None:
+    gemini, _ = replying(503, raw=raw)
+
+    with pytest.raises(LlmUnavailable) as raised:
+        gemini.generate("Say hello.")
+
+    assert str(raised.value) == "Gemini answered HTTP 503"
+    assert raised.value.status_code == 503
+
+
+def test_a_timeout_has_no_status() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("read timed out")
+
+    with pytest.raises(LlmUnavailable) as raised:
+        provider(handler).generate("Say hello.")
+
+    assert raised.value.status_code is None
+
+
+def test_a_connection_failure_has_no_status() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    with pytest.raises(LlmUnavailable) as raised:
+        provider(handler).generate("Say hello.")
+
+    assert raised.value.status_code is None

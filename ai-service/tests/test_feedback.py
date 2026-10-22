@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -6,9 +7,18 @@ import pytest
 
 from ai_service import config, feedback
 from ai_service.config import Settings
-from ai_service.feedback import SAMPLE_REQUEST, generate_feedback, main
+from ai_service.feedback import (
+    MAX_ATTEMPTS,
+    RETRYABLE_STATUS_CODES,
+    SAMPLE_REQUEST,
+    generate_feedback,
+    main,
+    parse_hint,
+)
 from ai_service.llm import (
     LlmBadResponse,
+    LlmError,
+    LlmNotConfigured,
     LlmProvider,
     LlmUnavailable,
     gemini_from_settings,
@@ -16,23 +26,23 @@ from ai_service.llm import (
 from ai_service.prompts import build_prompt
 from ai_service.schemas import FeedbackRequest
 
+GOOD = '{"hint": "Check which operator you used."}'
 
-class FakeProvider(LlmProvider):
-    """Records each prompt and answers with a fixed text, or raises."""
 
-    def __init__(
-        self, answer: str = "Look at the operator.", error: Exception | None = None
-    ):
+class ScriptedProvider(LlmProvider):
+    """Plays its script, one entry per call: a text to return or an error to raise."""
+
+    def __init__(self, *script: str | Exception):
+        self.script = list(script)
         self.prompts: list[str] = []
-        self.answer = answer
-        self.error = error
         self.closed = False
 
     def generate(self, prompt: str) -> str:
         self.prompts.append(prompt)
-        if self.error is not None:
-            raise self.error
-        return self.answer
+        step = self.script.pop(0)
+        if isinstance(step, Exception):
+            raise step
+        return step
 
     def close(self) -> None:
         self.closed = True
@@ -42,58 +52,204 @@ def at_level(level: int) -> FeedbackRequest:
     return SAMPLE_REQUEST.model_copy(update={"hint_level": level})
 
 
-# ---- generate_feedback ----
+def unavailable(status: int) -> LlmUnavailable:
+    return LlmUnavailable(f"Gemini answered HTTP {status}", status_code=status)
 
 
-@pytest.mark.parametrize("level", [1, 2, 3])
-def test_the_requests_prompt_is_sent_once_and_the_answer_returned(level: int) -> None:
-    fake = FakeProvider("Check which operator you used.")
-
-    assert generate_feedback(fake, at_level(level)) == "Check which operator you used."
-    assert fake.prompts == [build_prompt(at_level(level))]
+TIMEOUT = LlmUnavailable("The Gemini request timed out")
 
 
-def test_the_sample_request_is_a_made_up_failing_submission() -> None:
-    assert SAMPLE_REQUEST.hint_level == 1
-    assert SAMPLE_REQUEST.public_tests[0].status.value == "FAILED"
+# ---- reading the answer ----
 
 
 @pytest.mark.parametrize(
-    "error", [LlmUnavailable("Gemini answered HTTP 503"), LlmBadResponse("no text")]
+    ("answer", "hint"),
+    [
+        ('{"hint": "Look at the loop."}', "Look at the loop."),
+        ('  \n{"hint": "  Look at the loop.  "}\n ', "Look at the loop."),
+        ('```json\n{"hint": "Look at the loop."}\n```', "Look at the loop."),
+        ('```\n{"hint": "Look at the loop."}\n```', "Look at the loop."),
+        (
+            '{"hint": "Line one.\\n\\n```python\\nx = 1\\n```"}',
+            "Line one.\n\n```python\nx = 1\n```",
+        ),
+    ],
+    ids=[
+        "plain",
+        "surrounding blanks",
+        "json fence",
+        "bare fence",
+        "code inside the hint",
+    ],
 )
-def test_a_provider_error_is_not_hidden(error: Exception) -> None:
-    with pytest.raises(type(error)):
-        generate_feedback(FakeProvider(error=error), SAMPLE_REQUEST)
+def test_a_hint_object_is_read(answer: str, hint: str) -> None:
+    assert parse_hint(answer) == hint
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "",
+        "   ",
+        "Look at the loop.",
+        '{"hint": ""}',
+        '{"hint": "   "}',
+        '{"hint": 42}',
+        '{"hint": null}',
+        '{"text": "Look at the loop."}',
+        '{"hint": "Look.", "solution": "print(a + b)"}',
+        '["Look at the loop."]',
+        '"Look at the loop."',
+        '{"hint": "Look at the loop."',
+        'Here you go: {"hint": "Look at the loop."}',
+        '```json\n{"hint": "Look at the loop."}',
+    ],
+    ids=[
+        "empty",
+        "blank",
+        "plain text",
+        "empty hint",
+        "blank hint",
+        "number",
+        "null",
+        "other key",
+        "extra key",
+        "list",
+        "string",
+        "cut off",
+        "text around",
+        "unclosed fence",
+    ],
+)
+def test_anything_else_is_a_bad_response_that_does_not_quote_it(answer: str) -> None:
+    with pytest.raises(LlmBadResponse) as raised:
+        parse_hint(answer)
+
+    assert "Look at the loop" not in str(raised.value)
+    assert "print(a + b)" not in str(raised.value)
+
+
+# ---- one more try, and only one ----
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+def test_a_good_first_answer_is_one_call(level: int) -> None:
+    provider = ScriptedProvider(GOOD)
+
+    assert (
+        generate_feedback(provider, at_level(level)) == "Check which operator you used."
+    )
+    assert provider.prompts == [build_prompt(at_level(level))]
+
+
+@pytest.mark.parametrize(
+    "first",
+    [
+        "not json",
+        '{"hint": ""}',
+        LlmBadResponse("Gemini's answer has no text"),
+        LlmBadResponse("Gemini blocked the prompt"),
+        *[unavailable(status) for status in sorted(RETRYABLE_STATUS_CODES)],
+    ],
+    ids=lambda first: str(first)[:40],
+)
+def test_one_failure_worth_retrying_is_retried_with_the_same_prompt(
+    first: str | Exception,
+) -> None:
+    provider = ScriptedProvider(first, GOOD)
+
+    assert (
+        generate_feedback(provider, SAMPLE_REQUEST) == "Check which operator you used."
+    )
+    assert len(provider.prompts) == 2
+    assert provider.prompts[0] == provider.prompts[1] == build_prompt(SAMPLE_REQUEST)
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "raised"),
+    [
+        ("not json", "still not json", LlmBadResponse),
+        (unavailable(503), unavailable(503), LlmUnavailable),
+        ("not json", unavailable(503), LlmUnavailable),
+        (unavailable(429), '{"hint": " "}', LlmBadResponse),
+    ],
+    ids=["bad twice", "503 twice", "bad then 503", "429 then blank"],
+)
+def test_after_two_failures_the_last_error_is_raised_and_nothing_more_is_tried(
+    first: str | Exception, second: str | Exception, raised: type[LlmError]
+) -> None:
+    provider = ScriptedProvider(first, second, GOOD)
+
+    with pytest.raises(raised):
+        generate_feedback(provider, SAMPLE_REQUEST)
+
+    assert len(provider.prompts) == MAX_ATTEMPTS == 2
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        TIMEOUT,
+        LlmUnavailable("The Gemini request failed"),
+        unavailable(400),
+        unavailable(401),
+        unavailable(403),
+        unavailable(404),
+        LlmNotConfigured("GEMINI_API_KEY and GEMINI_MODEL must both be set"),
+    ],
+    ids=[
+        "timeout",
+        "connection failed",
+        "400",
+        "401",
+        "403",
+        "404",
+        "not configured",
+    ],
+)
+def test_a_failure_another_try_cannot_help_is_raised_at_once(error: LlmError) -> None:
+    provider = ScriptedProvider(error, GOOD)
+
+    with pytest.raises(type(error)) as raised:
+        generate_feedback(provider, SAMPLE_REQUEST)
+
+    assert raised.value is error
+    assert len(provider.prompts) == 1
+
+
+def test_the_retry_rules_are_the_named_constants() -> None:
+    assert MAX_ATTEMPTS == 2
+    assert RETRYABLE_STATUS_CODES == {429, 500, 502, 503, 504}
 
 
 # ---- the command ----
 
 
-def test_the_command_prints_the_answer_and_succeeds(
+def test_the_command_prints_the_hint_and_succeeds(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    fake = FakeProvider("Check which operator you used.")
-    monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: fake)
+    provider = ScriptedProvider(GOOD)
+    monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: provider)
 
     assert main([]) == 0
 
     out, err = capsys.readouterr()
     assert out == "Check which operator you used.\n"
     assert err == ""
-    assert fake.prompts == [build_prompt(SAMPLE_REQUEST)]
-    assert fake.closed
+    assert provider.prompts == [build_prompt(SAMPLE_REQUEST)]
+    assert provider.closed
 
 
 @pytest.mark.parametrize("level", ["1", "2", "3"])
 def test_the_command_takes_the_hint_level(
     monkeypatch: pytest.MonkeyPatch, level: str
 ) -> None:
-    fake = FakeProvider()
-    monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: fake)
+    provider = ScriptedProvider(GOOD)
+    monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: provider)
 
     assert main([level]) == 0
 
-    assert fake.prompts == [build_prompt(at_level(int(level)))]
+    assert provider.prompts == [build_prompt(at_level(int(level)))]
 
 
 @pytest.mark.parametrize("args", [["0"], ["4"], ["x"], ["1", "2"]])
@@ -108,15 +264,15 @@ def test_the_command_refuses_other_arguments(
 def test_the_command_reports_a_failed_call_in_one_line(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    fake = FakeProvider(error=LlmUnavailable("Gemini answered HTTP 503"))
-    monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: fake)
+    provider = ScriptedProvider(unavailable(503), unavailable(503))
+    monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: provider)
 
     assert main([]) == 1
 
     out, err = capsys.readouterr()
     assert out == ""
     assert err == "No feedback: Gemini answered HTTP 503\n"
-    assert fake.closed
+    assert provider.closed
 
 
 def test_the_command_reports_missing_gemini_settings(
@@ -163,6 +319,12 @@ def test_python_dash_m_runs_the_command() -> None:
     assert run.stderr.startswith("Not configured: GEMINI_API_KEY and GEMINI_MODEL")
 
 
+def test_the_sample_request_is_a_made_up_failing_submission() -> None:
+    assert SAMPLE_REQUEST.hint_level == 1
+    assert SAMPLE_REQUEST.public_tests[0].status.value == "FAILED"
+    json.dumps(SAMPLE_REQUEST.model_dump(mode="json"))
+
+
 # ---- the real API (opt-in) ----
 
 
@@ -170,12 +332,12 @@ def test_python_dash_m_runs_the_command() -> None:
     os.environ.get("RUN_LIVE_GEMINI") != "1",
     reason="calls the real Gemini API; set RUN_LIVE_GEMINI=1 to run it",
 )
-def test_the_real_gemini_api_gives_feedback_for_the_sample_request() -> None:
+def test_the_real_gemini_api_gives_a_hint_for_the_sample_request() -> None:
     gemini = gemini_from_settings(Settings(_env_file=config.DEFAULT_ENV_FILE))
     try:
-        text = generate_feedback(gemini, SAMPLE_REQUEST)
+        hint = generate_feedback(gemini, SAMPLE_REQUEST)
     finally:
         gemini.close()
 
-    print(f"\nlive feedback: {len(text)} characters")
-    assert text.strip()
+    print(f"\nlive hint: {len(hint)} characters")
+    assert hint.strip()

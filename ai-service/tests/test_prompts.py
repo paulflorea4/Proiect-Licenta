@@ -363,9 +363,42 @@ def test_level_3_stops_short_of_naming_the_exact_change() -> None:
     text = LEVEL_INSTRUCTIONS[3]
 
     assert "Stop short of the exact change" in text
-    assert "do not name the operator, value, condition or line" in text
+    assert "do not name the operator, function, value, condition or line" in text
     for level in (1, 2):
         assert "Stop short of the exact change" not in LEVEL_INSTRUCTIONS[level]
+
+
+def test_level_3_forbids_the_change_in_words_too() -> None:
+    # 6.4d, the human's decision after both live level-3 hints of 6.4c said what to
+    # write instead in prose ("update it to perform addition instead").
+    text = LEVEL_INSTRUCTIONS[3]
+
+    assert "not even in words" in text
+    assert '"use addition instead"' in text
+    for level in (1, 2):
+        assert "not even in words" not in LEVEL_INSTRUCTIONS[level]
+
+
+def test_level_3_shows_a_good_and_a_bad_last_sentence() -> None:
+    text = LEVEL_INSTRUCTIONS[3]
+    good = text.index("a good last sentence is")
+    bad = text.index("bad ones are")
+
+    assert good < bad
+    assert "compare it with the position of the last element" in text[good:bad]
+    assert '"Change the bound from n - 1 to n."' in text[bad:]
+    assert '"Make the loop go one step further."' in text[bad:]
+    # A different bug from the sample's, and no code fence the model could copy.
+    assert "sum" not in text
+    assert "`" not in text
+    for level in (1, 2):
+        assert "good last sentence" not in LEVEL_INSTRUCTIONS[level]
+
+
+def test_the_examples_come_before_the_snippet_rule() -> None:
+    text = LEVEL_INSTRUCTIONS[3]
+
+    assert text.index("bad ones are") < text.index("You may add one illustrative")
 
 
 # ---- the retry after a leak (6.4c) ----

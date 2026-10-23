@@ -5,7 +5,8 @@ request (:func:`ai_service.prompts.build_prompt`). 6.3c reads the model's answer
 (:func:`parse_hint`) and tries once more when the answer is unusable or the provider
 was briefly unavailable. 6.4a refuses a hint that leaks a solution
 (:func:`ai_service.leak_guard.find_leak`): it is regenerated, and if the last attempt
-leaks too, a generic safe hint is returned instead, flagged as such (6.4b). 6.5a puts
+leaks too, a generic safe hint is returned instead, flagged as such (6.4b). The retry
+after a leak tells the model why its answer was refused (6.4c). 6.5a puts
 ``POST /feedback`` on top.
 
 Try it against the real API with a made-up request (reads ``ai-service/.env``)::
@@ -116,8 +117,9 @@ def generate_feedback(
     """The hint for the request: the prompt goes to the provider and the answer is
     read with :func:`parse_hint`. An unusable answer, a provider that is briefly
     unavailable (HTTP 429 or 5xx), or a hint that leaks a solution (:func:`find_leak`)
-    is tried once more (:data:`MAX_ATTEMPTS`). The last attempt decides: a leak then
-    gives :data:`SAFE_HINT` with ``fallback`` true, never the leak; a failure is
+    is tried once more (:data:`MAX_ATTEMPTS`): after a leak with the prompt built
+    ``after_leak``, otherwise with the same prompt. The last attempt decides: a leak
+    then gives :data:`SAFE_HINT` with ``fallback`` true, never the leak; a failure is
     raised. A real hint has ``fallback`` false.
 
     Raises:
@@ -137,6 +139,7 @@ def generate_feedback(
             return FeedbackResponse(hint=hint, fallback=False)
         if attempt == MAX_ATTEMPTS:
             return FeedbackResponse(hint=SAFE_HINT, fallback=True)
+        prompt = build_prompt(request, after_leak=True)
     raise AssertionError("unreachable: the last attempt returns or raises")
 
 

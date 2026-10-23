@@ -223,11 +223,28 @@ def test_a_failure_another_try_cannot_help_is_raised_at_once(error: LlmError) ->
 
 
 @pytest.mark.parametrize("level", [1, 2, 3])
-def test_a_leak_is_regenerated_with_the_same_prompt(level: int) -> None:
+def test_a_leak_is_regenerated_with_the_after_leak_prompt(level: int) -> None:
     provider = ScriptedProvider(LEAK, GOOD)
 
     assert generate_feedback(provider, at_level(level)) == HINT
-    assert provider.prompts == [build_prompt(at_level(level))] * 2
+    assert provider.prompts == [
+        build_prompt(at_level(level)),
+        build_prompt(at_level(level), after_leak=True),
+    ]
+    # The refused answer is never quoted back to the model.
+    assert "a + b" not in provider.prompts[1]
+
+
+@pytest.mark.parametrize(
+    "first",
+    ["not json", unavailable(503)],
+    ids=["bad answer", "503"],
+)
+def test_only_a_leak_changes_the_retrys_prompt(first: str | Exception) -> None:
+    provider = ScriptedProvider(first, LEAK)
+
+    assert generate_feedback(provider, SAMPLE_REQUEST) == SAFE
+    assert provider.prompts == [build_prompt(SAMPLE_REQUEST)] * 2
 
 
 @pytest.mark.parametrize("level", [1, 2, 3])

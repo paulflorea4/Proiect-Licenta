@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.4b done)
-- Next commit: 6.4c — The retry after a leak tells the model its previous answer held code it may not write
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.4c done)
+- Next commit: 6.5a — `POST /feedback` endpoint wired end to end
 - In progress: —
-- Blocked: PR for commit 6.4b awaiting review and a green CI.
+- Blocked: PR for commit 6.4c awaiting review and a green CI.

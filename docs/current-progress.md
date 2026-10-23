@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.3c done)
-- Next commit: 6.4a — Solution-leak guard: reject and regenerate a response whose code exceeds a per-level named threshold
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.4a done)
+- Next commit: 6.5a — `POST /feedback` endpoint wired end to end
 - In progress: —
-- Blocked: PR for commit 6.3c awaiting review and a green CI.
+- Blocked: PR for commit 6.4a awaiting review and a green CI.

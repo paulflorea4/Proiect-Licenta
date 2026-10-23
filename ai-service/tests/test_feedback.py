@@ -15,6 +15,7 @@ from ai_service.feedback import (
     main,
     parse_hint,
 )
+from ai_service.leak_guard import SAFE_HINT
 from ai_service.llm import (
     LlmBadResponse,
     LlmError,
@@ -27,6 +28,9 @@ from ai_service.prompts import build_prompt
 from ai_service.schemas import FeedbackRequest
 
 GOOD = '{"hint": "Check which operator you used."}'
+
+# The sample's fix itself, `print(a * b)` edited: a leak at every level.
+LEAK = json.dumps({"hint": "Write:\n```python\nprint(a + b)\n```"})
 
 
 class ScriptedProvider(LlmProvider):
@@ -214,6 +218,63 @@ def test_a_failure_another_try_cannot_help_is_raised_at_once(error: LlmError) ->
         generate_feedback(provider, SAMPLE_REQUEST)
 
     assert raised.value is error
+    assert len(provider.prompts) == 1
+
+
+# ---- a leaked solution is regenerated, never returned ----
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+def test_a_leak_is_regenerated_with_the_same_prompt(level: int) -> None:
+    provider = ScriptedProvider(LEAK, GOOD)
+
+    assert (
+        generate_feedback(provider, at_level(level)) == "Check which operator you used."
+    )
+    assert provider.prompts == [build_prompt(at_level(level))] * 2
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+@pytest.mark.parametrize(
+    "first",
+    [LEAK, "not json", unavailable(503)],
+    ids=["leak", "bad answer", "503"],
+)
+def test_when_the_last_attempt_leaks_the_safe_hint_is_returned(
+    first: str | Exception, level: int
+) -> None:
+    provider = ScriptedProvider(first, LEAK, GOOD)
+
+    hint = generate_feedback(provider, at_level(level))
+
+    assert hint == SAFE_HINT
+    assert "a + b" not in hint
+    assert len(provider.prompts) == MAX_ATTEMPTS
+
+
+@pytest.mark.parametrize(
+    ("second", "raised"),
+    [("not json", LlmBadResponse), (unavailable(503), LlmUnavailable)],
+    ids=["bad answer", "503"],
+)
+def test_a_leak_then_a_failure_raises_the_failure(
+    second: str | Exception, raised: type[LlmError]
+) -> None:
+    provider = ScriptedProvider(LEAK, second, GOOD)
+
+    with pytest.raises(raised):
+        generate_feedback(provider, SAMPLE_REQUEST)
+
+    assert len(provider.prompts) == MAX_ATTEMPTS
+
+
+def test_a_hint_with_an_allowed_snippet_is_returned_as_it_is() -> None:
+    hint = (
+        "On another example:\n```python\ntotal = 0\nfor x in xs:\n    total += x\n```"
+    )
+    provider = ScriptedProvider(json.dumps({"hint": hint}))
+
+    assert generate_feedback(provider, at_level(3)) == hint
     assert len(provider.prompts) == 1
 
 

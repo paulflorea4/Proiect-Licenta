@@ -25,9 +25,11 @@ from ai_service.llm import (
     gemini_from_settings,
 )
 from ai_service.prompts import build_prompt
-from ai_service.schemas import FeedbackRequest
+from ai_service.schemas import FeedbackRequest, FeedbackResponse
 
 GOOD = '{"hint": "Check which operator you used."}'
+HINT = FeedbackResponse(hint="Check which operator you used.", fallback=False)
+SAFE = FeedbackResponse(hint=SAFE_HINT, fallback=True)
 
 # The sample's fix itself, `print(a * b)` edited: a leak at every level.
 LEAK = json.dumps({"hint": "Write:\n```python\nprint(a + b)\n```"})
@@ -140,9 +142,7 @@ def test_anything_else_is_a_bad_response_that_does_not_quote_it(answer: str) -> 
 def test_a_good_first_answer_is_one_call(level: int) -> None:
     provider = ScriptedProvider(GOOD)
 
-    assert (
-        generate_feedback(provider, at_level(level)) == "Check which operator you used."
-    )
+    assert generate_feedback(provider, at_level(level)) == HINT
     assert provider.prompts == [build_prompt(at_level(level))]
 
 
@@ -162,9 +162,7 @@ def test_one_failure_worth_retrying_is_retried_with_the_same_prompt(
 ) -> None:
     provider = ScriptedProvider(first, GOOD)
 
-    assert (
-        generate_feedback(provider, SAMPLE_REQUEST) == "Check which operator you used."
-    )
+    assert generate_feedback(provider, SAMPLE_REQUEST) == HINT
     assert len(provider.prompts) == 2
     assert provider.prompts[0] == provider.prompts[1] == build_prompt(SAMPLE_REQUEST)
 
@@ -228,9 +226,7 @@ def test_a_failure_another_try_cannot_help_is_raised_at_once(error: LlmError) ->
 def test_a_leak_is_regenerated_with_the_same_prompt(level: int) -> None:
     provider = ScriptedProvider(LEAK, GOOD)
 
-    assert (
-        generate_feedback(provider, at_level(level)) == "Check which operator you used."
-    )
+    assert generate_feedback(provider, at_level(level)) == HINT
     assert provider.prompts == [build_prompt(at_level(level))] * 2
 
 
@@ -245,10 +241,10 @@ def test_when_the_last_attempt_leaks_the_safe_hint_is_returned(
 ) -> None:
     provider = ScriptedProvider(first, LEAK, GOOD)
 
-    hint = generate_feedback(provider, at_level(level))
+    response = generate_feedback(provider, at_level(level))
 
-    assert hint == SAFE_HINT
-    assert "a + b" not in hint
+    assert response == SAFE
+    assert "a + b" not in response.hint
     assert len(provider.prompts) == MAX_ATTEMPTS
 
 
@@ -274,8 +270,36 @@ def test_a_hint_with_an_allowed_snippet_is_returned_as_it_is() -> None:
     )
     provider = ScriptedProvider(json.dumps({"hint": hint}))
 
-    assert generate_feedback(provider, at_level(3)) == hint
+    assert generate_feedback(provider, at_level(3)) == FeedbackResponse(
+        hint=hint, fallback=False
+    )
     assert len(provider.prompts) == 1
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        '{"hint": "Look at the loop.", "fallback": true}',
+        '{"hint": "Look at the loop.", "fallback": false}',
+    ],
+    ids=["true", "false"],
+)
+def test_the_model_cannot_set_the_fallback_flag(answer: str) -> None:
+    with pytest.raises(LlmBadResponse):
+        parse_hint(answer)
+
+    provider = ScriptedProvider(answer, answer)
+    with pytest.raises(LlmBadResponse):
+        generate_feedback(provider, SAMPLE_REQUEST)
+
+
+def test_only_the_safe_hint_is_flagged_as_a_fallback() -> None:
+    # The safe hint's text from the model is a real answer that passed the guard.
+    provider = ScriptedProvider(json.dumps({"hint": SAFE_HINT}))
+
+    assert generate_feedback(provider, SAMPLE_REQUEST) == FeedbackResponse(
+        hint=SAFE_HINT, fallback=False
+    )
 
 
 def test_the_retry_rules_are_the_named_constants() -> None:
@@ -298,6 +322,20 @@ def test_the_command_prints_the_hint_and_succeeds(
     assert out == "Check which operator you used.\n"
     assert err == ""
     assert provider.prompts == [build_prompt(SAMPLE_REQUEST)]
+    assert provider.closed
+
+
+def test_the_command_says_on_stderr_when_it_prints_the_safe_hint(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    provider = ScriptedProvider(LEAK, LEAK)
+    monkeypatch.setattr(feedback, "gemini_from_settings", lambda settings: provider)
+
+    assert main([]) == 0
+
+    out, err = capsys.readouterr()
+    assert out == SAFE_HINT + "\n"
+    assert err == "Both answers leaked a solution: this is the safe hint.\n"
     assert provider.closed
 
 
@@ -396,9 +434,9 @@ def test_the_sample_request_is_a_made_up_failing_submission() -> None:
 def test_the_real_gemini_api_gives_a_hint_for_the_sample_request() -> None:
     gemini = gemini_from_settings(Settings(_env_file=config.DEFAULT_ENV_FILE))
     try:
-        hint = generate_feedback(gemini, SAMPLE_REQUEST)
+        response = generate_feedback(gemini, SAMPLE_REQUEST)
     finally:
         gemini.close()
 
-    print(f"\nlive hint: {len(hint)} characters")
-    assert hint.strip()
+    print(f"\nlive hint: {len(response.hint)} characters, fallback {response.fallback}")
+    assert response.hint.strip()

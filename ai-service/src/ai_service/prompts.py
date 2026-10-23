@@ -38,8 +38,14 @@ LEVEL_INSTRUCTIONS: dict[int, str] = {
     3: (
         "Hint level 3 (a partial explanation). Explain concretely what is wrong and "
         "why, and the reasoning the fix needs, step by step, in one short paragraph. "
-        "Stop short of the exact change: do not name the operator, value, condition "
-        "or line the student should write instead; the last step is theirs. "
+        "Stop short of the exact change: do not name the operator, function, value, "
+        "condition or line the student should write instead, not even in words (not "
+        '"use addition instead", not "change it to less-than-or-equal"); the last '
+        "step is theirs. For example, for a loop that stops one element too early, a "
+        'good last sentence is "Work out which value the loop variable has on its '
+        'last pass and compare it with the position of the last element."; bad ones '
+        'are "Change the bound from n - 1 to n." and "Make the loop go one step '
+        'further." '
         "You may add one illustrative snippet of at most "
         f"{MAX_SNIPPET_LINES} lines that shows the idea on a different, small example; "
         "it must not be the corrected program, nor a piece that can be pasted into "

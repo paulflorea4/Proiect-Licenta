@@ -5,7 +5,8 @@ request (:func:`ai_service.prompts.build_prompt`). 6.3c reads the model's answer
 (:func:`parse_hint`) and tries once more when the answer is unusable or the provider
 was briefly unavailable. 6.4a refuses a hint that leaks a solution
 (:func:`ai_service.leak_guard.find_leak`): it is regenerated, and if the last attempt
-leaks too, a generic safe hint is returned instead. 6.5a puts ``POST /feedback`` on top.
+leaks too, a generic safe hint is returned instead, flagged as such (6.4b). 6.5a puts
+``POST /feedback`` on top.
 
 Try it against the real API with a made-up request (reads ``ai-service/.env``)::
 
@@ -16,7 +17,7 @@ import json
 import re
 import sys
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ai_service.config import get_settings
 from ai_service.leak_guard import SAFE_HINT, find_leak
@@ -68,6 +69,15 @@ SAMPLE_REQUEST = FeedbackRequest.model_validate(
 )
 
 
+class _ModelAnswer(BaseModel):
+    """What the model must answer. Not the response: the model cannot set ``fallback``,
+    so an answer that holds it is refused like any other unknown key."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    hint: str = Field(min_length=1)
+
+
 def parse_hint(text: str) -> str:
     """The hint in the model's answer, which must be ``{"hint": "<non-blank text>"}``
     and nothing else (a Markdown code fence around it is allowed).
@@ -81,7 +91,7 @@ def parse_hint(text: str) -> str:
     if fenced:
         body = fenced.group("body").strip()
     try:
-        answer = FeedbackResponse.model_validate(json.loads(body))
+        answer = _ModelAnswer.model_validate(json.loads(body))
     except (ValueError, ValidationError):
         raise LlmBadResponse("The model's answer is not a {hint} object") from None
     hint = answer.hint.strip()
@@ -100,12 +110,15 @@ def _worth_another_try(error: LlmError) -> bool:
     )
 
 
-def generate_feedback(provider: LlmProvider, request: FeedbackRequest) -> str:
+def generate_feedback(
+    provider: LlmProvider, request: FeedbackRequest
+) -> FeedbackResponse:
     """The hint for the request: the prompt goes to the provider and the answer is
     read with :func:`parse_hint`. An unusable answer, a provider that is briefly
     unavailable (HTTP 429 or 5xx), or a hint that leaks a solution (:func:`find_leak`)
     is tried once more (:data:`MAX_ATTEMPTS`). The last attempt decides: a leak then
-    gives :data:`SAFE_HINT`, never the leak; a failure is raised.
+    gives :data:`SAFE_HINT` with ``fallback`` true, never the leak; a failure is
+    raised. A real hint has ``fallback`` false.
 
     Raises:
         LlmError: the last attempt's error, when no attempt gave a hint, or at once
@@ -121,9 +134,9 @@ def generate_feedback(provider: LlmProvider, request: FeedbackRequest) -> str:
                 raise
             continue
         if find_leak(hint, request) is None:
-            return hint
+            return FeedbackResponse(hint=hint, fallback=False)
         if attempt == MAX_ATTEMPTS:
-            return SAFE_HINT
+            return FeedbackResponse(hint=SAFE_HINT, fallback=True)
     raise AssertionError("unreachable: the last attempt returns or raises")
 
 
@@ -143,7 +156,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Not configured: {e}", file=sys.stderr)
         return 1
     try:
-        print(generate_feedback(provider, request))
+        response = generate_feedback(provider, request)
+        print(response.hint)
+        if response.fallback:
+            print(
+                "Both answers leaked a solution: this is the safe hint.",
+                file=sys.stderr,
+            )
     except LlmError as e:
         print(f"No feedback: {e}", file=sys.stderr)
         return 1

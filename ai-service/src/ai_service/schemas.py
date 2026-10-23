@@ -74,3 +74,6 @@ class FeedbackRequest(_Contract):
 
 class FeedbackResponse(_Contract):
     hint: str = Field(min_length=1)
+    # True when the hint is the generic safe hint because both answers leaked a
+    # solution (6.4a, 6.4b): the backend (7.2a) must not count it as a used level.
+    fallback: StrictBool

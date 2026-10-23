@@ -281,16 +281,36 @@ def test_the_example_request_is_not_shared_between_tests() -> None:
 # ---- the response ----
 
 
-def test_the_response_is_the_hint_text() -> None:
-    response = FeedbackResponse(hint="Look at the operator.")
+@pytest.mark.parametrize("fallback", [False, True])
+def test_the_response_is_the_hint_text_and_the_fallback_flag(fallback: bool) -> None:
+    response = FeedbackResponse(hint="Look at the operator.", fallback=fallback)
 
-    assert response.model_dump() == {"hint": "Look at the operator."}
-    assert response.model_dump_json() == '{"hint":"Look at the operator."}'
+    # What the backend's DTO (7.1a) must match, key for key.
+    assert response.model_dump() == {
+        "hint": "Look at the operator.",
+        "fallback": fallback,
+    }
+    flag = "true" if fallback else "false"
+    assert (
+        response.model_dump_json()
+        == f'{{"hint":"Look at the operator.","fallback":{flag}}}'
+    )
 
 
 def test_an_empty_hint_is_refused() -> None:
     with pytest.raises(ValidationError):
-        FeedbackResponse(hint="")
+        FeedbackResponse(hint="", fallback=False)
+
+
+@pytest.mark.parametrize("fallback", [None, 1, 0, "true", "false"])
+def test_the_fallback_flag_is_a_strict_boolean(fallback: object) -> None:
+    with pytest.raises(ValidationError):
+        FeedbackResponse.model_validate({"hint": "Look.", "fallback": fallback})
+
+
+def test_the_fallback_flag_is_required() -> None:
+    with pytest.raises(ValidationError):
+        FeedbackResponse.model_validate({"hint": "Look."})
 
 
 def test_the_request_is_written_back_in_camel_case() -> None:

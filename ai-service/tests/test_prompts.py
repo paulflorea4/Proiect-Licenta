@@ -3,7 +3,12 @@ from typing import Any
 
 import pytest
 
-from ai_service.prompts import LEVEL_INSTRUCTIONS, MAX_SNIPPET_LINES, build_prompt
+from ai_service.prompts import (
+    AFTER_LEAK,
+    LEVEL_INSTRUCTIONS,
+    MAX_SNIPPET_LINES,
+    build_prompt,
+)
 from ai_service.schemas import FeedbackRequest
 
 INJECTION = (
@@ -361,3 +366,42 @@ def test_level_3_stops_short_of_naming_the_exact_change() -> None:
     assert "do not name the operator, value, condition or line" in text
     for level in (1, 2):
         assert "Stop short of the exact change" not in LEVEL_INSTRUCTIONS[level]
+
+
+# ---- the retry after a leak (6.4c) ----
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+def test_only_the_retry_after_a_leak_carries_the_after_leak_sentence(
+    level: int,
+) -> None:
+    plain = build_prompt(request(hintLevel=level))
+    after = build_prompt(request(hintLevel=level), after_leak=True)
+
+    assert AFTER_LEAK not in plain
+    assert after.count(AFTER_LEAK) == 1
+    # Nothing else changes: the sentence is one more part, after the level's
+    # instructions.
+    instructions = LEVEL_INSTRUCTIONS[level]
+    assert after == plain.replace(instructions, f"{instructions}\n\n{AFTER_LEAK}")
+
+
+def test_the_after_leak_sentence_comes_before_any_data() -> None:
+    after = build_prompt(request(code=INJECTION), after_leak=True)
+
+    assert after.index(AFTER_LEAK) < after.index("Every block below")
+    assert after.index(AFTER_LEAK) < after.index(INJECTION)
+
+
+def test_the_after_leak_sentence_names_what_was_refused_without_quoting_it() -> None:
+    assert "rejected" in AFTER_LEAK
+    assert "more code than the level permits" in AFTER_LEAK
+    assert "reads the input and prints the answer" in AFTER_LEAK
+    assert "a line of the student's code with a change in it" in AFTER_LEAK
+    assert "`" not in AFTER_LEAK
+
+
+def test_the_after_leak_prompt_is_pure_too() -> None:
+    assert build_prompt(request(), after_leak=True) == build_prompt(
+        request(), after_leak=True
+    )

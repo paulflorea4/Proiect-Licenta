@@ -3,7 +3,9 @@
 6.2b proved the provider with one hardcoded prompt; 6.3b builds the prompt from the
 request (:func:`ai_service.prompts.build_prompt`). 6.3c reads the model's answer
 (:func:`parse_hint`) and tries once more when the answer is unusable or the provider
-was briefly unavailable. 6.5a puts ``POST /feedback`` on top.
+was briefly unavailable. 6.4a refuses a hint that leaks a solution
+(:func:`ai_service.leak_guard.find_leak`): it is regenerated, and if the last attempt
+leaks too, a generic safe hint is returned instead. 6.5a puts ``POST /feedback`` on top.
 
 Try it against the real API with a made-up request (reads ``ai-service/.env``)::
 
@@ -17,6 +19,7 @@ import sys
 from pydantic import ValidationError
 
 from ai_service.config import get_settings
+from ai_service.leak_guard import SAFE_HINT, find_leak
 from ai_service.llm import (
     LlmBadResponse,
     LlmError,
@@ -27,8 +30,9 @@ from ai_service.llm import (
 from ai_service.prompts import build_prompt
 from ai_service.schemas import FeedbackRequest, FeedbackResponse
 
-# One call and at most one more (6.3c). Never more: every call costs the student's
-# wait and tokens, and the backend's timeout bounds the whole of it.
+# One call and at most one more (6.3c), for a failure or a leak (6.4a) alike. Never
+# more: every call costs the student's wait and tokens, and the backend's timeout
+# bounds the whole of it.
 MAX_ATTEMPTS = 2
 
 # The provider's error statuses that are worth one more try: too many requests and
@@ -98,8 +102,10 @@ def _worth_another_try(error: LlmError) -> bool:
 
 def generate_feedback(provider: LlmProvider, request: FeedbackRequest) -> str:
     """The hint for the request: the prompt goes to the provider and the answer is
-    read with :func:`parse_hint`. An unusable answer, or a provider that is briefly
-    unavailable (HTTP 429 or 5xx), is tried once more (:data:`MAX_ATTEMPTS`).
+    read with :func:`parse_hint`. An unusable answer, a provider that is briefly
+    unavailable (HTTP 429 or 5xx), or a hint that leaks a solution (:func:`find_leak`)
+    is tried once more (:data:`MAX_ATTEMPTS`). The last attempt decides: a leak then
+    gives :data:`SAFE_HINT`, never the leak; a failure is raised.
 
     Raises:
         LlmError: the last attempt's error, when no attempt gave a hint, or at once
@@ -109,10 +115,15 @@ def generate_feedback(provider: LlmProvider, request: FeedbackRequest) -> str:
     prompt = build_prompt(request)
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
-            return parse_hint(provider.generate(prompt))
+            hint = parse_hint(provider.generate(prompt))
         except LlmError as error:
             if attempt == MAX_ATTEMPTS or not _worth_another_try(error):
                 raise
+            continue
+        if find_leak(hint, request) is None:
+            return hint
+        if attempt == MAX_ATTEMPTS:
+            return SAFE_HINT
     raise AssertionError("unreachable: the last attempt returns or raises")
 
 

@@ -1,0 +1,26 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"hint\": \"Look again at which arithmetic "
+          },
+          {
+            "text": "operation your print statement performs.\"}"
+          }
+        ]
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 912,
+    "candidatesTokenCount": 58,
+    "totalTokenCount": 970
+  },
+  "modelVersion": "fixture-model",
+  "responseId": "fixture-response-id"
+}

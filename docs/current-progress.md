@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.5a done)
-- Next commit: 6.6a — Mock Gemini response fixtures + prompt-builder tests
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.6a done)
+- Next commit: 6.6b — Test: hidden test details never appear in any built prompt
 - In progress: —
-- Blocked: PR for commit 6.5a awaiting review and a green CI.
+- Blocked: PR for commit 6.6a awaiting review and a green CI.

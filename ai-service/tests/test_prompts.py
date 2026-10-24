@@ -87,6 +87,18 @@ def test_each_level_has_its_own_instructions_and_no_other(level: int) -> None:
         assert LEVEL_INSTRUCTIONS[other] not in prompt
 
 
+def test_the_levels_prompts_differ_only_in_their_instruction_block() -> None:
+    # 6.6a: the level changes its own block and nothing else, so the rules, the
+    # data and the reminder are the same text whatever the level.
+    prompts = {level: build_prompt(request(hintLevel=level)) for level in (1, 2, 3)}
+
+    for level, prompt in prompts.items():
+        before, block, after = prompt.partition(LEVEL_INSTRUCTIONS[level])
+        assert block
+        assert prompts[1].split(LEVEL_INSTRUCTIONS[1]) == [before, after]
+        assert prompt.count(LEVEL_INSTRUCTIONS[level]) == 1
+
+
 def test_the_three_levels_ask_for_different_things() -> None:
     assert len(set(LEVEL_INSTRUCTIONS.values())) == 3
     assert set(LEVEL_INSTRUCTIONS) == {1, 2, 3}

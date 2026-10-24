@@ -1,0 +1,23 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"hint\": \"Your program combines the two numbers with the wrong operation. Here is accumulation on another example:\\n```python\\ntotal = 0\\nfor x in [1, 2, 3]:\\n    total = total + x\\n```\\nThink about which operation the task asks for.\"}"
+          }
+        ]
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 912,
+    "candidatesTokenCount": 58,
+    "totalTokenCount": 970
+  },
+  "modelVersion": "fixture-model",
+  "responseId": "fixture-response-id"
+}

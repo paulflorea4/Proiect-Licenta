@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.6c done)
-- Next commit: 6.6d — Test: malformed LLM output → one retry → clean error
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.6d done)
+- Next commit: 6.6e — Test: every route but /health is 401 without or with a wrong token; the token never in logs or error bodies
 - In progress: —
-- Blocked: PR for commit 6.6c awaiting review and a green CI.
+- Blocked: PR for commit 6.6d awaiting review and a green CI.

@@ -17,6 +17,7 @@ Try it against the real API with a made-up request (reads ``ai-service/.env``)::
 import json
 import re
 import sys
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -42,8 +43,9 @@ MAX_ATTEMPTS = 2
 # timeout is never retried: a second full wait would outlast the backend's timeout.
 RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 
-# A whole answer wrapped in a Markdown code fence, as models sometimes send JSON.
-_FENCED = re.compile(r"\A```[A-Za-z]*[ \t]*\n(?P<body>.*)\n```\Z", re.S)
+# A whole answer wrapped in a Markdown code fence, as models sometimes send JSON, with
+# or without a space before the language and with either line end (6.6d).
+_FENCED = re.compile(r"\A```[ \t]*[A-Za-z]*[ \t]*\r?\n(?P<body>.*)\r?\n```\Z", re.S)
 
 # A made-up submission, no student's data: the product printed instead of the sum.
 SAMPLE_REQUEST = FeedbackRequest.model_validate(
@@ -92,13 +94,26 @@ def parse_hint(text: str) -> str:
     if fenced:
         body = fenced.group("body").strip()
     try:
-        answer = _ModelAnswer.model_validate(json.loads(body))
+        answer = _ModelAnswer.model_validate(
+            json.loads(body, object_pairs_hook=_refuse_duplicate_keys)
+        )
     except (ValueError, ValidationError):
         raise LlmBadResponse("The model's answer is not a {hint} object") from None
     hint = answer.hint.strip()
-    if not hint:
+    # Blank is also a hint of only invisible characters (zero-width spaces, control
+    # characters), which the student would see as nothing (6.6d).
+    if not any(c.isprintable() and not c.isspace() for c in hint):
         raise LlmBadResponse("The model's hint is blank")
     return hint
+
+
+def _refuse_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """``json.loads`` keeps the last of two equal keys; an answer that names ``hint``
+    twice is not ``{hint}`` and is refused instead (6.6d)."""
+    keys = [key for key, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise ValueError("duplicate key")
+    return dict(pairs)
 
 
 def _worth_another_try(error: LlmError) -> bool:

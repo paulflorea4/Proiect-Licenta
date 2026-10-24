@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.6a done)
-- Next commit: 6.6b — Test: hidden test details never appear in any built prompt
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.6b done)
+- Next commit: 6.6c — Test: leak guard catches a full solution at every level, accepts a short snippet at level 3
 - In progress: —
-- Blocked: PR for commit 6.6a awaiting review and a green CI.
+- Blocked: PR for commit 6.6b awaiting review and a green CI.

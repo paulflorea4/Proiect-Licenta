@@ -51,9 +51,12 @@ def gemini_fixture(name: str) -> tuple[int, Any]:
     return status, body
 
 
-def gemini_playing(*names: str) -> tuple[GeminiProvider, list[httpx.Request]]:
+def gemini_playing(
+    *names: str, key: str = KEY
+) -> tuple[GeminiProvider, list[httpx.Request]]:
     """The real Gemini provider, answering each call with the next fixture, and the
-    requests it sent. A call beyond the script fails the test."""
+    requests it sent. A call beyond the script fails the test. ``key`` is the API key
+    it holds (a test about where a key may show passes the configured one)."""
     script = list(names)
     seen: list[httpx.Request] = []
 
@@ -64,7 +67,7 @@ def gemini_playing(*names: str) -> tuple[GeminiProvider, list[httpx.Request]]:
         return httpx.Response(status, json=body)
 
     client = httpx.Client(transport=httpx.MockTransport(handler))
-    return GeminiProvider(KEY, MODEL, client), seen
+    return GeminiProvider(key, MODEL, client), seen
 
 
 def prompt_sent(request: httpx.Request) -> str:

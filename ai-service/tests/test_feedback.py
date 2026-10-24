@@ -20,12 +20,12 @@ from ai_service.llm import (
     LlmBadResponse,
     LlmError,
     LlmNotConfigured,
-    LlmProvider,
     LlmUnavailable,
     gemini_from_settings,
 )
 from ai_service.prompts import build_prompt
 from ai_service.schemas import FeedbackRequest, FeedbackResponse
+from fakes import ScriptedProvider
 
 GOOD = '{"hint": "Check which operator you used."}'
 HINT = FeedbackResponse(hint="Check which operator you used.", fallback=False)
@@ -33,25 +33,6 @@ SAFE = FeedbackResponse(hint=SAFE_HINT, fallback=True)
 
 # The sample's fix itself, `print(a * b)` edited: a leak at every level.
 LEAK = json.dumps({"hint": "Write:\n```python\nprint(a + b)\n```"})
-
-
-class ScriptedProvider(LlmProvider):
-    """Plays its script, one entry per call: a text to return or an error to raise."""
-
-    def __init__(self, *script: str | Exception):
-        self.script = list(script)
-        self.prompts: list[str] = []
-        self.closed = False
-
-    def generate(self, prompt: str) -> str:
-        self.prompts.append(prompt)
-        step = self.script.pop(0)
-        if isinstance(step, Exception):
-            raise step
-        return step
-
-    def close(self) -> None:
-        self.closed = True
 
 
 def at_level(level: int) -> FeedbackRequest:

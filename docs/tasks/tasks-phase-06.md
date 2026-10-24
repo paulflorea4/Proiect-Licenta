@@ -15,7 +15,7 @@
 | 6.4c | The retry after a leak tells the model its previous answer held code it may not write (a fixed sentence, never the leaked text) | Done | New row, the human's decision after 6.4a. Same two attempts; the first attempt's prompt is unchanged. The prompt builder stays pure (the attempt's reason is an argument). |
 | 6.4d | Strengthen the level-3 wording: the exact change is not named even in words, with a good and a bad last sentence as an example; live check afterwards | Done | New row, the human's decision after 6.4c's live calls, where both level-3 hints named the change in prose ("update it to perform addition instead"). The example uses a different bug from the sample request. |
 | 6.5a | `POST /feedback` endpoint wired end to end: request → prompt → LLM → validate → guard → response | Done | This is the milestone that proves the whole loop before the backend integrates it in Phase 7. |
-| 6.6a | Mock Gemini response fixtures + prompt-builder tests (each level produces its own instruction block) | Not started |  |
+| 6.6a | Mock Gemini response fixtures + prompt-builder tests (each level produces its own instruction block) | Done |  |
 | 6.6b | Test: hidden test details never appear in any built prompt | Not started | Includes a test that the request schema itself has no hidden-content fields. |
 | 6.6c | Test: leak guard catches a response containing a full solution at every level, and accepts a short illustrative snippet at level 3 | Not started | This is the test most likely to catch a real bug in the guard. |
 | 6.6d | Test: malformed LLM output → one retry → clean error | Not started |  |

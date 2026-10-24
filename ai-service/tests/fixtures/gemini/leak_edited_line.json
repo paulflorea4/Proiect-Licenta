@@ -1,0 +1,23 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"hint\": \"Write it like this:\\n```python\\nprint(a + b)\\n```\"}"
+          }
+        ]
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 912,
+    "candidatesTokenCount": 58,
+    "totalTokenCount": 970
+  },
+  "modelVersion": "fixture-model",
+  "responseId": "fixture-response-id"
+}

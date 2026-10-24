@@ -22,30 +22,12 @@ from ai_service.llm import (
 from ai_service.main import app
 from ai_service.prompts import build_prompt
 from ai_service.schemas import FeedbackRequest
+from fakes import ScriptedProvider
 
 GOOD = '{"hint": "Check which operator you used."}'
 LEAK = json.dumps({"hint": "Write:\n```python\nprint(a + b)\n```"})
 BODY: dict[str, Any] = SAMPLE_REQUEST.model_dump(mode="json")
 TIMEOUT = LlmUnavailable("The Gemini request timed out")
-
-
-class ScriptedProvider(LlmProvider):
-    """Plays its script, one entry per call: a text to return or an error to raise."""
-
-    def __init__(self, *script: str | Exception):
-        self.script = list(script)
-        self.prompts: list[str] = []
-        self.closed = False
-
-    def generate(self, prompt: str) -> str:
-        self.prompts.append(prompt)
-        step = self.script.pop(0)
-        if isinstance(step, Exception):
-            raise step
-        return step
-
-    def close(self) -> None:
-        self.closed = True
 
 
 class Scripted:

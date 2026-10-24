@@ -1,0 +1,16 @@
+{
+  "promptFeedback": {
+    "blockReason": "SAFETY",
+    "safetyRatings": [
+      {
+        "category": "HARM_CATEGORY_HARASSMENT",
+        "probability": "HIGH"
+      }
+    ]
+  },
+  "usageMetadata": {
+    "promptTokenCount": 912,
+    "totalTokenCount": 912
+  },
+  "modelVersion": "fixture-model"
+}

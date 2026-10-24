@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.6b done)
-- Next commit: 6.6c — Test: leak guard catches a full solution at every level, accepts a short snippet at level 3
+- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.6c done)
+- Next commit: 6.6d — Test: malformed LLM output → one retry → clean error
 - In progress: —
-- Blocked: PR for commit 6.6b awaiting review and a green CI.
+- Blocked: PR for commit 6.6c awaiting review and a green CI.

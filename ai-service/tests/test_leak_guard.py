@@ -1,6 +1,8 @@
+import json
+
 import pytest
 
-from ai_service.feedback import SAMPLE_REQUEST
+from ai_service.feedback import SAMPLE_REQUEST, generate_feedback
 from ai_service.leak_guard import (
     LINE_SIMILARITY,
     MAX_CODE_LINES,
@@ -9,7 +11,8 @@ from ai_service.leak_guard import (
     find_leak,
 )
 from ai_service.prompts import MAX_SNIPPET_LINES
-from ai_service.schemas import FeedbackRequest
+from ai_service.schemas import FeedbackRequest, FeedbackResponse
+from fakes import ScriptedProvider
 
 # The sample request's code: `a, b = map(int, input().split())` / `print(a * b)`.
 PYTHON = SAMPLE_REQUEST
@@ -259,3 +262,181 @@ def test_the_check_is_pure() -> None:
     hint = "Write:\n" + fenced("print(a + b)")
     assert find_leak(hint, request) is find_leak(hint, request)
     assert request == PYTHON.model_copy(update={"hint_level": 3})
+
+
+# ---- 6.6c: a full solution is caught at every level, in every shape ----
+
+PY = ["x, y = map(int, input().split())", "print(x + y)"]
+JAVA_MAIN = [
+    "import java.util.Scanner;",
+    "public class Main {",
+    "  public static void main(String[] x) {",
+    "    Scanner s = new Scanner(System.in);",
+    "    System.out.println(s.nextInt() + s.nextInt());",
+    "  }",
+    "}",
+]
+JAVA_BODY = JAVA_MAIN[3:5]
+
+
+def lines(*rows: str) -> str:
+    return "\n".join(rows)
+
+
+# Full solutions for the sample task (read two numbers, print the sum), written the
+# ways a model may write code: fenced or not, in a list, quoted, split, one line.
+FULL_SOLUTIONS: dict[str, tuple[str, FeedbackRequest]] = {
+    "fenced": ("Here:\n" + fenced(*PY), PYTHON),
+    "tilde fence": ("Here:\n" + lines("~~~", *PY, "~~~"), PYTHON),
+    "fence without a language": (lines("```", *PY, "```"), PYTHON),
+    "indented block": ("Here:\n" + lines(*("    " + row for row in PY)), PYTHON),
+    "bare lines": ("Here:\n" + lines(*PY), PYTHON),
+    "inline spans": (f"Write `{PY[0]}` and then `{PY[1]}`.", PYTHON),
+    "one line": ("Just use\nprint(sum(map(int, input().split())))", PYTHON),
+    "sys.stdin": (
+        fenced("import sys", "print(sum(map(int, sys.stdin.read().split())))"),
+        PYTHON,
+    ),
+    "numbered list": (f"Steps:\n1. {PY[0]}\n2. {PY[1]}", PYTHON),
+    "numbered with parenthesis": (f"Steps:\n1) {PY[0]}\n2) {PY[1]}", PYTHON),
+    "bullets": (f"Steps:\n- {PY[0]}\n- {PY[1]}", PYTHON),
+    "star bullets": (f"Steps:\n* {PY[0]}\n* {PY[1]}", PYTHON),
+    "blockquote": (f"Here:\n> {PY[0]}\n> {PY[1]}", PYTHON),
+    "nested quote and list": (f"Here:\n> 1. {PY[0]}\n> 2. {PY[1]}", PYTHON),
+    "fence in a list item": ("Steps:\n1. " + fenced(*PY), PYTHON),
+    "split over two fences": (fenced(PY[0]) + "\nthen\n" + fenced(PY[1]), PYTHON),
+    "with comments": (fenced("# read", PY[0], "# answer", PY[1]), PYTHON),
+    "function and call": (
+        fenced("def solve():", "    " + PY[0], "    return x + y", "print(solve())"),
+        PYTHON,
+    ),
+    "windows line ends": ("Here:\r\n" + fenced(*PY).replace("\n", "\r\n"), PYTHON),
+    "the student's program corrected": (
+        fenced("a, b = map(int, input().split())", "print(a + b)"),
+        PYTHON,
+    ),
+    "java program": (
+        "Here:\n" + lines("```java", *JAVA_MAIN, "```"),
+        JAVA,
+    ),
+    "java body only": ("Inside main:\n" + lines("```java", *JAVA_BODY, "```"), JAVA),
+    "java numbered": (f"Steps:\n1. {JAVA_BODY[0]}\n2. {JAVA_BODY[1]}", JAVA),
+    "java corrected line": ("Change it to `System.out.println(a + b);`", JAVA),
+    # Neither reads nor edits a student line: only its entry point gives it away.
+    "python main guard": (
+        fenced(
+            "def solve(p, q):",
+            "    return p + q",
+            'if __name__ == "__main__":',
+            "    print(solve(2, 3))",
+        ),
+        PYTHON,
+    ),
+}
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+@pytest.mark.parametrize("name", sorted(FULL_SOLUTIONS))
+def test_a_full_solution_is_refused_at_every_level(name: str, level: int) -> None:
+    hint, request = FULL_SOLUTIONS[name]
+
+    found = leak(hint, level, request)
+
+    assert found is not None
+    if level == 3:
+        # Within the snippet allowance, it is refused as a solution, not for size.
+        assert found in {Leak.COMPLETE_PROGRAM, Leak.EDITED_STUDENT_LINE}
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+@pytest.mark.parametrize(
+    "name", ["numbered list", "bullets", "blockquote", "java program"]
+)
+def test_a_full_solution_from_the_model_twice_gives_the_safe_hint(
+    name: str, level: int
+) -> None:
+    hint, request = FULL_SOLUTIONS[name]
+    answer = json.dumps({"hint": hint})
+    provider = ScriptedProvider(answer, answer)
+
+    response = generate_feedback(
+        provider, request.model_copy(update={"hint_level": level})
+    )
+
+    assert response == FeedbackResponse(hint=SAFE_HINT, fallback=True)
+    assert len(provider.prompts) == 2
+
+
+# ---- 6.6c: a short illustrative snippet is accepted at level 3 ----
+
+SNIPPETS = {
+    "python accumulation": fenced(
+        "total = 0", "for x in [1, 2, 3]:", "    total = total + x"
+    ),
+    "python with a comment": fenced("# multiply two numbers", "result = 4 * 5"),
+    "printing only": fenced("x, y = 4, 5", "print(x - y)"),
+    "reading only": fenced("line = input()", "words = line.split()"),
+    "java on another example": lines(
+        "```java", "int total = 0;", "for (int x : xs) {", "    total += x;", "}", "```"
+    ),
+    "five numbered lines": lines(*(f"{i}. v{i} = {i}" for i in range(1, 6))),
+    "in a bulleted list": "- total = 0\n- total = total + x",
+}
+
+
+@pytest.mark.parametrize("name", sorted(SNIPPETS))
+def test_a_short_snippet_on_another_example_is_accepted_at_level_3_only(
+    name: str,
+) -> None:
+    hint = "The idea on another example:\n" + SNIPPETS[name]
+
+    assert leak(hint, 3) is None
+    assert leak(hint, 1) is Leak.TOO_MUCH_CODE
+    assert leak(hint, 2) is Leak.TOO_MUCH_CODE
+
+
+def test_six_lines_in_a_list_are_one_too_many_at_level_3() -> None:
+    hint = lines(*(f"{i}. v{i} = {i}" for i in range(1, MAX_SNIPPET_LINES + 2)))
+
+    assert leak(hint, 3) is Leak.TOO_MUCH_CODE
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+@pytest.mark.parametrize(
+    "hint",
+    [
+        "Try this:\n1. Read the description again.\n2. Compare your output with "
+        "the expected output.\n3. Look at the operator you used.",
+        "Things to check:\n- Which operation does the task ask for?\n- What does "
+        "your print statement compute?",
+        "Things to check:\n- whether the operation matches the description\n- what "
+        "your program prints for 2 and 3",
+        "The task says:\n> Read two integers and print their sum.",
+        "Look at this line:\n1. print(a * b)",
+        "Look at:\n> print(a * b)",
+        "Look at:\n> " + fenced("print(a * b)"),
+    ],
+    ids=[
+        "numbered steps",
+        "bullets",
+        "lowercase bullets",
+        "quoted task",
+        "own line in a list",
+        "own line quoted",
+        "own line in a quoted fence",
+    ],
+)
+def test_prose_lists_and_quotes_are_not_code(hint: str, level: int) -> None:
+    assert leak(hint, level) is None
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="known limit (6.4a, 6.6c): code inside a sentence of prose is not seen",
+)
+def test_a_solution_written_inside_a_sentence_is_refused() -> None:
+    hint = (
+        "Read both with x, y = map(int, input().split()) and then print(x + y) at "
+        "the end."
+    )
+    assert leak(hint, 3) is not None

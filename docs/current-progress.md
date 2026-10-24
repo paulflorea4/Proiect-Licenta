@@ -1,4 +1,4 @@
-- Phase: Phase 6 — `docs/tasks/tasks-phase-06.md` (6.6e done)
-- Next commit: 6.6f — Test: hostile student code cannot change the instructions; if a mocked LLM obeys the injection, the leak guard still catches it
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (Phase 6 done with 6.6f)
+- Next commit: 7.1a — Backend `AiServiceClient` (RestClient) calling `POST /feedback`
 - In progress: —
-- Blocked: PR for commit 6.6e awaiting review and a green CI.
+- Blocked: PR for commit 6.6f awaiting review and a green CI.

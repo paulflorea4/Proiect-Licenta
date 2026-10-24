@@ -50,8 +50,13 @@ class Leak(Enum):
 _FENCE_OPEN = re.compile(r"^\s*(?P<fence>`{3,}|~{3,})")
 _INLINE_CODE = re.compile(r"(?P<ticks>`+)(?P<code>.+?)(?P=ticks)")
 
-# A line of code, outside a fence. Prose lines start with a capital letter or a list
-# marker and end with a full stop; these do not.
+# A Markdown container in front of a line: a blockquote, a bullet or a numbered item.
+# It is not part of the line's text (6.6c: a whole program written as a numbered list
+# passed every level while the marker hid it).
+_CONTAINER = re.compile(r"^(?:>\s*)*(?:(?:[-*+]|\d{1,3}[.)])\s+)?")
+
+# A line of code, outside a fence, once its container is removed. Prose lines start
+# with a capital letter and end with a full stop; these do not.
 _KEYWORD_START = re.compile(
     r"^(def|class|import|from|for|while|if|elif|else|try|except|finally|return|with"
     r"|switch|case|do|public|private|protected|static|final|void|int|long|double"
@@ -106,7 +111,10 @@ def _code_lines(hint: str) -> list[str]:
     statement-like inline spans. A fence left open runs to the end of the hint."""
     lines: list[str] = []
     fence: str | None = None
-    for line in hint.splitlines():
+    for raw in hint.splitlines():
+        # Lines are kept without their container, so a quoted line of the student's
+        # still matches their code.
+        line = _without_container(raw)
         if fence is not None:
             closing = _FENCE_OPEN.match(line)
             if closing and _closes(closing.group("fence"), fence):
@@ -132,8 +140,12 @@ def _closes(candidate: str, opening: str) -> bool:
     return candidate[0] == opening[0] and len(candidate) >= len(opening)
 
 
+def _without_container(line: str) -> str:
+    return _CONTAINER.sub("", line.strip(), count=1)
+
+
 def _looks_like_code(text: str) -> bool:
-    line = text.strip()
+    line = _without_container(text)
     return bool(
         _STATEMENT_END.search(line)
         or (_KEYWORD_START.match(line) and re.search(r"[:;{)]$|[(=\[]", line))

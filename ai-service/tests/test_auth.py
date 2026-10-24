@@ -1,8 +1,7 @@
 import hmac
 
 import pytest
-from fastapi import FastAPI
-from fastapi.routing import APIRoute
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.testclient import TestClient
 from starlette.routing import BaseRoute
 
@@ -16,7 +15,8 @@ PUBLIC = {("GET", "/health")}
 @pytest.fixture
 def probe() -> TestClient:
     """An app with one endpoint on a router made by protected_router(), as every
-    endpoint the service adds will be; the real app has none yet."""
+    endpoint the service adds is (POST /feedback since 6.5a); the probe keeps
+    these tests independent of what the real endpoints do."""
     router = protected_router()
 
     @router.post("/probe")
@@ -195,12 +195,20 @@ def unprotected(routes: list[BaseRoute]) -> set[tuple[str, str]]:
     """The (method, path) pairs that do not require the bearer token."""
     found: set[tuple[str, str]] = set()
     for route in routes:
-        if not isinstance(route, APIRoute):
+        candidates = getattr(route, "effective_candidates", None)
+        if candidates is not None:
+            # FastAPI keeps an included router as one entry in app.routes; its
+            # routes, with the include's prefix and dependencies applied, are its
+            # effective candidates (an included router inside it recurses).
+            found |= unprotected(candidates())
+            continue
+        dependencies = getattr(route, "dependencies", None)
+        if dependencies is None:
             # A plain Starlette route (FastAPI's /docs, a mount) has no dependencies.
             for method in getattr(route, "methods", None) or {"*"}:
                 found.add((method, getattr(route, "path", repr(route))))
             continue
-        checks = {dependency.dependency for dependency in route.dependencies}
+        checks = {dependency.dependency for dependency in dependencies}
         if require_bearer_token not in checks:
             for method in route.methods:
                 found.add((method, route.path))
@@ -235,5 +243,39 @@ def test_the_route_guard_sees_a_route_without_the_check() -> None:
 
     careless.include_router(covered)
 
-    assert unprotected(careless.routes) >= {("POST", "/forgot"), ("GET", "/docs")}
-    assert ("POST", "/covered") not in unprotected(careless.routes)
+    # A router made without protected_router(), included with a prefix: its route
+    # must be reported by its full path, not hidden inside the router's entry.
+    plain = APIRouter()
+
+    @plain.post("/forgotten")
+    def forgotten() -> None:
+        return None
+
+    careless.include_router(plain, prefix="/v1")
+
+    # A protected router included inside another router, and a plain one included
+    # with the check: both are covered.
+    outer = APIRouter(prefix="/outer")
+    nested = protected_router()
+
+    @nested.get("/nested")
+    def deep() -> None:
+        return None
+
+    outer.include_router(nested)
+    careless.include_router(outer)
+    checked = APIRouter()
+
+    @checked.post("/checked")
+    def checked_route() -> None:
+        return None
+
+    careless.include_router(checked, dependencies=[Depends(require_bearer_token)])
+
+    found = unprotected(careless.routes)
+    assert found >= {("POST", "/forgot"), ("POST", "/v1/forgotten"), ("GET", "/docs")}
+    assert ("POST", "/covered") not in found
+    assert ("GET", "/outer/nested") not in found
+    assert ("POST", "/checked") not in found
+    # Every entry names a method and a path, never a router as a whole.
+    assert all(path.startswith("/") for _, path in found)

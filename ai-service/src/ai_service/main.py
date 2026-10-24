@@ -1,8 +1,11 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
+from ai_service import api
 from ai_service.config import get_settings
 
 
@@ -26,6 +29,19 @@ app = FastAPI(
 
 # Endpoints other than /health live on routers made by
 # ai_service.auth.protected_router(), included here with app.include_router(...).
+app.include_router(api.router)
+
+
+@app.exception_handler(RequestValidationError)
+def refuse_invalid_body(_: Request, error: RequestValidationError) -> JSONResponse:
+    """A 422 that says where and why, but never echoes what was sent: FastAPI's own
+    adds each wrong value (``input``), which can be a student's code or a field a
+    hidden test must not carry (6.3a)."""
+    detail = [
+        {"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]}
+        for e in error.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": detail})
 
 
 @app.get("/health")

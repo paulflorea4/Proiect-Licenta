@@ -91,6 +91,7 @@ abstract class RealHttpTestBase {
     @AfterEach
     void emptyTables() {
         clock.reset();
+        jdbc.update("delete from ai_feedback");
         testResults.deleteAll();
         jdbc.update("delete from criterion_scores");
         jdbc.update("delete from grades");

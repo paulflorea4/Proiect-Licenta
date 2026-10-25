@@ -1,6 +1,10 @@
 package com.gradingplatform.backend.ai;
 
+import com.gradingplatform.backend.dto.StudentSubmissionResponse;
+import com.gradingplatform.backend.dto.StudentTestResultResponse;
+import com.gradingplatform.backend.entity.SubmissionStatus;
 import com.gradingplatform.backend.sandbox.TestOutcome;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,6 +36,52 @@ public record FeedbackRequest(
     public FeedbackRequest {
         publicTests = List.copyOf(publicTests);
         hiddenTests = List.copyOf(hiddenTests);
+    }
+
+    /**
+     * The request for a hint on this submission (7.1b): **built from the student's own view of it**
+     * (5.5a), never from a test case or a test result. That view is masked by type: a hidden test is
+     * a {@link StudentTestResultResponse.HiddenResult}, whether it passed and nothing else, so nothing
+     * more of a hidden test can reach the AI service than the student can see. The tests keep the view's
+     * run order.
+     *
+     * @param submission the student's view of their graded submission ({@code SubmissionViewService})
+     * @param assignmentDescription the assignment's description, as the student sees it
+     * @param hintLevel 1 to 3
+     * @throws IllegalArgumentException when the submission is not graded or the level is not 1 to 3
+     * @throws IllegalStateException when a public test of a graded submission has no result
+     */
+    public static FeedbackRequest of(
+            StudentSubmissionResponse submission, String assignmentDescription, int hintLevel) {
+        if (submission.status() != SubmissionStatus.GRADED) {
+            throw new IllegalArgumentException("Only a graded submission can get a hint");
+        }
+        if (hintLevel < 1 || hintLevel > 3) {
+            throw new IllegalArgumentException("A hint level is 1, 2 or 3");
+        }
+        var publicTests = new ArrayList<PublicTestResult>();
+        var hiddenTests = new ArrayList<HiddenTestResult>();
+        for (StudentTestResultResponse test : submission.tests()) {
+            if (test instanceof StudentTestResultResponse.PublicResult p) {
+                if (p.status() == null) {
+                    // Tests are locked after the first submission, so a graded one has every result.
+                    throw new IllegalStateException("A graded submission's public test has no result");
+                }
+                publicTests.add(new PublicTestResult(
+                        p.name(), p.input(), p.expectedOutput(), p.status(), p.actualOutput(), p.stderr()));
+            } else {
+                // The only other kind (the interface is sealed): whether it passed, nothing more.
+                hiddenTests.add(new HiddenTestResult(((StudentTestResultResponse.HiddenResult) test).passed()));
+            }
+        }
+        return new FeedbackRequest(
+                assignmentDescription,
+                submission.language(),
+                submission.sourceCode(),
+                submission.compilerOutput(),
+                publicTests,
+                hiddenTests,
+                hintLevel);
     }
 
     /**

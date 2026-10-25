@@ -2,13 +2,15 @@ name: Backend CI
 
 # Independent of the ai-service and frontend workflows, so a failure there never blocks a
 # backend-only PR. Runs only when the PR touches backend/, infra/sandbox/ (the sandbox tests
-# build the runner images from it) or this workflow file; a PR that touches none of them gets
-# no backend check at all (that is expected, not a missing check).
+# build the runner images from it), the AI service's contract (AiContractMirrorTests reads it,
+# 7.1a) or this workflow file; a PR that touches none of them gets no backend check at all (that
+# is expected, not a missing check).
 on:
   pull_request:
     paths:
       - "backend/**"
       - "infra/sandbox/**"
+      - "ai-service/src/ai_service/schemas.py"
       - ".github/workflows/backend-ci.yml"
 
 permissions:

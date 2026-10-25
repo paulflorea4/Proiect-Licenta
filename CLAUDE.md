@@ -33,7 +33,7 @@ Reserved for decisions the agent genuinely cannot make on its own.
   - `/ai-service`: Python 3.12, `uv`, ruff (lint) + black (format), pytest.
   - `/frontend`: Node 24, npm, Vite + Vitest, ESLint (flat config) + Prettier.
   - `/infra`: `docker-compose.yml` with Postgres 16 for local development.
-  - CI: `.github/workflows/{backend,ai-service,frontend}-ci.yml`, one independent workflow per service, each triggered on a PR only when it touches that service's directory or its own workflow file (path filters), so a PR that touches none of them — docs only, say — gets no service checks. Absent checks are expected; only GitGuardian reports then.
+  - CI: `.github/workflows/{backend,ai-service,frontend}-ci.yml`, one independent workflow per service, each triggered on a PR only when it touches that service's directory or its own workflow file (path filters; plus the one file of the other service that its contract test reads: `ai-service/src/ai_service/schemas.py` for the backend, the backend's `TestOutcome.java` for the AI service, since 7.1a), so a PR that touches none of them — docs only, say — gets no service checks. Absent checks are expected; only GitGuardian reports then.
 - Migrations: Flyway, plain SQL.
 - Auth: Spring Security + JWT, no OAuth.
 - Roles: `STUDENT`, `TEACHER`, `ADMIN`. Signup always creates a `STUDENT`; only an admin can promote a user to `TEACHER`.

@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.1c done)
-- Next commit: 7.2a — `POST /submissions/{id}/hints`: generate the next hint level
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.2a done)
+- Next commit: 7.2b — `GET /submissions/{id}/hints`: hints already received
 - In progress: —
-- Blocked: PR for commit 7.1c awaiting review and a green CI.
+- Blocked: PR for commit 7.2a awaiting review and a green CI.

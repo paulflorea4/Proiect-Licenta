@@ -74,6 +74,9 @@ public enum ErrorCode {
     SUBMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "Submission not found"),
     SUBMISSION_NOT_GRADED(HttpStatus.CONFLICT, "The submission has not been graded, so it cannot be scored by hand"),
     CRITERION_NOT_MANUAL(HttpStatus.BAD_REQUEST, "Only a manual criterion can be scored by hand"),
+    HINT_NEEDS_GRADED_SUBMISSION(
+            HttpStatus.CONFLICT, "A hint can only be requested once the submission has been graded"),
+    HINTS_USED_UP(HttpStatus.CONFLICT, "All three hints for this submission have been used"),
     MANUAL_SCORE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "The score must be between 0 and the criterion's weight");
 
     private final HttpStatus status;

@@ -8,12 +8,12 @@ public class AiServiceException extends RuntimeException {
 
     private final Integer status;
 
-    AiServiceException(String message, Integer status) {
+    public AiServiceException(String message, Integer status) {
         super(message);
         this.status = status;
     }
 
-    AiServiceException(String message, Throwable cause) {
+    public AiServiceException(String message, Throwable cause) {
         super(message, cause);
         this.status = null;
     }

@@ -85,10 +85,10 @@ class RealHttpGradingTests extends RealHttpTestBase {
         long id = JsonPath.<Number>read(response.body(), "$.id").longValue();
 
         long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(2);
-        while (submissions.findById(id).orElseThrow().getStatus() != SubmissionStatus.GRADED) {
-            assertThat(submissions.findById(id).orElseThrow().getStatus())
-                    .as("still grading, or failed")
-                    .isIn(SubmissionStatus.QUEUED, SubmissionStatus.RUNNING);
+        // One read per round: reading again for the assertion could see GRADED arrive in between.
+        SubmissionStatus status;
+        while ((status = submissions.findById(id).orElseThrow().getStatus()) != SubmissionStatus.GRADED) {
+            assertThat(status).as("still grading, or failed").isIn(SubmissionStatus.QUEUED, SubmissionStatus.RUNNING);
             assertThat(System.nanoTime()).as("graded within two minutes").isLessThan(deadline);
             Thread.sleep(100);
         }

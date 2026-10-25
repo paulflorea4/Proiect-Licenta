@@ -40,6 +40,14 @@ class ApplicationConfigTests {
     }
 
     @Test
+    void javaHasAMemoryMinimumOf128MbAndPythonNone() {
+        // 7.1c: a JVM does not reliably start below it; a language without the key has no minimum.
+        assertThat(documentFor(null))
+                .containsEntry("sandbox.languages.JAVA.min-memory-mb", 128)
+                .doesNotContainKey("sandbox.languages.PYTHON.min-memory-mb");
+    }
+
+    @Test
     void theAiServiceHasTimeoutsButNoUrlOrTokenInTheFile() {
         // 7.1a: the read timeout outlasts the AI service's own worst case (two Gemini attempts of up
         // to 30 s each); the address and the token come from the environment only.

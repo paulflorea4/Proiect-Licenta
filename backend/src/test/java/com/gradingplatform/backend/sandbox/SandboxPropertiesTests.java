@@ -48,6 +48,13 @@ class SandboxPropertiesTests {
     }
 
     @Test
+    void javaHasItsMemoryMinimumBoundFromTheFileAndPythonNone() {
+        // 7.1c: bound into the record through its @ConstructorBinding canonical constructor.
+        assertThat(configured.find("JAVA").orElseThrow().minMemoryMb()).isEqualTo(128);
+        assertThat(configured.find("PYTHON").orElseThrow().minMemoryMb()).isNull();
+    }
+
+    @Test
     void everyConfiguredSourceFileIsAcceptedAsASandboxSourceFile() {
         for (String id : configured.ids()) {
             LanguageSpec spec = configured.find(id).orElseThrow();

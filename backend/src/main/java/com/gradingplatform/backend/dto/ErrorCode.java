@@ -59,6 +59,8 @@ public enum ErrorCode {
     TEST_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "Test case not found"),
     TEST_CRITERION_INVALID(HttpStatus.BAD_REQUEST, "The criterion must be a tests criterion of this assignment"),
     UNSUPPORTED_LANGUAGE(HttpStatus.BAD_REQUEST, "The language is not supported"),
+    MEMORY_LIMIT_BELOW_LANGUAGE_MINIMUM(
+            HttpStatus.BAD_REQUEST, "The memory limit is below the minimum for this language"),
     DEADLINE_NOT_IN_FUTURE(HttpStatus.BAD_REQUEST, "The deadline must be in the future"),
     ONE_SOURCE_FILE_EXPECTED(HttpStatus.BAD_REQUEST, "Exactly one source file is expected, in the part named file"),
     SOURCE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "The source code is too large"),

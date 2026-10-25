@@ -36,6 +36,9 @@ sandbox:
       source-file-name: Main.java
       compile-command: [javac, -encoding, UTF-8, Main.java]
       run-command: [java, -cp, ., Main]
+      # 7.1c: an assignment's memory limit may not be lower. At 64 MB a JVM start stalled past the time limit
+      # on the CI runner (PR #140). A language without the key has no minimum.
+      min-memory-mb: 128
     PYTHON:
       image: grading-sandbox-python:dev
       source-file-name: main.py

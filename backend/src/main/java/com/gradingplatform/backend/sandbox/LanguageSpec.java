@@ -1,6 +1,7 @@
 package com.gradingplatform.backend.sandbox;
 
 import java.util.List;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 /**
  * How one language is built and run in the sandbox (4.1b). Adding a language is a new entry under
@@ -17,9 +18,17 @@ import java.util.List;
  *     told)
  * @param compileCommand the build step, or empty for an interpreted language
  * @param runCommand the command that runs the program, reading the test input on stdin
+ * @param minMemoryMb the smallest memory limit, in megabytes, an assignment in this language may have
+ *     (7.1c), or null for none; a JVM does not reliably start below 128 MB
  */
-public record LanguageSpec(String image, String sourceFileName, List<String> compileCommand, List<String> runCommand) {
+public record LanguageSpec(
+        String image,
+        String sourceFileName,
+        List<String> compileCommand,
+        List<String> runCommand,
+        Integer minMemoryMb) {
 
+    @ConstructorBinding
     public LanguageSpec {
         if (image == null || image.isBlank()) {
             throw new IllegalArgumentException("image must not be blank");
@@ -36,6 +45,19 @@ public record LanguageSpec(String image, String sourceFileName, List<String> com
         if (runCommand.isEmpty()) {
             throw new IllegalArgumentException("runCommand must not be empty");
         }
+        if (minMemoryMb != null && minMemoryMb < 1) {
+            throw new IllegalArgumentException("minMemoryMb must be at least 1");
+        }
+    }
+
+    /** A language without a memory minimum. */
+    public LanguageSpec(String image, String sourceFileName, List<String> compileCommand, List<String> runCommand) {
+        this(image, sourceFileName, compileCommand, runCommand, null);
+    }
+
+    /** Whether an assignment in this language may have this memory limit (7.1c). */
+    public boolean allowsMemoryLimit(int memoryLimitMb) {
+        return minMemoryMb == null || memoryLimitMb >= minMemoryMb;
     }
 
     /**

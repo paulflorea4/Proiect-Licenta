@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.1b done)
-- Next commit: 7.1c — Per-language minimum memory limit (`min-memory-mb`, Java 128 MB)
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.1c done)
+- Next commit: 7.2a — `POST /submissions/{id}/hints`: generate the next hint level
 - In progress: —
-- Blocked: PR for commit 7.1b awaiting review and a green CI.
+- Blocked: PR for commit 7.1c awaiting review and a green CI.

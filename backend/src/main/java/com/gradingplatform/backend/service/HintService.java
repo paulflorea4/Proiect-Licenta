@@ -10,14 +10,16 @@ import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.SubmissionStatus;
 import com.gradingplatform.backend.repository.AiFeedbackRepository;
 import com.gradingplatform.backend.repository.AssignmentRepository;
+import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Hints for a student's own graded submission (7.2a): one level at a time, 1 then 2 then 3, each
  * generated once by the AI service and stored as an `ai_feedback` row.
  *
- * <p>Deliberately not {@code @Transactional}: the reads and the insert each run in their own short
+ * <p>{@link #requestNext} is deliberately not {@code @Transactional}: the reads and the insert each run in their own short
  * transaction, and the call to the AI service, which can take as long as its read timeout, happens
  * between them with no transaction open ({@link AiServiceClient} refuses otherwise). The grade is
  * never read for, or changed by, a hint.
@@ -45,6 +47,20 @@ public class HintService {
         this.assignments = assignments;
         this.hints = hints;
         this.ai = ai;
+    }
+
+    /**
+     * The hints a submission has received, level 1 first (7.2b), for whoever may read the submission:
+     * its student, or the people who run its course. Same access rule as the submission itself
+     * ({@link SubmissionViewService#view}); the caller picks the shape by role.
+     *
+     * @throws SubmissionNotFoundException if there is no such submission, or a teacher may not manage it
+     * @throws AccessRefusedException if a student asks for another student's
+     */
+    @Transactional(readOnly = true)
+    public List<AiFeedback> list(long userId, Role role, long submissionId) {
+        views.view(userId, role, submissionId);
+        return hints.findBySubmissionIdOrderByHintLevelAsc(submissionId);
     }
 
     /** A hint and whether this request stored it (201) rather than found or only showed it (200). */

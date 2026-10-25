@@ -4,6 +4,7 @@ import com.gradingplatform.backend.dto.AssignmentRequest;
 import com.gradingplatform.backend.entity.Assignment;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.repository.AssignmentRepository;
+import com.gradingplatform.backend.sandbox.LanguageSpec;
 import com.gradingplatform.backend.sandbox.SandboxProperties;
 import java.time.Clock;
 import java.time.Instant;
@@ -48,14 +49,16 @@ public class AssignmentService {
      * @throws CourseNotFoundException if there is no such course or the user may not see it
      * @throws AccessRefusedException if the user can see the course but may not change it
      * @throws UnsupportedLanguageException if the language is not in the supported list
+     * @throws MemoryLimitBelowLanguageMinimumException if the memory limit is below the language's minimum
      * @throws DeadlineNotInFutureException if the deadline is not after the current time
      */
     @Transactional
     public Assignment create(long userId, Role role, long courseId, AssignmentRequest request) {
         // Access first: a caller who cannot see the course learns nothing from the other checks.
         access.requireManageable(userId, role, courseId);
-        if (!properties.supports(request.language())) {
-            throw new UnsupportedLanguageException();
+        LanguageSpec spec = properties.find(request.language()).orElseThrow(UnsupportedLanguageException::new);
+        if (!spec.allowsMemoryLimit(request.memoryLimitMb())) {
+            throw new MemoryLimitBelowLanguageMinimumException();
         }
         if (!request.deadline().isAfter(clock.instant())) {
             throw new DeadlineNotInFutureException();
@@ -115,10 +118,14 @@ public class AssignmentService {
      * must be one the user may manage (owning teacher or admin); anyone else who cannot see its
      * course gets the same "not found" as for a missing id. The language is locked once there is a
      * submission; a language or a deadline that is not being changed is not re-checked, so a
-     * teacher can still fix a typo after the deadline has passed.
+     * teacher can still fix a typo after the deadline has passed. The language's memory minimum is
+     * checked only when the language or the memory limit changes (7.1c), so an assignment made before
+     * a minimum was set is not frozen by it.
      *
      * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
      * @throws UnsupportedLanguageException if the new language is not in the supported list
+     * @throws MemoryLimitBelowLanguageMinimumException if the language or the memory limit changes and
+     *     the limit is below the language's minimum
      * @throws DeadlineNotInFutureException if the deadline is changed to one that is not in the future
      * @throws AssignmentLanguageLockedException if the language changes and there are submissions
      */
@@ -129,6 +136,14 @@ public class AssignmentService {
         boolean languageChanged = !language.equals(assignment.getLanguage());
         if (languageChanged && !properties.supports(request.language())) {
             throw new UnsupportedLanguageException();
+        }
+        boolean memoryChanged = request.memoryLimitMb() != assignment.getMemoryLimitMb();
+        if ((languageChanged || memoryChanged)
+                && properties
+                        .find(language)
+                        .filter(spec -> !spec.allowsMemoryLimit(request.memoryLimitMb()))
+                        .isPresent()) {
+            throw new MemoryLimitBelowLanguageMinimumException();
         }
         if (!request.deadline().equals(assignment.getDeadline())
                 && !request.deadline().isAfter(clock.instant())) {

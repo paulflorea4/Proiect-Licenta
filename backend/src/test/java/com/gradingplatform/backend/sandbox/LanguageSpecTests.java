@@ -80,4 +80,30 @@ class LanguageSpecTests {
         assertThatThrownBy(() -> new LanguageSpec("img", null, List.of(), RUN))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    // ---- 7.1c: the memory minimum ----
+
+    @Test
+    void withoutAMinimumAnyMemoryLimitIsAllowed() {
+        LanguageSpec spec = new LanguageSpec("img", "main.py", List.of(), RUN);
+
+        assertThat(spec.minMemoryMb()).isNull();
+        assertThat(spec.allowsMemoryLimit(1)).isTrue();
+    }
+
+    @Test
+    void withAMinimumTheLimitMustReachIt() {
+        LanguageSpec spec = new LanguageSpec("img", "Main.java", List.of("javac", "Main.java"), RUN, 128);
+
+        assertThat(spec.allowsMemoryLimit(127)).isFalse();
+        assertThat(spec.allowsMemoryLimit(128)).isTrue();
+        assertThat(spec.allowsMemoryLimit(1024)).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1})
+    void aMinimumBelowOneIsRefused(int minimum) {
+        assertThatThrownBy(() -> new LanguageSpec("img", "main.py", List.of(), RUN, minimum))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

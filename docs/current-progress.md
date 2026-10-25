@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (Phase 6 done with 6.6f)
-- Next commit: 7.1a — Backend `AiServiceClient` (RestClient) calling `POST /feedback`
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.1a done)
+- Next commit: 7.1b — Build the feedback request from a submission
 - In progress: —
-- Blocked: PR for commit 6.6f awaiting review and a green CI.
+- Blocked: PR for commit 7.1a awaiting review and a green CI.

@@ -112,8 +112,11 @@ class JavaCompileStepTests {
 
     @Test
     void theProgramRunsWithItsOwnSmallMemoryLimitWhileTheCompilerHadMore() {
+        // 128 MB, a quarter of the compiler's 512, as every other Java run here. At 64 MB a JVM start on
+        // the CI runner once stalled past the 12 s allowance (TIMEOUT, PR #140), though locally it starts
+        // in 0.6 s at any limit; which limits a Java assignment may set is noted in docs/suggestions.md.
         SandboxResult result = runner.run(new SandboxRequest(
-                "JAVA", List.of(new SourceFile("Main.java", SUM)), "1 2\n", new ExecutionLimits(10_000, 64)));
+                "JAVA", List.of(new SourceFile("Main.java", SUM)), "1 2\n", new ExecutionLimits(10_000, 128)));
 
         assertThat(result.status()).isEqualTo(SandboxStatus.OK);
         assertThat(result.stdout()).isEqualTo("3\n");

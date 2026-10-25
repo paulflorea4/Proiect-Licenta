@@ -50,6 +50,17 @@ submissions:
     pool-size: 2
     queue-capacity: 100
 
+# The AI service (7.1a, ai/AiServiceProperties). `ai.service.url` and `ai.service.token` come from the
+# AI_SERVICE_URL and AI_SERVICE_TOKEN environment variables and deliberately have no default: a missing
+# one stops the application at startup (like JWT_SECRET). The timeouts are placeholders pending tuning;
+# override them with AI_SERVICE_CONNECTTIMEOUT / AI_SERVICE_READTIMEOUT. The read timeout must outlast
+# the AI service's own worst case: two Gemini attempts of up to 30 s each (ai-service, 6.2a/6.3c). A
+# student waits for a hint at most this long.
+ai:
+  service:
+    connect-timeout: 5s
+    read-timeout: 70s
+
 # Datasource: the SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD environment variables bind
 # straight to spring.datasource.* (relaxed binding, see backend/.env.example) and always win over
 # anything below. No profile is active by default: choose one with SPRING_PROFILES_ACTIVE.

@@ -40,6 +40,20 @@ class ApplicationConfigTests {
     }
 
     @Test
+    void theAiServiceHasTimeoutsButNoUrlOrTokenInTheFile() {
+        // 7.1a: the read timeout outlasts the AI service's own worst case (two Gemini attempts of up
+        // to 30 s each); the address and the token come from the environment only.
+        Map<String, Object> common = documentFor(null);
+
+        assertThat(common)
+                .containsEntry("ai.service.connect-timeout", "5s")
+                .containsEntry("ai.service.read-timeout", "70s");
+        assertThat(documents)
+                .allSatisfy(document -> assertThat(((EnumerablePropertySource<?>) document).getPropertyNames())
+                        .doesNotContain("ai.service.url", "ai.service.token"));
+    }
+
+    @Test
     void devFallsBackToTheComposeUrlAndUsername() {
         assertThat(documentFor("dev"))
                 .containsEntry("spring.datasource.url", "jdbc:postgresql://localhost:5432/grading")

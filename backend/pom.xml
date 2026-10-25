@@ -136,6 +136,10 @@
 						<!-- A fixed throwaway secret for tests only (the real one comes from backend/.env).
 						     It is the same mechanism as production: the JWT_SECRET environment variable. -->
 						<JWT_SECRET>test-only-secret-0123456789abcdef0123456789abcdef0123456789abcdef</JWT_SECRET>
+						<!-- The AI service's address and shared token, required at startup like JWT_SECRET (7.1a).
+						     Nothing listens there: a test that calls the service starts its own fake. -->
+						<AI_SERVICE_URL>http://localhost:8000</AI_SERVICE_URL>
+						<AI_SERVICE_TOKEN>test-only-ai-service-token</AI_SERVICE_TOKEN>
 					</environmentVariables>
 				</configuration>
 			</plugin>

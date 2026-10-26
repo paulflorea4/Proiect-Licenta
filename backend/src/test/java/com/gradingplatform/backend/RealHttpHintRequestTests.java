@@ -50,7 +50,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 7.2a: `POST /submissions/{submissionId}/hints`. The AI service is replaced by a mock, so these
+ * 7.2a: `POST /submissions/{submissionId}/hints`, and 7.2c: only while a test did not pass. The AI service is replaced by a mock, so these
  * tests see exactly what the backend sends it and decide what it answers.
  */
 class RealHttpHintRequestTests extends RealHttpTestBase {
@@ -290,6 +290,99 @@ class RealHttpHintRequestTests extends RealHttpTestBase {
         verify(ai, never()).feedback(any());
     }
 
+    // ---- eligibility (7.2c): at least one test did not pass ----
+
+    @Test
+    void aSubmissionThatPassedEveryTestHasNothingToImprove() throws Exception {
+        long id = graded(student, 1, TestOutcome.PASSED, TestOutcome.PASSED);
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("HINT_NOTHING_TO_IMPROVE");
+        verify(ai, never()).feedback(any());
+        assertThat(storedLevels(id)).isEmpty();
+    }
+
+    @Test
+    void aLostManualMarkOnASubmissionThatPassedEveryTestStillHasNothingToImprove() throws Exception {
+        RubricCriterion style =
+                rubricCriteria.save(new RubricCriterion(assignment.getId(), "Style", CriterionType.MANUAL, 20));
+        long id = graded(student, 1, TestOutcome.PASSED, TestOutcome.PASSED);
+        HttpResponse<String> scored =
+                send("PUT", "/submissions/" + id + "/manual-scores/" + style.getId(), tokenFor(owner), "{\"score\":0}");
+        assertThat(scored.statusCode()).as(scored.body()).isEqualTo(200);
+        assertThat(total(id)).isLessThan(maxScore(id));
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("HINT_NOTHING_TO_IMPROVE");
+        verify(ai, never()).feedback(any());
+    }
+
+    @Test
+    void aGradedSubmissionWithoutTestsHasNothingToImprove() throws Exception {
+        Assignment essay = assignments.save(new Assignment(
+                assignment.getCourseId(),
+                "Essay",
+                DESCRIPTION,
+                "PYTHON",
+                Instant.now().plus(7, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS),
+                null,
+                2000,
+                256,
+                null));
+        jdbc.update("update assignments set published = true where id = ?", essay.getId());
+        rubricCriteria.save(new RubricCriterion(essay.getId(), "Answer", CriterionType.MANUAL, 100));
+        long id = jdbc.queryForObject(
+                "insert into submissions (assignment_id, student_id, language, source_code, attempt_no, status)"
+                        + " values (?, ?, 'PYTHON', 'print(1)', 1, 'GRADED') returning id",
+                Long.class,
+                essay.getId(),
+                student.getId());
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("HINT_NOTHING_TO_IMPROVE");
+        verify(ai, never()).feedback(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"FAILED", "TIMEOUT", "MEMORY_LIMIT", "RUNTIME_ERROR"})
+    void aPublicTestThatDidNotPassMakesItEligibleWhateverTheOutcome(String outcome) throws Exception {
+        long id = graded(student, 1, TestOutcome.valueOf(outcome), TestOutcome.PASSED);
+        answer("Look at the operator.");
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
+        assertThat(storedLevels(id)).containsExactly(1);
+    }
+
+    @Test
+    void aHiddenTestThatDidNotPassAloneMakesItEligible() throws Exception {
+        long id = graded(student, 1, TestOutcome.PASSED, TestOutcome.FAILED);
+        answer("Look at the operator.");
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
+        assertThat(sentRequests().get(0).hiddenTests()).containsExactly(new FeedbackRequest.HiddenTestResult(false));
+    }
+
+    @Test
+    void aCompileErrorMakesItEligible() throws Exception {
+        long id = graded(student, 1, TestOutcome.COMPILE_ERROR, TestOutcome.COMPILE_ERROR);
+        answer("Read the compiler's first message.");
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
+        assertThat(storedLevels(id)).containsExactly(1);
+    }
+
     // ---- the call and the grade ----
 
     @Test
@@ -359,6 +452,11 @@ class RealHttpHintRequestTests extends RealHttpTestBase {
                 "select total_score from grades where submission_id = ?", BigDecimal.class, submissionId);
     }
 
+    private BigDecimal maxScore(long submissionId) {
+        return jdbc.queryForObject(
+                "select max_score from grades where submission_id = ?", BigDecimal.class, submissionId);
+    }
+
     private static String code(HttpResponse<String> response) {
         return JsonPath.read(response.body(), "$.code");
     }
@@ -388,14 +486,19 @@ class RealHttpHintRequestTests extends RealHttpTestBase {
 
     /** Graded as the worker grades it: p1 passed, h1 failed with output and stderr of its own. */
     private long graded(User by, int attempt) {
+        return graded(by, attempt, TestOutcome.PASSED, TestOutcome.FAILED);
+    }
+
+    /** Graded as the worker grades it, with these outcomes for p1 and h1. */
+    private long graded(User by, int attempt, TestOutcome publicOutcome, TestOutcome hiddenOutcome) {
         long id = submission(by, "RUNNING", attempt);
         writer.store(
                 id,
                 assignment.getId(),
                 List.of(p1, h1),
                 List.of(
-                        new TestResult(id, p1.getId(), TestOutcome.PASSED, "3\n", "", 12),
-                        new TestResult(id, h1.getId(), TestOutcome.FAILED, SECRETS[3], SECRETS[4], 13)));
+                        new TestResult(id, p1.getId(), publicOutcome, "3\n", "", 12),
+                        new TestResult(id, h1.getId(), hiddenOutcome, SECRETS[3], SECRETS[4], 13)));
         jdbc.update("update submissions set status = 'GRADED' where id = ?", id);
         return id;
     }

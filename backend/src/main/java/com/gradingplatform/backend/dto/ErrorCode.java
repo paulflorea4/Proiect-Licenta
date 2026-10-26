@@ -78,6 +78,9 @@ public enum ErrorCode {
             HttpStatus.CONFLICT, "A hint can only be requested once the submission has been graded"),
     HINT_NOTHING_TO_IMPROVE(HttpStatus.CONFLICT, "Every test passed, so there is nothing to improve"),
     HINTS_USED_UP(HttpStatus.CONFLICT, "All three hints for this submission have been used"),
+    HINTS_UNAVAILABLE(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "Hints are unavailable right now; your submission and its grade are not affected. Try again later"),
     MANUAL_SCORE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "The score must be between 0 and the criterion's weight");
 
     private final HttpStatus status;

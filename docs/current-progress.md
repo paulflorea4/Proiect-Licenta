@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.2b done)
-- Next commit: 7.2c — Eligibility rule: hints only when graded and at least one test did not pass
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.2c done)
+- Next commit: 7.3a — Failure handling: AI service down, timeout, or error → 503, submission and grade untouched
 - In progress: —
-- Blocked: PR for commit 7.2b awaiting review and a green CI.
+- Blocked: PR for commit 7.2c awaiting review and a green CI.

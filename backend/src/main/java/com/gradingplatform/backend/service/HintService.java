@@ -5,19 +5,22 @@ import com.gradingplatform.backend.ai.FeedbackRequest;
 import com.gradingplatform.backend.ai.FeedbackResponse;
 import com.gradingplatform.backend.dto.HintResponse;
 import com.gradingplatform.backend.dto.StudentSubmissionResponse;
+import com.gradingplatform.backend.dto.StudentTestResultResponse;
 import com.gradingplatform.backend.entity.AiFeedback;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.SubmissionStatus;
 import com.gradingplatform.backend.repository.AiFeedbackRepository;
 import com.gradingplatform.backend.repository.AssignmentRepository;
+import com.gradingplatform.backend.sandbox.TestOutcome;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Hints for a student's own graded submission (7.2a): one level at a time, 1 then 2 then 3, each
- * generated once by the AI service and stored as an `ai_feedback` row.
+ * Hints for a student's own graded submission (7.2a) with at least one test that did not pass
+ * (7.2c): one level at a time, 1 then 2 then 3, each generated once by the AI service and stored
+ * as an `ai_feedback` row.
  *
  * <p>{@link #requestNext} is deliberately not {@code @Transactional}: the reads and the insert each run in their own short
  * transaction, and the call to the AI service, which can take as long as its read timeout, happens
@@ -76,6 +79,8 @@ public class HintService {
      * @throws SubmissionNotFoundException if there is no such submission
      * @throws AccessRefusedException if it is another student's (5.5a)
      * @throws HintNeedsGradedSubmissionException if it is not graded
+     * @throws HintNothingToImproveException if every test passed, or it has none (7.2c): judged on
+     *     the test results, not on the total, so a lost {@code MANUAL} mark does not make it eligible
      * @throws HintsUsedUpException if its three levels are used
      */
     public Outcome requestNext(long studentId, long submissionId) {
@@ -83,6 +88,9 @@ public class HintService {
                 StudentSubmissionResponse.of(views.view(studentId, Role.STUDENT, submissionId));
         if (view.status() != SubmissionStatus.GRADED) {
             throw new HintNeedsGradedSubmissionException();
+        }
+        if (view.tests().stream().allMatch(HintService::passed)) {
+            throw new HintNothingToImproveException();
         }
         int level = (int) hints.countBySubmissionId(submissionId) + 1;
         if (level > MAX_LEVEL) {
@@ -110,5 +118,16 @@ public class HintService {
                     hints.findBySubmissionIdAndHintLevel(submissionId, level).orElseThrow(() -> e);
             return new Outcome(HintResponse.of(existing), false);
         }
+    }
+
+    /**
+     * Whether a test passed, as the student's view shows it: a public test's outcome is {@code
+     * PASSED}, a hidden test says {@code passed}. A test without a result did not pass.
+     */
+    private static boolean passed(StudentTestResultResponse test) {
+        if (test instanceof StudentTestResultResponse.HiddenResult hidden) {
+            return hidden.passed();
+        }
+        return ((StudentTestResultResponse.PublicResult) test).status() == TestOutcome.PASSED;
     }
 }

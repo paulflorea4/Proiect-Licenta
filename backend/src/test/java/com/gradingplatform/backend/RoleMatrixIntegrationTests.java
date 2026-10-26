@@ -239,6 +239,9 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     "/assignments/987654321/my-grade",
                     "{}",
                     Role.STUDENT),
+            // A submission's hints, shape by role (RealHttpHintListTests): any signed-in caller passes the role
+            // rule and gets the 404 of a missing submission.
+            Endpoint.signedIn("GET", "/submissions/{submissionId}/hints", "/submissions/987654321/hints"),
             // A student's next hint (RealHttpHintRequestTests); a student who passes gets the 404 and
             // the AI service is never called.
             Endpoint.rolesOnly(

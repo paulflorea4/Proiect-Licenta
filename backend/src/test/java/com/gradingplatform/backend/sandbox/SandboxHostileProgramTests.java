@@ -320,14 +320,23 @@ class SandboxHostileProgramTests {
     }
 
     @Test
-    void aForkBombThatDiesOnTheFirstRefusalIsStoppedByTheProcessOrMemoryLimit() {
+    void aForkBombThatDiesOnTheFirstRefusalIsStoppedByTheProcessMemoryOrTimeLimit() {
         // Which limit bites first depends on the host: about 127 busy Python processes need more than
         // 128 MB on a native Linux Docker (CI: MEMORY_LIMIT), less on Docker Desktop (RUNTIME_ERROR from the
-        // refused fork). Both are the sandbox doing its job; neither is a completed run.
+        // refused fork), and on a slow, busy runner the first process may not reach its refused fork
+        // before the clock does (CI at 7.5c: TIMEOUT). All three are the sandbox doing its job; none is a
+        // completed run.
+        long started = System.nanoTime();
+
         SandboxResult result = python("import os\nwhile True:\n    os.fork()\n", new ExecutionLimits(10_000, 128));
 
-        assertThat(result.status()).isIn(SandboxStatus.RUNTIME_ERROR, SandboxStatus.MEMORY_LIMIT);
+        assertThat(result.status())
+                .isIn(SandboxStatus.RUNTIME_ERROR, SandboxStatus.MEMORY_LIMIT, SandboxStatus.TIMEOUT);
         assertThat(result.completedCleanly()).isFalse();
+        assertThat(Duration.ofNanos(System.nanoTime() - started))
+                .isLessThan(Duration.ofMillis(10_000)
+                        .plus(DockerCliSandboxRunner.START_GRACE)
+                        .plus(KILL_ALLOWANCE));
         if (result.status() == SandboxStatus.RUNTIME_ERROR) {
             assertThat(result.stderr()).contains("Resource temporarily unavailable");
         }

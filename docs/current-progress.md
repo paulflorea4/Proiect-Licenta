@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.5c done)
-- Next commit: 7.5d — Test: reporting works only on your own hint, is idempotent, is visible in the teacher view and absent from other students' views
+- Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (Phase 7 done with 7.5d)
+- Next commit: 8.1a — Confirm the `/frontend` React+TS app (0.1d) is still current before adding to it
 - In progress: —
-- Blocked: PR for commit 7.5c awaiting review and a green CI.
+- Blocked: PR for commit 7.5d awaiting review and a green CI.

@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.5b done)
-- Next commit: 7.5c — Test: other student's submission → 403; AI service failure → 503 with no side effects; token rejected (401) reported as a configuration error, not retried
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.5c done)
+- Next commit: 7.5d — Test: reporting works only on your own hint, is idempotent, is visible in the teacher view and absent from other students' views
 - In progress: —
-- Blocked: PR for commit 7.5b awaiting review and a green CI.
+- Blocked: PR for commit 7.5c awaiting review and a green CI.

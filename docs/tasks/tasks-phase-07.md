@@ -13,5 +13,5 @@
 | 7.4b | `POST /submissions/{id}/hints/{level}/report`: the student flags one of their own hints as wrong or unhelpful, with an optional reason | Done | Idempotent — reporting twice keeps the first timestamp. Reported flags appear in the teacher's submission view (5.5b projection). Gives the thesis a measured hint-error rate from real use; hints are never altered or deleted by a report. |
 | 7.5a | Test (mocked AI service): the outgoing request contains hidden tests only as pass/fail | Done | Use Spring's `MockRestServiceServer` (ships with Spring test) rather than adding a mock-server dependency. |
 | 7.5b | Test: hint level progression 1→2→3, repeat request returns the same row, fourth request rejected | Done |  |
-| 7.5c | Test: other student's submission → 403; AI service failure → 503 with no side effects; AI service rejecting the token (401) is reported as a clear configuration error, not retried | Not started |  |
+| 7.5c | Test: other student's submission → 403; AI service failure → 503 with no side effects; AI service rejecting the token (401) is reported as a clear configuration error, not retried | Done |  |
 | 7.5d | Test: reporting works only on your own hint, is idempotent, is visible in the teacher view and absent from other students' views | Not started |  |

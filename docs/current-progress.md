@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.5a done)
-- Next commit: 7.5b — Test: hint level progression 1→2→3, repeat request returns the same row, fourth request rejected
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.5b done)
+- Next commit: 7.5c — Test: other student's submission → 403; AI service failure → 503 with no side effects; token rejected (401) reported as a configuration error, not retried
 - In progress: —
-- Blocked: PR for commit 7.5a awaiting review and a green CI.
+- Blocked: PR for commit 7.5b awaiting review and a green CI.

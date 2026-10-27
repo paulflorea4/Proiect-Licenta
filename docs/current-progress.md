@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.4b done)
-- Next commit: 7.5a — Test (mocked AI service): the outgoing request contains hidden tests only as pass/fail
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.5a done)
+- Next commit: 7.5b — Test: hint level progression 1→2→3, repeat request returns the same row, fourth request rejected
 - In progress: —
-- Blocked: PR for commit 7.4b awaiting review and a green CI.
+- Blocked: PR for commit 7.5a awaiting review and a green CI.

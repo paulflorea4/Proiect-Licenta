@@ -7,6 +7,7 @@ import com.gradingplatform.backend.entity.RubricCriterion;
 import com.gradingplatform.backend.entity.Submission;
 import com.gradingplatform.backend.entity.TestCase;
 import com.gradingplatform.backend.entity.TestResult;
+import com.gradingplatform.backend.repository.AiFeedbackRepository;
 import com.gradingplatform.backend.repository.CriterionScoreRepository;
 import com.gradingplatform.backend.repository.GradeRepository;
 import com.gradingplatform.backend.repository.RubricCriterionRepository;
@@ -36,6 +37,7 @@ public class SubmissionViewService {
     private final RubricCriterionRepository rubricCriteria;
     private final CriterionScoreRepository criterionScores;
     private final GradeRepository grades;
+    private final AiFeedbackRepository hints;
     private final AssignmentService assignmentService;
 
     /** Everything stored about a submission's result, the teacher's view: never sent to a student as is. */
@@ -45,7 +47,8 @@ public class SubmissionViewService {
             List<TestResult> results,
             List<RubricCriterion> rubric,
             List<CriterionScore> scores,
-            Optional<Grade> grade) {}
+            Optional<Grade> grade,
+            int hintsUsed) {}
 
     public SubmissionViewService(
             SubmissionRepository submissions,
@@ -54,6 +57,7 @@ public class SubmissionViewService {
             RubricCriterionRepository rubricCriteria,
             CriterionScoreRepository criterionScores,
             GradeRepository grades,
+            AiFeedbackRepository hints,
             AssignmentService assignmentService) {
         this.submissions = submissions;
         this.testCases = testCases;
@@ -61,6 +65,7 @@ public class SubmissionViewService {
         this.rubricCriteria = rubricCriteria;
         this.criterionScores = criterionScores;
         this.grades = grades;
+        this.hints = hints;
         this.assignmentService = assignmentService;
     }
 
@@ -132,6 +137,7 @@ public class SubmissionViewService {
                 testResults.findBySubmissionIdOrderByIdAsc(id),
                 rubricCriteria.findByAssignmentIdOrderByIdAsc(assignmentId),
                 criterionScores.findBySubmissionIdOrderByCriterionIdAsc(id),
-                grades.findBySubmissionId(id));
+                grades.findBySubmissionId(id),
+                (int) hints.countBySubmissionId(id));
     }
 }

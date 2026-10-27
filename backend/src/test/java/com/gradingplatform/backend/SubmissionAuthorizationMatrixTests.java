@@ -477,7 +477,8 @@ class SubmissionAuthorizationMatrixTests extends RealHttpTestBase {
                         "compilerOutput",
                         "grade",
                         "criteria",
-                        "tests");
+                        "tests",
+                        "hintsUsed");
         assertThat(JsonPath.<List<Map<String, Object>>>read(view, "$.criteria"))
                 .hasSize(2)
                 .allSatisfy(c -> assertThat(c).containsOnlyKeys("name", "type", "score", "maxScore", "comment"));

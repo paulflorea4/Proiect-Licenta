@@ -28,6 +28,10 @@ import java.util.stream.Collectors;
  * (an assignment without tests, until a teacher's first score, 5.4e). {@code compilerOutput} is the
  * compiler's text when the build failed (the same on every test, 5.3b), else null: it comes from the
  * student's own code, before any test input exists.
+ *
+ * <p>{@code hintsUsed} is how many hint levels the student has received for this submission
+ * (7.4a), counted from its stored {@code ai_feedback} rows (a fallback is not stored, so it does not
+ * count); 0 to 3, at any status. It never affects the score.
  */
 public record StudentSubmissionResponse(
         long id,
@@ -42,7 +46,8 @@ public record StudentSubmissionResponse(
         String compilerOutput,
         GradeView grade,
         List<CriterionView> criteria,
-        List<StudentTestResultResponse> tests)
+        List<StudentTestResultResponse> tests,
+        int hintsUsed)
         implements SubmissionResponse {
 
     /** One rubric criterion's score; {@code score} is null while it is pending (no row, V9). */
@@ -65,7 +70,8 @@ public record StudentSubmissionResponse(
                 graded ? SubmissionResponse.compilerOutput(details.results()) : null,
                 graded ? details.grade().map(GradeView::of).orElse(null) : null,
                 graded ? criteria(details.rubric(), details.scores()) : List.of(),
-                graded ? tests(details) : List.of());
+                graded ? tests(details) : List.of(),
+                details.hintsUsed());
     }
 
     private static List<CriterionView> criteria(List<RubricCriterion> rubric, List<CriterionScore> scores) {

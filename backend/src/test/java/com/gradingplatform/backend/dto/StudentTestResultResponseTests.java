@@ -59,7 +59,8 @@ class StudentTestResultResponseTests {
                         "compilerOutput",
                         "grade",
                         "criteria",
-                        "tests");
+                        "tests",
+                        "hintsUsed");
         assertThat(componentNames(StudentSubmissionResponse.CriterionView.class))
                 .as("no criterion id: which test belongs to which criterion stays hidden")
                 .containsExactly("name", "type", "score", "maxScore", "comment");

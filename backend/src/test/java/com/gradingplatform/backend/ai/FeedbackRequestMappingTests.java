@@ -212,6 +212,6 @@ class FeedbackRequestMappingTests {
         ReflectionTestUtils.setField(submission, "id", 10L);
         ReflectionTestUtils.setField(submission, "status", status);
         return StudentSubmissionResponse.of(
-                new SubmissionDetails(submission, tests, results, List.of(), List.of(), Optional.empty()));
+                new SubmissionDetails(submission, tests, results, List.of(), List.of(), Optional.empty(), 0));
     }
 }

@@ -99,7 +99,7 @@ public class HintService {
         if (view.tests().stream().allMatch(HintService::passed)) {
             throw new HintNothingToImproveException();
         }
-        int level = (int) hints.countBySubmissionId(submissionId) + 1;
+        int level = view.hintsUsed() + 1;
         if (level > MAX_LEVEL) {
             throw new HintsUsedUpException();
         }

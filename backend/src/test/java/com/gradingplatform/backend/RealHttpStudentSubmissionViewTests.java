@@ -135,7 +135,8 @@ class RealHttpStudentSubmissionViewTests extends RealHttpTestBase {
                         "compilerOutput",
                         "grade",
                         "criteria",
-                        "tests")
+                        "tests",
+                        "hintsUsed")
                 .containsEntry("status", "GRADED")
                 .containsEntry("attemptNo", 1)
                 .containsEntry("language", "PYTHON")

@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.3a done)
-- Next commit: 7.4a — Track hints used: count exposed on the submission DTO (student and teacher views)
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.4a done)
+- Next commit: 7.4b — `POST /submissions/{id}/hints/{level}/report`: the student flags one of their own hints
 - In progress: —
-- Blocked: PR for commit 7.3a awaiting review and a green CI.
+- Blocked: PR for commit 7.4a awaiting review and a green CI.

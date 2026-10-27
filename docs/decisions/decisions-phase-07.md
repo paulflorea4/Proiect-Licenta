@@ -115,3 +115,11 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Its own test context** (a nested `@TestConfiguration` with a `@Primary` client on the mock-bound builder): the hint tests' shared context mocks the whole client with Mockito, which would hide the wire. One more context, within `SharedPostgres.MAX_CONNECTIONS`.
 - **Tests (+5, backend 2402 -> 2407; ai-service 919 and frontend 3 unchanged and passing):** `RealHttpHintOutgoingRequestTests`.
 - **Mutation-checked, each failing at least one test:** every hidden test sent as passed (3 failures); the hidden tests reversed (2); a hidden test sending its masked name as well (4); the seam constructor without the token (4).
+
+## 7.5b — Hint progression, repeat, fourth request
+
+- **"Repeat request returns the same row" is the simultaneous case, as 7.2a decided:** a request names no level, so a sequential second request asks for the next level; a repeat that arrives while the first still waits for the AI service (a double-click) is the one that returns the first's row. 7.2a tested it at level 1; here it is tested at levels 1, 2 and 3, with both bodies identical and equal to the stored row.
+- **What 7.2a did not already pin, and this adds:** that a stored row is never generated again (after each level, the earlier rows are the same rows: id, text and `created_at`); that the list (`GET .../hints`) grows level by level; that a refused fourth request, sent three times, calls nothing and changes neither the hints nor the grade, and `hintsUsed` stays 3; that three rows stored by any route refuse a fourth; that a fallback on the way does not shift the levels (1, fallback at 2, 2, 3, then refused); that after a repeat the next request asks for level 2.
+- **A new class, not more cases in `RealHttpHintRequestTests`:** that class is 7.2a's endpoint tests; this one follows a submission through its whole hint life. It shares the same context (same `@MockitoBean AiServiceClient`).
+- **Tests (+8, backend 2407 -> 2415; ai-service 919 and frontend 3 unchanged and passing):** `RealHttpHintProgressionTests`.
+- **Mutation-checked, each failing at least one test:** the unique-constraint race not handled (3 failures); a repeat answering its own text instead of the stored row (3); no cap at three (3); a fallback stored (1).

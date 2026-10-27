@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
  * <p>As in the student's view, {@code criteria} and {@code tests} are empty and {@code grade} and
  * {@code compilerOutput} null until the submission is {@code GRADED}: a grade or results stored
  * for a submission that is not (yet) graded are not its result. {@code hintsUsed} is the same
- * count as the student sees (7.4a), at any status.
+ * count as the student sees (7.4a), at any status, and {@code hints} are those hints, level 1 first,
+ * with the student's report on each (7.4b), the shape of {@code GET /submissions/{id}/hints}.
  */
 public record TeacherSubmissionResponse(
         long id,
@@ -43,7 +44,8 @@ public record TeacherSubmissionResponse(
         GradeView grade,
         List<CriterionView> criteria,
         List<TestResultView> tests,
-        int hintsUsed)
+        int hintsUsed,
+        List<HintsResponse.TeacherHint> hints)
         implements SubmissionResponse {
 
     /** One rubric criterion and its score; {@code score} is null while it is pending (no row, V9). */
@@ -89,7 +91,8 @@ public record TeacherSubmissionResponse(
                 graded ? details.grade().map(GradeView::of).orElse(null) : null,
                 graded ? criteria(details.rubric(), details.scores()) : List.of(),
                 graded && !details.results().isEmpty() ? tests(details.tests(), details.results()) : List.of(),
-                details.hintsUsed());
+                details.hintsUsed(),
+                details.hints().stream().map(HintsResponse.TeacherHint::of).toList());
     }
 
     private static List<CriterionView> criteria(List<RubricCriterion> rubric, List<CriterionScore> scores) {

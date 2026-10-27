@@ -133,7 +133,8 @@ class RealHttpTeacherSubmissionViewTests extends RealHttpTestBase {
                         "grade",
                         "criteria",
                         "tests",
-                        "hintsUsed")
+                        "hintsUsed",
+                        "hints")
                 .containsEntry("status", "GRADED")
                 .containsEntry("sourceCode", "print(3)");
         assertThat(JsonPath.<Number>read(body, "$.studentId").longValue()).isEqualTo(student.getId());

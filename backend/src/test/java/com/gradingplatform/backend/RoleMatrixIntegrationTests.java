@@ -246,6 +246,13 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
             // the AI service is never called.
             Endpoint.rolesOnly(
                     "POST", "/submissions/{submissionId}/hints", "/submissions/987654321/hints", "{}", Role.STUDENT),
+            // A student reports one of their hints (RealHttpHintReportTests); a student who passes gets the 404.
+            Endpoint.rolesOnly(
+                    "POST",
+                    "/submissions/{submissionId}/hints/{level}/report",
+                    "/submissions/987654321/hints/1/report",
+                    "{}",
+                    Role.STUDENT),
             // The people who run the course (RealHttpManualScoreTests); a caller who passes gets the 404.
             Endpoint.rolesOnly(
                     "PUT",

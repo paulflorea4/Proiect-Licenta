@@ -1,6 +1,7 @@
 package com.gradingplatform.backend.service;
 
 import com.gradingplatform.backend.ai.AiServiceClient;
+import com.gradingplatform.backend.ai.AiServiceException;
 import com.gradingplatform.backend.ai.FeedbackRequest;
 import com.gradingplatform.backend.ai.FeedbackResponse;
 import com.gradingplatform.backend.dto.HintResponse;
@@ -13,6 +14,8 @@ import com.gradingplatform.backend.repository.AiFeedbackRepository;
 import com.gradingplatform.backend.repository.AssignmentRepository;
 import com.gradingplatform.backend.sandbox.TestOutcome;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class HintService {
+
+    private static final Logger log = LoggerFactory.getLogger(HintService.class);
 
     /** The highest level: a nudge, a pointer, a partial explanation. */
     public static final int MAX_LEVEL = 3;
@@ -82,6 +87,8 @@ public class HintService {
      * @throws HintNothingToImproveException if every test passed, or it has none (7.2c): judged on
      *     the test results, not on the total, so a lost {@code MANUAL} mark does not make it eligible
      * @throws HintsUsedUpException if its three levels are used
+     * @throws HintsUnavailableException if the AI service gives no usable answer (7.3a): nothing is
+     *     stored, the level stays unused, and the submission and its grade are never touched
      */
     public Outcome requestNext(long studentId, long submissionId) {
         StudentSubmissionResponse view =
@@ -101,7 +108,13 @@ public class HintService {
                 .orElseThrow(SubmissionNotFoundException::new)
                 .getDescription();
 
-        FeedbackResponse answer = ai.feedback(FeedbackRequest.of(view, description, level));
+        FeedbackResponse answer;
+        try {
+            answer = ai.feedback(FeedbackRequest.of(view, description, level));
+        } catch (AiServiceException e) {
+            logFailure(e, submissionId, level);
+            throw new HintsUnavailableException();
+        }
 
         if (answer.fallback()) {
             return new Outcome(HintResponse.fallback(submissionId, level, answer.hint()), false);
@@ -117,6 +130,24 @@ public class HintService {
             AiFeedback existing =
                     hints.findBySubmissionIdAndHintLevel(submissionId, level).orElseThrow(() -> e);
             return new Outcome(HintResponse.of(existing), false);
+        }
+    }
+
+    /**
+     * The reason a hint could not be had, for the operator only (the student gets the fixed 503). A
+     * refused token is a configuration error, not an outage: retrying cannot help, so it is logged as
+     * an error that says what to fix. The exception's message is fixed text (7.1a), never the token
+     * or the student's code.
+     */
+    private static void logFailure(AiServiceException e, long submissionId, int level) {
+        Integer status = e.status();
+        if (status != null && (status == 401 || status == 403)) {
+            log.error(
+                    "The AI service refused the backend's token (HTTP {}): AI_SERVICE_TOKEN must be the"
+                            + " AI service's own; no hint can be given until it is fixed",
+                    status);
+        } else {
+            log.warn("No hint for submission {} at level {}: {}", submissionId, level, e.getMessage(), e);
         }
     }
 

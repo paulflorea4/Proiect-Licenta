@@ -38,21 +38,30 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.client.ResourceAccessException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 7.2a: `POST /submissions/{submissionId}/hints`, and 7.2c: only while a test did not pass. The AI service is replaced by a mock, so these
+ * 7.2a: `POST /submissions/{submissionId}/hints`, 7.2c: only while a test did not pass, and 7.3a: a
+ * failed AI call is a 503 that changes nothing. The AI service is replaced by a mock, so these
  * tests see exactly what the backend sends it and decide what it answers.
  */
+@ExtendWith(OutputCaptureExtension.class)
 class RealHttpHintRequestTests extends RealHttpTestBase {
 
     private static final String[] SECRETS = {
@@ -411,20 +420,116 @@ class RealHttpHintRequestTests extends RealHttpTestBase {
         assertThat(total(id)).isEqualByComparingTo(before);
     }
 
-    @Test
-    void aFailedCallStoresNothing() throws Exception {
-        // 7.3a turns this into a clear 503; here: no hint row, the level still unused.
+    // ---- the AI service fails (7.3a): 503, nothing changed ----
+
+    /** Every way {@link AiServiceClient} reports a failure (7.1a), each with its fixed message. */
+    static Stream<Arguments> failures() {
+        return Stream.of(
+                Arguments.of("down", new AiServiceException("The AI service answered HTTP 503", 503)),
+                Arguments.of("error", new AiServiceException("The AI service answered HTTP 500", 500)),
+                Arguments.of("bad gateway", new AiServiceException("The AI service answered HTTP 502", 502)),
+                Arguments.of("token refused", new AiServiceException("The AI service answered HTTP 401", 401)),
+                Arguments.of("forbidden", new AiServiceException("The AI service answered HTTP 403", 403)),
+                Arguments.of(
+                        "timeout",
+                        new AiServiceException(
+                                "The AI service did not answer in time", new ResourceAccessException("timed out"))),
+                Arguments.of(
+                        "unreachable",
+                        new AiServiceException(
+                                "The AI service could not be reached", new ResourceAccessException("refused"))),
+                Arguments.of("unreadable", new AiServiceException("The AI service's answer could not be read", (Integer)
+                        null)));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("failures")
+    void aFailedCallIsA503ThatChangesNothing(String name, AiServiceException failure) throws Exception {
         long id = graded(student);
-        when(ai.feedback(any())).thenThrow(new AiServiceException("The AI service answered HTTP 503", 503));
+        String before = snapshot(id);
+        when(ai.feedback(any())).thenThrow(failure);
 
         HttpResponse<String> response = request(student, id);
 
-        assertThat(response.statusCode()).isGreaterThanOrEqualTo(500);
-        assertThat(storedLevels(id)).isEmpty();
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(503);
+        assertThat(code(response)).isEqualTo("HINTS_UNAVAILABLE");
+        assertThat(JsonPath.<String>read(response.body(), "$.message"))
+                .isEqualTo("Hints are unavailable right now; your submission and its grade are not affected."
+                        + " Try again later");
+        assertThat(response.body()).doesNotContain(failure.getMessage()).doesNotContain("HTTP");
+        assertThat(snapshot(id)).isEqualTo(before);
         verify(ai, times(1)).feedback(any());
     }
 
+    @Test
+    void afterAFailureTheSameLevelIsAskedForAgain() throws Exception {
+        long id = graded(student);
+        answer("One.");
+        request(student, id);
+        when(ai.feedback(any()))
+                .thenThrow(new AiServiceException("The AI service answered HTTP 503", 503))
+                .thenReturn(new FeedbackResponse("Two.", false));
+
+        HttpResponse<String> failed = request(student, id);
+        HttpResponse<String> retried = request(student, id);
+
+        assertThat(failed.statusCode()).isEqualTo(503);
+        assertThat(retried.statusCode()).as(retried.body()).isEqualTo(201);
+        assertThat(JsonPath.<Integer>read(retried.body(), "$.level")).isEqualTo(2);
+        assertThat(sentRequests()).extracting(FeedbackRequest::hintLevel).containsExactly(1, 2, 2);
+        assertThat(storedLevels(id)).containsExactly(1, 2);
+    }
+
+    @Test
+    void aRefusedTokenIsLoggedAsAConfigurationErrorAndNotRetried(CapturedOutput output) throws Exception {
+        long id = graded(student);
+        when(ai.feedback(any())).thenThrow(new AiServiceException("The AI service answered HTTP 401", 401));
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).isEqualTo(503);
+        verify(ai, times(1)).feedback(any());
+        assertThat(output.getOut())
+                .contains("ERROR")
+                .contains("The AI service refused the backend's token (HTTP 401)")
+                .contains("AI_SERVICE_TOKEN");
+    }
+
+    @Test
+    void anOutageIsLoggedAsAWarningWithItsReason(CapturedOutput output) throws Exception {
+        long id = graded(student);
+        when(ai.feedback(any()))
+                .thenThrow(new AiServiceException(
+                        "The AI service did not answer in time", new ResourceAccessException("timed out")));
+
+        request(student, id);
+
+        assertThat(output.getOut())
+                .contains("WARN")
+                .contains("No hint for submission " + id + " at level 1: The AI service did not answer in time")
+                .doesNotContain("refused the backend's token")
+                .doesNotContain("print(sum(map(int, input().split())))");
+    }
+
     // ---- helpers ----
+
+    /** Everything stored about the submission: its row, grade, criterion scores, results and hints. */
+    private String snapshot(long submissionId) {
+        return String.join(
+                "\n",
+                jdbc.queryForList("select * from submissions where id = ?", submissionId)
+                        .toString(),
+                jdbc.queryForList("select * from grades where submission_id = ?", submissionId)
+                        .toString(),
+                jdbc.queryForList(
+                                "select * from criterion_scores where submission_id = ? order by criterion_id",
+                                submissionId)
+                        .toString(),
+                jdbc.queryForList("select * from test_results where submission_id = ? order by id", submissionId)
+                        .toString(),
+                jdbc.queryForList("select * from ai_feedback where submission_id = ?", submissionId)
+                        .toString());
+    }
 
     private void answer(String hint) {
         when(ai.feedback(any())).thenReturn(new FeedbackResponse(hint, false));

@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.2c done)
-- Next commit: 7.3a — Failure handling: AI service down, timeout, or error → 503, submission and grade untouched
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.3a done)
+- Next commit: 7.4a — Track hints used: count exposed on the submission DTO (student and teacher views)
 - In progress: —
-- Blocked: PR for commit 7.2c awaiting review and a green CI.
+- Blocked: PR for commit 7.3a awaiting review and a green CI.

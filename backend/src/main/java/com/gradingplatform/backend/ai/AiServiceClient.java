@@ -26,10 +26,18 @@ public class AiServiceClient {
     private final RestClient rest;
 
     public AiServiceClient(AiServiceProperties properties) {
-        this.rest = RestClient.builder()
-                .baseUrl(properties.url().toString())
+        this(RestClient.builder().requestFactory(requestFactory(properties)), properties);
+    }
+
+    /**
+     * The client on a builder whose request factory is already chosen: the application's (JDK client
+     * and timeouts, above), or the one Spring's {@code MockRestServiceServer} binds in tests (7.5a), so
+     * a test sees the exact request this class sends. The base URL and the bearer token are added here
+     * in both cases.
+     */
+    public AiServiceClient(RestClient.Builder builder, AiServiceProperties properties) {
+        this.rest = builder.baseUrl(properties.url().toString())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.token())
-                .requestFactory(requestFactory(properties))
                 .build();
     }
 

@@ -1,5 +1,6 @@
 package com.gradingplatform.backend.service;
 
+import com.gradingplatform.backend.entity.AiFeedback;
 import com.gradingplatform.backend.entity.CriterionScore;
 import com.gradingplatform.backend.entity.Grade;
 import com.gradingplatform.backend.entity.Role;
@@ -48,7 +49,13 @@ public class SubmissionViewService {
             List<RubricCriterion> rubric,
             List<CriterionScore> scores,
             Optional<Grade> grade,
-            int hintsUsed) {}
+            List<AiFeedback> hints) {
+
+        /** How many hint levels the submission has received (7.4a): its stored hints, no counter. */
+        public int hintsUsed() {
+            return hints.size();
+        }
+    }
 
     public SubmissionViewService(
             SubmissionRepository submissions,
@@ -138,6 +145,6 @@ public class SubmissionViewService {
                 rubricCriteria.findByAssignmentIdOrderByIdAsc(assignmentId),
                 criterionScores.findBySubmissionIdOrderByCriterionIdAsc(id),
                 grades.findBySubmissionId(id),
-                (int) hints.countBySubmissionId(id));
+                hints.findBySubmissionIdOrderByHintLevelAsc(id));
     }
 }

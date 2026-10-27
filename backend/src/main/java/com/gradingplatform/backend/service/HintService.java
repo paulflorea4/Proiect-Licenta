@@ -4,6 +4,7 @@ import com.gradingplatform.backend.ai.AiServiceClient;
 import com.gradingplatform.backend.ai.AiServiceException;
 import com.gradingplatform.backend.ai.FeedbackRequest;
 import com.gradingplatform.backend.ai.FeedbackResponse;
+import com.gradingplatform.backend.dto.HintReportResponse;
 import com.gradingplatform.backend.dto.HintResponse;
 import com.gradingplatform.backend.dto.StudentSubmissionResponse;
 import com.gradingplatform.backend.dto.StudentTestResultResponse;
@@ -13,6 +14,8 @@ import com.gradingplatform.backend.entity.SubmissionStatus;
 import com.gradingplatform.backend.repository.AiFeedbackRepository;
 import com.gradingplatform.backend.repository.AssignmentRepository;
 import com.gradingplatform.backend.sandbox.TestOutcome;
+import java.time.Clock;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,16 +48,19 @@ public class HintService {
     private final AssignmentRepository assignments;
     private final AiFeedbackRepository hints;
     private final AiServiceClient ai;
+    private final Clock clock;
 
     public HintService(
             SubmissionViewService views,
             AssignmentRepository assignments,
             AiFeedbackRepository hints,
-            AiServiceClient ai) {
+            AiServiceClient ai,
+            Clock clock) {
         this.views = views;
         this.assignments = assignments;
         this.hints = hints;
         this.ai = ai;
+        this.clock = clock;
     }
 
     /**
@@ -69,6 +75,25 @@ public class HintService {
     public List<AiFeedback> list(long userId, Role role, long submissionId) {
         views.view(userId, role, submissionId);
         return hints.findBySubmissionIdOrderByHintLevelAsc(submissionId);
+    }
+
+    /**
+     * The student flags one of their own hints as wrong or unhelpful (7.4b), with an optional reason.
+     * Idempotent: the first report is kept whole (reason and time), and a repeat, even one sent at the
+     * same moment, changes nothing and answers the stored report. The hint itself is never altered or
+     * deleted, and a report never touches the grade.
+     *
+     * @throws SubmissionNotFoundException if there is no such submission
+     * @throws AccessRefusedException if it is another student's (5.5a)
+     * @throws HintNotFoundException if the submission has no stored hint at this level
+     */
+    @Transactional
+    public HintReportResponse report(long studentId, long submissionId, int level, String reason) {
+        views.view(studentId, Role.STUDENT, submissionId);
+        AiFeedback hint =
+                hints.findBySubmissionIdAndHintLevel(submissionId, level).orElseThrow(HintNotFoundException::new);
+        hints.report(hint.getId(), reason, clock.instant().truncatedTo(ChronoUnit.MICROS));
+        return HintReportResponse.of(hints.findById(hint.getId()).orElseThrow(HintNotFoundException::new));
     }
 
     /** A hint and whether this request stored it (201) rather than found or only showed it (200). */

@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.4a done)
-- Next commit: 7.4b — `POST /submissions/{id}/hints/{level}/report`: the student flags one of their own hints
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (7.4b done)
+- Next commit: 7.5a — Test (mocked AI service): the outgoing request contains hidden tests only as pass/fail
 - In progress: —
-- Blocked: PR for commit 7.4a awaiting review and a green CI.
+- Blocked: PR for commit 7.4b awaiting review and a green CI.

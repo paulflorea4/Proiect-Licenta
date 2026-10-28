@@ -2,6 +2,13 @@
 
 | Commit | Task | Status | Notes |
 | --- | --- | --- | --- |
+| 10.0a | A timeout that fires while the container is being created still kills it (retry while `created`) | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, sandbox), approved by the human. |
+| 10.0b | An output reader still alive after its join makes the run `SANDBOX_ERROR`, never a cut output counted as complete | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, sandbox), approved by the human. |
+| 10.0c | `SandboxRunner.runAll`'s default stops after a `SANDBOX_ERROR`, as its Javadoc says (or the Javadoc changes) | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, sandbox), approved by the human. |
+| 10.0d | The "could not run container" log line holds a bounded prefix of stderr, not up to 1 MiB of the program's output | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, sandbox), approved by the human. |
+| 10.0e | `SandboxFlagsTests` checks every restriction on the compile container too (`writable=true`) | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, sandbox), approved by the human. |
+| 10.0f | `SourceFile.isPlainFileName` refuses characters invalid in a Windows file name | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, sandbox), approved by the human. Config-only, never student text. |
+| 10.0g | **GATE** (decided at 5.2c/5.4b; yours to change) — a re-run after recovery that ends in `ERROR` drops its earlier grade and `TESTS` criterion scores (never `MANUAL`) | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, submissions and grading), approved by the human. The dashboard (10.1a+) reads grades; today only the `GRADED` filter hides them. |
 | 10.1a | `GET /assignments/{id}/stats`: submission count, students submitted, mean/median/min/max of each student's best score | Not started | Statistics are over each student's best score (the counting policy), not over every attempt — otherwise repeated tries skew the mean. |
 | 10.1b | Score distribution: fixed-width buckets (e.g. 0–10%, …, 90–100%) | Not started | Bucket width is a named constant. |
 | 10.1c | Per-criterion averages | Not started |  |

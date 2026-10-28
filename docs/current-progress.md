@@ -1,4 +1,4 @@
-- Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (Phase 7 done with 7.6a)
-- Next commit: 8.1a — Confirm the `/frontend` React+TS app (0.1d) is still current before adding to it
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m added after 7.6a; then Phase 8 starts with 8.0a)
+- Next commit: 7.7a — Hint requests hold no database connection during the AI call (`spring.jpa.open-in-view: false`)
 - In progress: —
-- Blocked: the human's triage of the phases 0-7 code review (recorded in `docs/suggestions.md`; docs-only PR awaiting review) before Phase 8 starts.
+- Blocked: PR for the review rows (docs only) awaiting review before 7.7a starts.

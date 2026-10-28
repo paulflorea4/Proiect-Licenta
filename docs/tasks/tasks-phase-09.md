@@ -2,6 +2,12 @@
 
 | Commit | Task | Status | Notes |
 | --- | --- | --- | --- |
+| 9.0a | **GATE** — what happens to a submission that ends in `ERROR` after the deadline | Not started | From the phases 0-7 review (`docs/suggestions.md`, M3), approved by the human. Options: judge a resubmission against the `ERROR` submission's arrival time, a teacher re-run, or an automatic retry on `SANDBOX_ERROR`. |
+| 9.0b | **GATE** — time and memory limits after the first submission (decided editable at 3.3c; a queued submission is graded with the new limits) | Not started | From the phases 0-7 review (`docs/suggestions.md`, M4), approved by the human. Options: lock them like the language, or snapshot them on the submission when accepted. Align `backend/CLAUDE.md`'s 3.4a wording either way. |
+| 9.0c | **GATE** — may a published assignment's language and limits change while its rubric and tests are frozen (option A, 3.5a) | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
+| 9.0d | **GATE** — the roster and users promoted to teacher (filter by role, or drop enrollments on promotion) | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
+| 9.0e | **GATE** — publishing a draft whose deadline has passed (refuse with a new 409, or allow and document) | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
+| 9.0f | The losing request of a double-click returns the stored hint, also when its own answer was a fallback or a failure | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, hints), approved by the human. |
 | 9.1a | Teacher: course list page + create-course form | Not started | Shows the enrollment code prominently with a copy action. |
 | 9.1b | Student: "join course" form (enrollment code) + my courses list | Not started | Empty state matters here — a new student has no courses, and the page should say how to join, not look broken. |
 | 9.2a | Course page: assignment list (students see published only) with deadline and best score | Not started |  |

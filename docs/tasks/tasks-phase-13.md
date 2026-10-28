@@ -2,6 +2,8 @@
 
 | Commit | Task | Status | Notes |
 | --- | --- | --- | --- |
+| 13.0a | **GATE** (the budget) — a prompt-size budget that also bounds the fence, joined with the 6.3a budget suggestion | Not started | From the phases 0-7 review (`docs/suggestions.md`, M6), approved by the human. The fence is one backtick longer than the longest run in any block and wraps every block, so a student can grow a prompt to tens of MB. Before 13.5a adds findings to the prompt. |
+| 13.0b | **GATE** (changes the provider interface) — send the rules as Gemini's `systemInstruction` and ask for `responseMimeType: application/json` | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, AI service), approved by the human. |
 | 13.1a | AI service `POST /analyze`: cyclomatic complexity, function length, nesting depth per function, for Java and Python | Not started | **GATE**: a metrics library such as `lizard` (supports both languages) is a new dependency. Analysis only parses code — it never executes it, which keeps the sandbox as the only place student code runs. |
 | 13.1b | Style/lint violations for Python | Not started | **GATE**: e.g. `ruff` — new dependency. Note `ruff` is already planned as the AI service's own linter (0.5b), but using it on student code is a separate use; confirm with the human. |
 | 13.1c | Style/lint violations for Java | Not started | **GATE**: no default. Options: Checkstyle or PMD (need a JVM next to the AI service, or run in a sandbox image), or a small built-in rule set. Resolve before starting. |

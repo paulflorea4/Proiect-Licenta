@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
  * the service, not here.
  */
 public record EnrollRequest(
-        @NotBlank @Size(max = EnrollRequest.CODE_MAX) String code) {
+        @NotBlank @Size(max = EnrollRequest.CODE_MAX) @NoNul String code) {
 
     public static final int CODE_MAX = 20;
 

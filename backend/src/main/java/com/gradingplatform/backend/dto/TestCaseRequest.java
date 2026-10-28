@@ -25,9 +25,16 @@ import jakarta.validation.constraints.Size;
  */
 public record TestCaseRequest(
         @NotNull Long criterionId,
-        @NotBlank @Size(max = TestCaseRequest.NAME_MAX) String name,
-        @NotNull @Size(max = TestCaseRequest.TEXT_MAX) String input,
-        @NotNull @Size(max = TestCaseRequest.TEXT_MAX) String expectedOutput,
+
+        @NotBlank @Size(max = TestCaseRequest.NAME_MAX) @NoNul
+        String name,
+
+        @NotNull @Size(max = TestCaseRequest.TEXT_MAX) @NoNul
+        String input,
+
+        @NotNull @Size(max = TestCaseRequest.TEXT_MAX) @NoNul
+        String expectedOutput,
+
         @NotNull TestVisibility visibility,
         @NotNull @Min(1) @Max(TestCaseRequest.WEIGHT_MAX) Integer weight,
         @Min(0) @Max(TestCaseRequest.POSITION_MAX) Integer position) {

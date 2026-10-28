@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
  * any other and never reveals the rules.
  */
 public record SigninRequest(
-        @NotBlank @Size(max = 255) String email,
+        @NotBlank @Size(max = 255) @NoNul String email,
         @NotBlank @MaxUtf8Bytes(PasswordPolicy.MAX_BYTES) String password) {
 
     /** As in signup: stray surrounding whitespace on the email is dropped before validation. */

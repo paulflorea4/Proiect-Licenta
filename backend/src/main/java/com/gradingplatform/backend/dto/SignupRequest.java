@@ -10,12 +10,12 @@ import jakarta.validation.constraints.Size;
  * their VARCHAR(255) columns, so an over-long value is a 400 instead of a database error.
  */
 public record SignupRequest(
-        @NotBlank @Email @Size(max = 255) String email,
+        @NotBlank @Email @Size(max = 255) @NoNul String email,
 
         @NotBlank @Size(min = PasswordPolicy.MIN_LENGTH) @MaxUtf8Bytes(PasswordPolicy.MAX_BYTES)
         String password,
 
-        @NotBlank @Size(max = 255) String fullName) {
+        @NotBlank @Size(max = 255) @NoNul String fullName) {
 
     /**
      * Surrounding whitespace on the email (a typical copy-paste slip) is dropped here, before

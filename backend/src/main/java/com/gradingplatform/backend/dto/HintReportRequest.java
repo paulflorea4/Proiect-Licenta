@@ -1,17 +1,15 @@
 package com.gradingplatform.backend.dto;
 
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
  * Optional body of `POST /submissions/{id}/hints/{level}/report` (7.4b): why the student thinks the
  * hint is wrong or unhelpful. Stored as sent for the teacher and the thesis; never sent to the AI
  * service. A blank reason is the same as none, so a stored reason is never an empty string. No NUL
- * character: Postgres {@code TEXT} refuses it.
+ * character ({@link NoNul}).
  */
 public record HintReportRequest(
-        @Size(max = HintReportRequest.REASON_MAX) @Pattern(regexp = "[^\\x00]*")
-        String reason) {
+        @Size(max = HintReportRequest.REASON_MAX) @NoNul String reason) {
 
     /** A placeholder cap pending the human's call (flagged in the PR), as for a manual score's comment. */
     public static final int REASON_MAX = 2000;

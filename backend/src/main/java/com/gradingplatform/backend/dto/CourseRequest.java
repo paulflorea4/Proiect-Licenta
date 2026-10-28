@@ -10,8 +10,10 @@ import jakarta.validation.constraints.Size;
  * request cannot store an arbitrarily large blob.
  */
 public record CourseRequest(
-        @NotBlank @Size(max = CourseRequest.TITLE_MAX) String title,
-        @Size(max = CourseRequest.DESCRIPTION_MAX) String description) {
+        @NotBlank @Size(max = CourseRequest.TITLE_MAX) @NoNul
+        String title,
+
+        @Size(max = CourseRequest.DESCRIPTION_MAX) @NoNul String description) {
 
     public static final int TITLE_MAX = 255;
 

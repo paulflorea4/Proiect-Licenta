@@ -26,12 +26,13 @@ import java.time.Instant;
  * @param starterCode null = no starter code
  */
 public record AssignmentRequest(
-        @NotBlank @Size(max = AssignmentRequest.TITLE_MAX) String title,
+        @NotBlank @Size(max = AssignmentRequest.TITLE_MAX) @NoNul
+        String title,
 
-        @NotBlank @Size(max = AssignmentRequest.DESCRIPTION_MAX)
+        @NotBlank @Size(max = AssignmentRequest.DESCRIPTION_MAX) @NoNul
         String description,
 
-        @NotBlank @Size(max = AssignmentRequest.LANGUAGE_MAX)
+        @NotBlank @Size(max = AssignmentRequest.LANGUAGE_MAX) @NoNul
         String language,
 
         @NotNull Instant deadline,
@@ -43,7 +44,8 @@ public record AssignmentRequest(
         @NotNull @Min(1) @Max(AssignmentRequest.MEMORY_LIMIT_MAX_MB)
         Integer memoryLimitMb,
 
-        @Size(max = AssignmentRequest.STARTER_CODE_MAX) String starterCode) {
+        @Size(max = AssignmentRequest.STARTER_CODE_MAX) @NoNul
+        String starterCode) {
 
     public static final int TITLE_MAX = 255;
     public static final int LANGUAGE_MAX = 20;

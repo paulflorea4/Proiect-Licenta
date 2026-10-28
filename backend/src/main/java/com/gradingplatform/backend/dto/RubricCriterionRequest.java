@@ -17,7 +17,7 @@ import jakarta.validation.constraints.Size;
  * published (3.4b).
  */
 public record RubricCriterionRequest(
-        @NotBlank @Size(max = RubricCriterionRequest.NAME_MAX)
+        @NotBlank @Size(max = RubricCriterionRequest.NAME_MAX) @NoNul
         String name,
 
         @NotNull CriterionType type,

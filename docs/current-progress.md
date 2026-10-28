@@ -1,4 +1,4 @@
-- Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (Phase 7 done with 7.5d)
+- Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (Phase 7 done with 7.6a)
 - Next commit: 8.1a — Confirm the `/frontend` React+TS app (0.1d) is still current before adding to it
 - In progress: —
-- Blocked: PR for commit 7.5d awaiting review and a green CI.
+- Blocked: PR for commit 7.6a awaiting review and a green CI.

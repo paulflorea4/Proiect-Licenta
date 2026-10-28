@@ -15,3 +15,4 @@
 | 7.5b | Test: hint level progression 1→2→3, repeat request returns the same row, fourth request rejected | Done |  |
 | 7.5c | Test: other student's submission → 403; AI service failure → 503 with no side effects; AI service rejecting the token (401) is reported as a clear configuration error, not retried | Done |  |
 | 7.5d | Test: reporting works only on your own hint, is idempotent, is visible in the teacher view and absent from other students' views | Done |  |
+| 7.6a | Refuse a NUL character (U+0000) in every free-text request field: 400 `VALIDATION_FAILED` naming the field, instead of Postgres' 500 | Done | The human's approval of the 7.4b suggestion. One shared constraint, applied to every text field of every request record; the submitted source code keeps its own `SOURCE_NOT_TEXT` rule (5.1c) and passwords are only hashed. A guard test reads the controllers so a new field cannot miss it. |

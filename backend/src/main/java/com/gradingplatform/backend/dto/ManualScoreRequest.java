@@ -14,7 +14,7 @@ import java.math.BigDecimal;
  */
 public record ManualScoreRequest(
         @NotNull @Digits(integer = 3, fraction = 2) BigDecimal score,
-        @Size(max = ManualScoreRequest.COMMENT_MAX) String comment) {
+        @Size(max = ManualScoreRequest.COMMENT_MAX) @NoNul String comment) {
 
     /** A placeholder cap pending the human's call (flagged in the PR), as for a course description. */
     public static final int COMMENT_MAX = 5000;

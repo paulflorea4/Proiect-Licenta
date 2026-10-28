@@ -1,4 +1,4 @@
 - Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m added after 7.6a; then Phase 8 starts with 8.0a)
 - Next commit: 7.7a — Hint requests hold no database connection during the AI call (`spring.jpa.open-in-view: false`)
 - In progress: —
-- Blocked: PR #154 (review findings and the new rows, docs only) awaiting review before 7.7a starts.
+- Blocked: PR for the review rows (docs only) awaiting review before 7.7a starts.

@@ -1,4 +1,4 @@
 - Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m; then Phase 8 starts with 8.0a)
-- Next commit: 7.7b — A container that never started (or did not exit on its own) is `SANDBOX_ERROR`, never the student's `RUNTIME_ERROR`/`COMPILE_ERROR`
+- Next commit: 7.7c — A normal shutdown leaves the submissions being graded `RUNNING` (re-queued at the next start), never `ERROR`
 - In progress: —
-- Blocked: PR for 7.7a awaiting review.
+- Blocked: PR #157 (commit 7.7b) awaiting review; it also asks the human to decide the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

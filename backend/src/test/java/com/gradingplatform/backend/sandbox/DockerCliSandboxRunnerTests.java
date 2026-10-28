@@ -222,6 +222,96 @@ class DockerCliSandboxRunnerTests {
         assertThat(entriesOf(workRoot)).isEmpty();
     }
 
+    @Test
+    void aRunCommandMissingFromTheImageIsASandboxErrorNotTheStudentsRuntimeError() throws IOException {
+        // 7.7b: Docker creates the container but cannot start it, leaving it `created` with exit 127,
+        // which read as an exit code alone was the student's RUNTIME_ERROR (a stored zero).
+        DockerCliSandboxRunner typo = runnerWithRunCommand(List.of("pythn-does-not-exist", "main.py"));
+        Set<String> before = sandboxContainers();
+
+        SandboxResult result =
+                typo.run(new SandboxRequest("PYTHON", List.of(new SourceFile("main.py", "print(1)")), "", LIMITS));
+
+        assertThat(result.status()).as(result.stderr()).isEqualTo(SandboxStatus.SANDBOX_ERROR);
+        assertThat(result.exitCode()).isNull();
+        assertThat(result.stdout()).isEmpty();
+        assertThat(result.stderr()).doesNotContain("pythn-does-not-exist"); // docker's text stays in the log
+        assertThat(sandboxContainers()).isEqualTo(before);
+        assertThat(entriesOf(workRoot)).isEmpty();
+    }
+
+    @Test
+    void aRunCommandMissingFromTheImageStopsTheBatchAtTheFirstInput() {
+        DockerCliSandboxRunner typo = runnerWithRunCommand(List.of("pythn-does-not-exist", "main.py"));
+
+        List<SandboxResult> results = typo.runAll(new SandboxBatchRequest(
+                "PYTHON", List.of(new SourceFile("main.py", "print(input())")), List.of("1", "2", "3"), LIMITS));
+
+        assertThat(results).extracting(SandboxResult::status).containsOnly(SandboxStatus.SANDBOX_ERROR);
+        assertThat(results).hasSize(3);
+    }
+
+    @Test
+    void gradingARunCommandMissingFromTheImageFailsInsteadOfGivingAnOutcome() {
+        // What grading sees (4.6a): no outcome to store, so the submission ends in ERROR, not a zero.
+        SubmissionTestRunner grading =
+                new SubmissionTestRunner(runnerWithRunCommand(List.of("pythn-does-not-exist", "main.py")));
+
+        assertThatThrownBy(() -> grading.runAll(
+                        "PYTHON",
+                        List.of(new SourceFile("main.py", "print(input())")),
+                        LIMITS,
+                        List.of(new TestCaseInput(1, "1", "1"), new TestCaseInput(2, "2", "2"))))
+                .isInstanceOf(SandboxFailedException.class);
+    }
+
+    @Test
+    void aProgramThatItselfExits127IsStillTheStudentsRuntimeError() {
+        // The control for the two above: same exit code, but the container ran and exited.
+        SandboxResult result = python("raise SystemExit(127)\n", "");
+
+        assertThat(result.status()).as(result.stderr()).isEqualTo(SandboxStatus.RUNTIME_ERROR);
+        assertThat(result.exitCode()).isEqualTo(127);
+    }
+
+    @Test
+    void aCompileCommandMissingFromTheImageIsASandboxErrorNotTheStudentsCompileError() throws IOException {
+        // The build step (4.4b) the same way: its container is `created` with exit 127 and never runs,
+        // which read as an exit code alone was COMPILE_ERROR on every test. On the Python image, which
+        // has no entrypoint script; see 7.7b in decisions-phase-07 for the Java image's.
+        LanguageSpec real = languages.find("PYTHON").orElseThrow();
+        Map<String, LanguageSpec> map = new LinkedHashMap<>();
+        map.put(
+                "PYTHON",
+                new LanguageSpec(
+                        real.image(),
+                        real.sourceFileName(),
+                        List.of("compiler-does-not-exist", "main.py"),
+                        real.runCommand()));
+        DockerCliSandboxRunner typo = new DockerCliSandboxRunner(new SandboxProperties(map), workRoot);
+        Set<String> before = sandboxContainers();
+
+        SandboxResult result =
+                typo.run(new SandboxRequest("PYTHON", List.of(new SourceFile("main.py", "print(1)")), "", LIMITS));
+
+        assertThat(result.status()).as(result.stderr()).isEqualTo(SandboxStatus.SANDBOX_ERROR);
+        assertThat(result.exitCode()).isNull();
+        assertThat(result.stderr()).doesNotContain("compiler-does-not-exist");
+        assertThat(sandboxContainers()).isEqualTo(before);
+        assertThat(entriesOf(workRoot)).isEmpty();
+    }
+
+    /**
+     * The Python entry of the real config with the run command replaced. Python's image has no
+     * entrypoint script, so a missing command leaves the container `created` (7.7b).
+     */
+    private DockerCliSandboxRunner runnerWithRunCommand(List<String> runCommand) {
+        LanguageSpec real = languages.find("PYTHON").orElseThrow();
+        Map<String, LanguageSpec> map = new LinkedHashMap<>();
+        map.put("PYTHON", new LanguageSpec(real.image(), real.sourceFileName(), real.compileCommand(), runCommand));
+        return new DockerCliSandboxRunner(new SandboxProperties(map), workRoot);
+    }
+
     // --- cleanup --------------------------------------------------------------------------------
 
     @Test

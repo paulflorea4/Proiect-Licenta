@@ -251,8 +251,8 @@ public class DockerCliSandboxRunner implements SandboxRunner {
             }
             // `docker run` itself exits 125-127 for its own failures, which a program can also
             // return; the container's recorded state tells them apart (no container: the sandbox
-            // failed, say because the image is missing). The state also says whether the kernel
-            // killed the program for memory (4.5a).
+            // failed, say because the image is missing; a container that never ran: below). The
+            // state also says whether the kernel killed the program for memory (4.5a).
             ExitClassification.ContainerState state = recordedState(name).orElse(null);
             if (state == null) {
                 log.warn(
@@ -260,6 +260,18 @@ public class DockerCliSandboxRunner implements SandboxRunner {
                         name,
                         run.stderr().strip());
                 return sandboxError("the container could not be run", runtime);
+            }
+            if (!state.ranToItsEnd()) {
+                // The container exists but its process never ran or did not end (7.7b): say a run
+                // command missing from the image, which Docker leaves `created` with exit 127. Not the
+                // student's doing, so never a grade; Docker's reason goes to the log only.
+                log.warn(
+                        "container {} did not run to its end: status {}, exit code {}, error: {}",
+                        name,
+                        state.status(),
+                        state.exitCode(),
+                        state.error());
+                return sandboxError("the container did not run", runtime);
             }
             if (state.exitCode() == ExitClassification.SIGKILL_EXIT_CODE && !state.oomKilled()) {
                 // Read as a memory kill all the same (ExitClassification); logged because Docker's flag
@@ -377,9 +389,7 @@ public class DockerCliSandboxRunner implements SandboxRunner {
 
     private Optional<ExitClassification.ContainerState> recordedState(String containerName) {
         DockerCommand.Result inspect = DockerCommand.run(
-                HOUSEKEEPING,
-                "",
-                List.of("inspect", "--format", "{{.State.ExitCode}} {{.State.OOMKilled}}", containerName));
+                HOUSEKEEPING, "", List.of("inspect", "--format", ExitClassification.INSPECT_FORMAT, containerName));
         if (inspect.exitCode() != 0) {
             return Optional.empty();
         }

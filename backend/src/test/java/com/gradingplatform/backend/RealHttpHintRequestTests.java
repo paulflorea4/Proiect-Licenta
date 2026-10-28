@@ -26,6 +26,8 @@ import com.gradingplatform.backend.entity.User;
 import com.gradingplatform.backend.sandbox.TestOutcome;
 import com.gradingplatform.backend.service.SubmissionResultWriter;
 import com.jayway.jsonpath.JsonPath;
+import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariPoolMXBean;
 import java.math.BigDecimal;
 import java.net.http.HttpResponse;
 import java.time.Instant;
@@ -39,6 +41,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,6 +77,9 @@ class RealHttpHintRequestTests extends RealHttpTestBase {
 
     @Autowired
     private SubmissionResultWriter writer;
+
+    @Autowired
+    private DataSource dataSource;
 
     private User owner;
     private User student;
@@ -406,6 +412,24 @@ class RealHttpHintRequestTests extends RealHttpTestBase {
         request(student, id);
 
         assertThat(inTransaction).containsExactly(false);
+    }
+
+    @Test
+    void theAiServiceIsCalledHoldingNoDatabaseConnection() throws Exception {
+        // 7.7a: no transaction is not enough; with open-session-in-view on, the connection of the
+        // request's first read stayed checked out through the call (1 active here, 0 with it off).
+        long id = graded(student);
+        HikariPoolMXBean pool = dataSource.unwrap(HikariDataSource.class).getHikariPoolMXBean();
+        List<Integer> active = new ArrayList<>();
+        when(ai.feedback(any())).thenAnswer(invocation -> {
+            active.add(pool.getActiveConnections());
+            return new FeedbackResponse("Look.", false);
+        });
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
+        assertThat(active).containsExactly(0);
     }
 
     @Test

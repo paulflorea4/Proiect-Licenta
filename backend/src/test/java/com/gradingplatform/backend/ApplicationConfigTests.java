@@ -35,6 +35,13 @@ class ApplicationConfigTests {
     }
 
     @Test
+    void openSessionInViewIsOff() {
+        // 7.7a: otherwise a request holds a database connection until its response is written,
+        // a hint request through the whole AI call.
+        assertThat(documentFor(null)).containsEntry("spring.jpa.open-in-view", false);
+    }
+
+    @Test
     void commonSettingsDoNotConfigureADatasource() {
         assertThat(documentFor(null).keySet()).noneMatch(key -> key.startsWith("spring.datasource"));
     }

@@ -6,6 +6,11 @@ spring:
       # Schema changes go through Flyway migrations only. Hibernate just verifies the entities
       # match what the migrations created and never alters the schema.
       ddl-auto: validate
+    # Off (7.7a): Spring's default keeps the connection of a request's first read checked out until
+    # the response is written, so a hint request would hold one through the whole AI call (up to the
+    # read timeout) and a few slow ones would empty the pool the grading worker needs. No entity has
+    # JPA associations, so nothing loads lazily after a service method returns.
+    open-in-view: false
   servlet:
     multipart:
       # Uploads are a submission's source file only (5.1b), capped at SubmissionService.SOURCE_MAX_BYTES

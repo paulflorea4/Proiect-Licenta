@@ -1,4 +1,4 @@
-- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m added after 7.6a; then Phase 8 starts with 8.0a)
-- Next commit: 7.7a — Hint requests hold no database connection during the AI call (`spring.jpa.open-in-view: false`)
+- Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m; then Phase 8 starts with 8.0a)
+- Next commit: 7.7b — A container that never started (or did not exit on its own) is `SANDBOX_ERROR`, never the student's `RUNTIME_ERROR`/`COMPILE_ERROR`
 - In progress: —
-- Blocked: PR for the review rows (docs only) awaiting review before 7.7a starts.
+- Blocked: PR for 7.7a awaiting review.

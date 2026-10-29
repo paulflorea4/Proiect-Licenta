@@ -1,4 +1,4 @@
 - Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m; then Phase 8 starts with 8.0a)
-- Next commit: 7.7c — A normal shutdown leaves the submissions being graded `RUNNING` (re-queued at the next start), never `ERROR`
+- Next commit: 7.7d — A failed queue refill (`pickUpQueued`) does not skip the task's own submission
 - In progress: —
-- Blocked: PR #157 (commit 7.7b) awaiting review; it also asks the human to decide the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #158 (commit 7.7c) awaiting review. Open question for the human, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

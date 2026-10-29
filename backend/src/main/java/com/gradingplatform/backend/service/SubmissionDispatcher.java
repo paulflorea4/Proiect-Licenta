@@ -40,6 +40,7 @@ public class SubmissionDispatcher implements DisposableBean {
     private final ThreadPoolTaskExecutor pool;
     private final LongConsumer work;
     private final IntFunction<List<Long>> oldestQueued;
+    private final Runnable stopWork;
     private final int window;
 
     /** Offered to the pool and not finished yet: never offered twice at the same time. */
@@ -48,17 +49,27 @@ public class SubmissionDispatcher implements DisposableBean {
     @Autowired
     public SubmissionDispatcher(
             SubmissionWorkerProperties properties, SubmissionWorker worker, SubmissionRepository submissions) {
-        this(properties, worker::work, submissions::findQueuedIds);
+        this(properties, worker::work, submissions::findQueuedIds, worker::stop);
+    }
+
+    SubmissionDispatcher(
+            SubmissionWorkerProperties properties, LongConsumer work, IntFunction<List<Long>> oldestQueued) {
+        this(properties, work, oldestQueued, () -> {});
     }
 
     /**
      * @param work one submission's turn on a worker thread
      * @param oldestQueued the ids of up to that many {@code QUEUED} submissions, oldest first
+     * @param stopWork tells {@code work} the application is stopping, before the workers are interrupted
      */
     SubmissionDispatcher(
-            SubmissionWorkerProperties properties, LongConsumer work, IntFunction<List<Long>> oldestQueued) {
+            SubmissionWorkerProperties properties,
+            LongConsumer work,
+            IntFunction<List<Long>> oldestQueued,
+            Runnable stopWork) {
         this.work = work;
         this.oldestQueued = oldestQueued;
+        this.stopWork = stopWork;
         // Everything handed over is within this many of the oldest QUEUED rows, so the window
         // always reaches past them to the next ones waiting.
         this.window = properties.poolSize() + properties.queueCapacity();
@@ -125,7 +136,9 @@ public class SubmissionDispatcher implements DisposableBean {
     @Override
     public void destroy() {
         // Waiting submissions stay QUEUED and a running one RUNNING; SubmissionRecovery takes them
-        // up again at the next start.
+        // up again at the next start. The pool's shutdown interrupts the running workers, which their
+        // grading sees as a failure: the worker is told first, so it does not write ERROR (7.7c).
+        stopWork.run();
         pool.shutdown();
     }
 }

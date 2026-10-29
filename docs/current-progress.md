@@ -1,4 +1,4 @@
 - Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m; then Phase 8 starts with 8.0a)
-- Next commit: 7.7g — The languages config is checked at startup against the assignment limits (`min-memory-mb` at most `MEMORY_LIMIT_MAX_MB`, id at most `LANGUAGE_MAX`)
+- Next commit: 7.7h — Signup hashes the password before its transaction opens
 - In progress: —
-- Blocked: PR #161 (commit 7.7f) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #162 (commit 7.7g) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

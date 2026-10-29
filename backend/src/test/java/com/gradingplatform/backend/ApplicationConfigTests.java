@@ -42,6 +42,12 @@ class ApplicationConfigTests {
     }
 
     @Test
+    void numbersAreNotAcceptedForEnumFields() {
+        // 8.0a: otherwise a number is read as the enum's ordinal (`{"role":2}` is ADMIN).
+        assertThat(documentFor(null)).containsEntry("spring.jackson.datatype.enum.fail-on-numbers-for-enums", true);
+    }
+
+    @Test
     void commonSettingsDoNotConfigureADatasource() {
         assertThat(documentFor(null).keySet()).noneMatch(key -> key.startsWith("spring.datasource"));
     }

@@ -11,6 +11,13 @@ spring:
     # read timeout) and a few slow ones would empty the pool the grading worker needs. No entity has
     # JPA associations, so nothing loads lazily after a service method returns.
     open-in-view: false
+  jackson:
+    datatype:
+      enum:
+        # A JSON number for an enum field is a 400, not the constant at that position (8.0a):
+        # Jackson accepts ordinals by default, so `{"role":2}` was ADMIN and `"type":0` was TESTS.
+        # Jackson 3 moved this switch from DeserializationFeature to EnumFeature.
+        fail-on-numbers-for-enums: true
   servlet:
     multipart:
       # Uploads are a submission's source file only (5.1b), capped at SubmissionService.SOURCE_MAX_BYTES

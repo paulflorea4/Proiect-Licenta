@@ -312,7 +312,8 @@ class RealHttpTestCaseTests extends RealHttpTestBase {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"\"SECRET\"", "\"public\"", "\"\"", "null", "[]"})
+    // 8.0a: 0 and 1 would be PUBLIC and HIDDEN by their ordinals; "1" is the same as a string.
+    @ValueSource(strings = {"\"SECRET\"", "\"public\"", "\"\"", "null", "[]", "0", "1", "\"1\""})
     void anUnknownOrMissingVisibilityIsA400(String visibility) throws Exception {
         assertThat(add(owner, assignment, body("visibility", visibility)).statusCode())
                 .isEqualTo(400);

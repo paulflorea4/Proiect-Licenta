@@ -116,6 +116,11 @@ class RealHttpAdminRoleTests extends RealHttpTestBase {
                 "{\"role\":\"teacher\"}",
                 "{\"role\":\"\"}",
                 "{\"role\":7}",
+                // 8.0a: the ordinals of real roles, and a numeric string; 2 would be ADMIN.
+                "{\"role\":0}",
+                "{\"role\":1}",
+                "{\"role\":2}",
+                "{\"role\":\"2\"}",
                 "not json",
                 ""
             })

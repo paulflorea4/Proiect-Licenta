@@ -28,6 +28,15 @@ public record LanguageSpec(
         List<String> runCommand,
         Integer minMemoryMb) {
 
+    /**
+     * The smallest memory limit, in megabytes, any assignment may have, whatever its language (7.7f,
+     * the human's value). Measured with the Python sandbox image: Docker refuses {@code --memory} under
+     * 6 MB (every run a {@code SANDBOX_ERROR}), and at 6 and 7 MB the interpreter is killed for memory
+     * before running {@code print(3)} (every submission the student's {@code MEMORY_LIMIT}); 8 MB runs
+     * a trivial program. A language's own {@link #minMemoryMb} can only raise it.
+     */
+    public static final int SANDBOX_MIN_MEMORY_MB = 8;
+
     @ConstructorBinding
     public LanguageSpec {
         if (image == null || image.isBlank()) {
@@ -55,9 +64,12 @@ public record LanguageSpec(
         this(image, sourceFileName, compileCommand, runCommand, null);
     }
 
-    /** Whether an assignment in this language may have this memory limit (7.1c). */
+    /**
+     * Whether an assignment in this language may have this memory limit: at least the language's own
+     * minimum (7.1c) and at least {@link #SANDBOX_MIN_MEMORY_MB} (7.7f).
+     */
     public boolean allowsMemoryLimit(int memoryLimitMb) {
-        return minMemoryMb == null || memoryLimitMb >= minMemoryMb;
+        return memoryLimitMb >= SANDBOX_MIN_MEMORY_MB && (minMemoryMb == null || memoryLimitMb >= minMemoryMb);
     }
 
     /**

@@ -10,7 +10,6 @@ import java.util.Locale;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -47,9 +46,12 @@ public class AuthService {
     /**
      * Creates a user. The role is always {@link Role#STUDENT}; only an admin can promote later.
      *
+     * <p>Deliberately not {@code @Transactional}, like {@link #signin} (7.7h): the BCrypt hash takes
+     * about 100 ms and must not hold a database connection while it runs. The insert is one statement
+     * in the repository's own transaction, so nothing else needs one.
+     *
      * @throws EmailAlreadyUsedException if the (normalised) email is taken
      */
-    @Transactional
     public User signup(SignupRequest request) {
         String passwordHash = passwordEncoder.encode(request.password());
         User user = new User(normalizeEmail(request.email()), passwordHash, request.fullName(), Role.STUDENT);

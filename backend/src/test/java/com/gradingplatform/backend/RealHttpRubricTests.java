@@ -169,11 +169,23 @@ class RealHttpRubricTests extends RealHttpTestBase {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"tests", "Tests", "STYLE", ""})
+    @ValueSource(strings = {"tests", "Tests", "STYLE", "", "0"})
     void anUnknownTypeIsA400(String type) throws Exception {
         HttpResponse<String> response = add(owner, assignment, body("X", type, 10));
 
         assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(rubricCriteria.findAll()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    void aNumberForTheTypeIsA400NotItsOrdinal(int ordinal) throws Exception {
+        // 8.0a: 0 would be TESTS.
+        HttpResponse<String> response =
+                add(owner, assignment, "{\"name\":\"X\",\"type\":" + ordinal + ",\"weight\":10}");
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(400);
+        assertThat(code(response)).isEqualTo("MALFORMED_REQUEST");
         assertThat(rubricCriteria.findAll()).isEmpty();
     }
 

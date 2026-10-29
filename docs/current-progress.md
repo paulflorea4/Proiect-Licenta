@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (review rows 8.0a-8.0k first)
-- Next commit: 8.0a — Numeric values for enum fields are a 400 (`FAIL_ON_NUMBERS_FOR_ENUMS`)
+- Next commit: 8.0b — A request from an origin not on the CORS list gets the standard JSON error body (`ACCESS_DENIED`), not plain text
 - In progress: —
-- Blocked: PR #168 (commit 7.7m, the last Phase 7 review row) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #169 (commit 8.0a) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

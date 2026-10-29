@@ -6,6 +6,7 @@ from ai_service.feedback import SAMPLE_REQUEST, generate_feedback
 from ai_service.leak_guard import (
     LINE_SIMILARITY,
     MAX_CODE_LINES,
+    PROGRAM_SHARE,
     SAFE_HINT,
     Leak,
     find_leak,
@@ -335,6 +336,54 @@ FULL_SOLUTIONS: dict[str, tuple[str, FeedbackRequest]] = {
 }
 
 
+# 7.7k: programs whose fix is a whole line added, removed or moved, which no single
+# line of the corrected program shows (each line is the student's or plainly new).
+def request_for(*code: str) -> FeedbackRequest:
+    return SAMPLE_REQUEST.model_copy(update={"code": "\n".join(code) + "\n"})
+
+
+# Adds the text as strings: the fix is a conversion line before the sum.
+STRINGS = request_for("a, b = input().split()", "print(a + b)")
+# One line too many: the fix is removing it.
+EXTRA_LINE = request_for(
+    "a, b = map(int, input().split())", "a = a - 1", "print(a + b)"
+)
+# Prints before adding up: the fix is moving the print to the end.
+EARLY_PRINT = request_for(
+    "nums = list(map(int, input().split()))",
+    "total = 0",
+    "print(total)",
+    "for n in nums:",
+    "    total += n",
+)
+
+REWORKED_PROGRAMS: dict[str, tuple[str, FeedbackRequest]] = {
+    "a line added": (
+        fenced("a, b = input().split()", "a, b = int(a), int(b)", "print(a + b)"),
+        STRINGS,
+    ),
+    "the faulty line removed": (
+        fenced("a, b = map(int, input().split())", "print(a + b)"),
+        EXTRA_LINE,
+    ),
+    "the faulty line removed, numbered": (
+        "Steps:\n1. a, b = map(int, input().split())\n2. print(a + b)",
+        EXTRA_LINE,
+    ),
+    "a line moved": (
+        fenced(
+            "nums = list(map(int, input().split()))",
+            "total = 0",
+            "for n in nums:",
+            "    total += n",
+            "print(total)",
+        ),
+        EARLY_PRINT,
+    ),
+}
+FULL_SOLUTIONS |= REWORKED_PROGRAMS
+
+
 @pytest.mark.parametrize("level", [1, 2, 3])
 @pytest.mark.parametrize("name", sorted(FULL_SOLUTIONS))
 def test_a_full_solution_is_refused_at_every_level(name: str, level: int) -> None:
@@ -345,12 +394,23 @@ def test_a_full_solution_is_refused_at_every_level(name: str, level: int) -> Non
     assert found is not None
     if level == 3:
         # Within the snippet allowance, it is refused as a solution, not for size.
-        assert found in {Leak.COMPLETE_PROGRAM, Leak.EDITED_STUDENT_LINE}
+        assert found in {
+            Leak.COMPLETE_PROGRAM,
+            Leak.EDITED_STUDENT_LINE,
+            Leak.REPRODUCED_PROGRAM,
+        }
 
 
 @pytest.mark.parametrize("level", [1, 2, 3])
 @pytest.mark.parametrize(
-    "name", ["numbered list", "bullets", "blockquote", "java program"]
+    "name",
+    [
+        "numbered list",
+        "bullets",
+        "blockquote",
+        "java program",
+        "the faulty line removed",
+    ],
 )
 def test_a_full_solution_from_the_model_twice_gives_the_safe_hint(
     name: str, level: int
@@ -428,6 +488,110 @@ def test_six_lines_in_a_list_are_one_too_many_at_level_3() -> None:
 )
 def test_prose_lists_and_quotes_are_not_code(hint: str, level: int) -> None:
     assert leak(hint, level) is None
+
+
+# ---- 7.7k: most of the student's program, reworked ----
+
+
+def test_the_share_is_the_humans_value() -> None:
+    assert PROGRAM_SHARE == 0.6
+
+
+@pytest.mark.parametrize("name", sorted(REWORKED_PROGRAMS))
+def test_a_reworked_program_is_refused_for_what_it_is(name: str) -> None:
+    # Before 7.7k each passed at level 3, and the removed or moved line at every level:
+    # no line in them is new code, or the one new line is not an edit of another.
+    hint, request = REWORKED_PROGRAMS[name]
+
+    assert leak(hint, 3, request) is Leak.REPRODUCED_PROGRAM
+
+
+@pytest.mark.parametrize("level", [1, 2])
+@pytest.mark.parametrize(
+    "name",
+    ["the faulty line removed", "the faulty line removed, numbered", "a line moved"],
+)
+def test_a_program_reworked_with_no_new_line_is_refused_at_levels_1_and_2_too(
+    name: str, level: int
+) -> None:
+    hint, request = REWORKED_PROGRAMS[name]
+
+    assert leak(hint, level, request) is Leak.REPRODUCED_PROGRAM
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+@pytest.mark.parametrize(
+    "hint",
+    [
+        fenced("a, b = map(int, input().split())", "a = a - 1", "print(a + b)"),
+        fenced("a, b = map(int, input().split())", "", "a = a - 1", "", "print( a+b )"),
+    ],
+    ids=["as written", "spaced differently"],
+)
+def test_the_students_whole_program_quoted_as_written_is_not_a_rework(
+    hint: str, level: int
+) -> None:
+    assert leak("Your program:\n" + hint, level, EXTRA_LINE) is None
+
+
+def test_a_comment_pointing_at_a_line_does_not_make_a_quote_a_rework() -> None:
+    # Level 3 only: at levels 1 and 2 the comment is new code (6.4a), refused as such.
+    hint = fenced(
+        "a, b = map(int, input().split())",
+        "# look at the next line",
+        "a = a - 1",
+        "print(a + b)",
+    )
+    assert leak("Your program:\n" + hint, 3, EXTRA_LINE) is None
+    assert leak("Your program:\n" + hint, 1, EXTRA_LINE) is Leak.TOO_MUCH_CODE
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+def test_quoting_lines_of_the_program_one_at_a_time_is_not_a_block(level: int) -> None:
+    # Two of three lines, but each in its own span within a sentence.
+    hint = (
+        "You read the numbers with `a, b = map(int, input().split())` and print "
+        "with `print(a + b)`. What happens to `a` in between?"
+    )
+    assert leak(hint, level, EXTRA_LINE) is None
+
+
+def test_a_block_below_the_share_is_not_a_rework_and_one_at_it_is() -> None:
+    program = [f"v{i} = {i} * k" for i in range(6)]
+    request = request_for(*program)
+    # Three of six lines in another order: half, below the share.
+    assert leak(fenced(program[2], program[0], program[1]), 3, request) is None
+    # Four of six: two thirds, at least the share.
+    assert (
+        leak(fenced(program[3], program[2], program[0], program[1]), 3, request)
+        is Leak.REPRODUCED_PROGRAM
+    )
+
+
+def test_braces_alone_do_not_make_a_snippet_most_of_a_program() -> None:
+    # The program's only meaningful line is `run();`. Counting `{` and `}`, this
+    # snippet would show two of three lines; they say nothing about the program.
+    request = SAMPLE_REQUEST.model_copy(
+        update={"language": "JAVA", "code": "{\n  run();\n}\n"}
+    )
+    hint = "The same shape on another example:\n```java\n{\n  walk();\n}\n```"
+
+    assert leak(hint, 3, request) is None
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="known limit (7.7k): the share is per block, so a rework split over two "
+    "blocks is not seen",
+)
+def test_a_reworked_program_split_over_two_blocks_is_refused() -> None:
+    hint = (
+        "First:\n"
+        + fenced("a, b = map(int, input().split())")
+        + "\nthen:\n"
+        + fenced("print(a + b)")
+    )
+    assert leak(hint, 1, EXTRA_LINE) is not None
 
 
 @pytest.mark.xfail(

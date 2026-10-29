@@ -1,4 +1,4 @@
 - Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m; then Phase 8 starts with 8.0a)
-- Next commit: 7.7k — GATE (the share value, and a live check like 6.4d): the leak guard refuses a block that reproduces most of the student's program with a line added, removed or reordered
+- Next commit: 7.7l — The leak guard counts bare statement lines as code (`return a + b`, `print(a + b).`)
 - In progress: —
-- Blocked: PR #165 (commit 7.7j, docs only) awaiting review; then 7.7k needs the human's share value and approval for a live Gemini check. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #166 (commit 7.7k) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

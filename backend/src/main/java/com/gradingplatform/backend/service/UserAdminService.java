@@ -28,12 +28,26 @@ public class UserAdminService {
      * the other as an admin and leave none. The second change waits for the first to commit, then
      * counts again.
      *
+     * <p><b>The caller must still be an admin in the database (7.7e)</b>, not only in their token: a
+     * demoted admin keeps an {@code ADMIN} token until it expires (2.4b), and could otherwise promote
+     * themselves back and demote whoever demoted them. Checked against the locked admin rows, so a
+     * demotion of the caller that commits first is seen, and one that comes after waits for this
+     * change.
+     *
+     * @throws AccessRefusedException if the caller is no longer an admin
+     * @throws AccountNoLongerExistsException if the caller's account was deleted
      * @throws UserNotFoundException if no user has this id
      * @throws LastAdminException if the user is the only admin and the new role is not {@code ADMIN}
      */
     @Transactional
-    public User changeRole(long userId, Role newRole) {
+    public User changeRole(long callerId, long userId, Role newRole) {
         List<User> admins = users.lockAllByRole(Role.ADMIN);
+        if (admins.stream().noneMatch(admin -> admin.getId() == callerId)) {
+            if (!users.existsById(callerId)) {
+                throw new AccountNoLongerExistsException();
+            }
+            throw new AccessRefusedException();
+        }
         User user = users.findById(userId).orElseThrow(UserNotFoundException::new);
         if (user.getRole() == Role.ADMIN && newRole != Role.ADMIN && admins.size() <= 1) {
             throw new LastAdminException();

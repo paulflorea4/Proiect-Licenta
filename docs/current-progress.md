@@ -1,4 +1,4 @@
 - Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m; then Phase 8 starts with 8.0a)
-- Next commit: 7.7e — A demoted admin cannot change roles with their old token: the caller's stored role is re-read under the admin lock
+- Next commit: 7.7f — GATE (the value): an absolute minimum memory limit the sandbox can run, as a named constant
 - In progress: —
-- Blocked: PR #159 (commit 7.7d) awaiting review. Open question for the human, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #160 (commit 7.7e) awaiting review; then 7.7f needs the human's value for the absolute minimum memory limit (Docker refuses under 6 MB). Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

@@ -219,12 +219,87 @@ class RealHttpAdminRoleTests extends RealHttpTestBase {
             go.countDown();
 
             List<Integer> statuses = new ArrayList<>(List.of(firstDemotesSecond.get(), secondDemotesFirst.get()));
-            assertThat(statuses).containsExactlyInAnyOrder(200, 409);
+            // The second to get the lock finds its own caller demoted by the first (7.7e): 403. Before
+            // 7.7e it went on and was refused as the last admin (409); one admin is left either way.
+            assertThat(statuses).containsExactlyInAnyOrder(200, 403);
         } finally {
             pool.shutdownNow();
         }
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE role = 'ADMIN'", Integer.class))
                 .isEqualTo(1);
+    }
+
+    // --- a demoted admin's old token (7.7e) ------------------------------------------------
+
+    @Test
+    void aDemotedAdminCannotReinstateThemselvesOrDemoteWhoeverDemotedThem() throws Exception {
+        User demoted = saved("first@example.com", Role.ADMIN);
+        User remaining = saved("second@example.com", Role.ADMIN);
+        String oldToken = tokenFor(demoted); // says ADMIN until it expires (2.4b)
+        assertThat(setRole(demoted.getId(), "STUDENT", tokenFor(remaining)).statusCode())
+                .isEqualTo(200);
+
+        HttpResponse<String> reinstate = setRole(demoted.getId(), "ADMIN", oldToken);
+        HttpResponse<String> retaliate = setRole(remaining.getId(), "STUDENT", oldToken);
+
+        for (HttpResponse<String> refused : List.of(reinstate, retaliate)) {
+            assertThat(refused.statusCode()).isEqualTo(403);
+            assertThat(refused.body()).contains("\"code\":\"ACCESS_DENIED\"");
+        }
+        assertThat(roleInDatabase(demoted)).isEqualTo("STUDENT");
+        assertThat(roleInDatabase(remaining)).isEqualTo("ADMIN");
+    }
+
+    @Test
+    void aDemotedAdminCannotChangeAnyoneElsesRoleEither() throws Exception {
+        User demoted = saved("first@example.com", Role.ADMIN);
+        User remaining = saved("second@example.com", Role.ADMIN);
+        User student = saved("ada@example.com", Role.STUDENT);
+        User teacher = saved("grace@example.com", Role.TEACHER);
+        String oldToken = tokenFor(demoted);
+        assertThat(setRole(demoted.getId(), "TEACHER", tokenFor(remaining)).statusCode())
+                .isEqualTo(200);
+
+        assertThat(setRole(student.getId(), "ADMIN", oldToken).statusCode()).isEqualTo(403);
+        assertThat(setRole(teacher.getId(), "STUDENT", oldToken).statusCode()).isEqualTo(403);
+        assertThat(setRole(987654321L, "TEACHER", oldToken).statusCode())
+                .as("refused before the target is looked up")
+                .isEqualTo(403);
+
+        assertThat(roleInDatabase(student)).isEqualTo("STUDENT");
+        assertThat(roleInDatabase(teacher)).isEqualTo("TEACHER");
+        assertThat(roleInDatabase(demoted)).isEqualTo("TEACHER");
+    }
+
+    @Test
+    void theStoredRoleDecidesSoAnAdminPromotedBackMayUseTheSameTokenAgain() throws Exception {
+        User admin = saved("first@example.com", Role.ADMIN);
+        User other = saved("second@example.com", Role.ADMIN);
+        User student = saved("ada@example.com", Role.STUDENT);
+        String token = tokenFor(admin);
+        String otherToken = tokenFor(other);
+
+        assertThat(setRole(admin.getId(), "STUDENT", otherToken).statusCode()).isEqualTo(200);
+        assertThat(setRole(student.getId(), "TEACHER", token).statusCode()).isEqualTo(403);
+        assertThat(setRole(admin.getId(), "ADMIN", otherToken).statusCode()).isEqualTo(200);
+
+        assertThat(setRole(student.getId(), "TEACHER", token).statusCode()).isEqualTo(200);
+        assertThat(roleInDatabase(student)).isEqualTo("TEACHER");
+    }
+
+    @Test
+    void anAdminTokenWhoseAccountWasDeletedIs401AndChangesNothing() throws Exception {
+        User gone = saved("gone@example.com", Role.ADMIN);
+        saved("root@example.com", Role.ADMIN);
+        User student = saved("ada@example.com", Role.STUDENT);
+        String token = tokenFor(gone);
+        jdbc.update("DELETE FROM users WHERE id = ?", gone.getId());
+
+        HttpResponse<String> response = setRole(student.getId(), "TEACHER", token);
+
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(response.body()).contains("\"code\":\"ACCOUNT_NO_LONGER_EXISTS\"");
+        assertThat(roleInDatabase(student)).isEqualTo("STUDENT");
     }
 
     // --- what the user sees afterwards -----------------------------------------------------

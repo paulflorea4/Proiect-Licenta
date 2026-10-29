@@ -10,6 +10,7 @@ import java.util.NavigableSet;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.AfterEach;
@@ -190,6 +191,36 @@ class SubmissionDispatcherTests {
                 Thread.onSpinWait();
             }
         }
+    }
+
+    @Test
+    void destroyTellsTheWorkItIsStoppingBeforeInterruptingIt() throws Exception {
+        // 7.7c: the worker must already know when the interrupt reaches the grading, or it writes ERROR.
+        AtomicBoolean stopped = new AtomicBoolean();
+        List<Boolean> stoppedWhenInterrupted = Collections.synchronizedList(new ArrayList<>());
+        dispatcher = new SubmissionDispatcher(
+                new SubmissionWorkerProperties(1, 1),
+                id -> {
+                    queuedRows.remove(id);
+                    running.incrementAndGet();
+                    try {
+                        new Semaphore(0).acquire(); // a grading that only an interrupt ends
+                    } catch (InterruptedException e) {
+                        stoppedWhenInterrupted.add(stopped.get());
+                    } finally {
+                        running.decrementAndGet();
+                    }
+                },
+                limit -> queuedRows.stream().limit(limit).toList(),
+                () -> stopped.set(true));
+        submit(1, 2);
+        eventually("the first is being graded", () -> running.get() == 1);
+
+        dispatcher.destroy();
+
+        eventually("the worker was interrupted", () -> !stoppedWhenInterrupted.isEmpty());
+        assertThat(stoppedWhenInterrupted).containsExactly(true);
+        assertThat(queuedRows).as("the one waiting in memory is still QUEUED").containsExactly(2L);
     }
 
     @Test

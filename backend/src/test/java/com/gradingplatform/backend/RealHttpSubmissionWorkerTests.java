@@ -10,6 +10,7 @@ import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.Submission;
 import com.gradingplatform.backend.entity.SubmissionStatus;
 import com.gradingplatform.backend.entity.User;
+import com.gradingplatform.backend.sandbox.SandboxFailedException;
 import com.gradingplatform.backend.service.SubmissionDispatcher;
 import com.gradingplatform.backend.service.SubmissionProcessor;
 import com.gradingplatform.backend.service.SubmissionQueuedEvent;
@@ -37,6 +38,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -533,5 +535,37 @@ class RealHttpSubmissionWorkerTests extends RealHttpTestBase {
         Thread.sleep(200);
         assertThat(processor.processed).containsExactly(running);
         assertThat(results(running)).isZero();
+    }
+
+    /**
+     * 7.7c: a normal shutdown (the application's own dispatcher bean destroyed, as Spring does on close)
+     * while a submission is being graded. The interrupt reaches grading as a failure, as the sandbox's
+     * does ({@code SandboxFailedException}); the submission stays {@code RUNNING}, never {@code ERROR},
+     * and the next start's recovery takes it up again. The pool cannot be restarted, hence a new context
+     * after this test.
+     */
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void aShutdownWhileGradingLeavesTheSubmissionRunningForTheNextStart() throws Exception {
+        long id = submit();
+        eventually("taken", () -> processor.processed.contains(id));
+        long waiting = submit();
+        processor.failure = new SandboxFailedException();
+
+        dispatcher.destroy();
+
+        eventually("the grading was stopped", () -> processor.running.get() == 0);
+        Thread.sleep(200); // the worker's catch, and a finish it must not write
+        Submission stopped = stored(id);
+        assertThat(stopped.getStatus()).isEqualTo(SubmissionStatus.RUNNING);
+        assertThat(stopped.getFinishedAt()).isNull();
+        assertThat(status(waiting)).isEqualTo(SubmissionStatus.QUEUED);
+        assertThat(processor.processed).as("the waiting one was never started").containsExactly(id);
+
+        recovery.afterSingletonsInstantiated(); // the next start's first step
+
+        assertThat(status(id)).isEqualTo(SubmissionStatus.QUEUED);
+        assertThat(stored(id).getStartedAt()).isNull();
+        assertThat(stored(id).getSourceCode()).isEqualTo("print(1)");
     }
 }

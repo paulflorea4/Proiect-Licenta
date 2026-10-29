@@ -129,4 +129,82 @@ class SubmissionWorkerTests {
         verify(submissions).claim(ID, NOW_MICROS);
         verify(submissions, never()).finish(anyLong(), any(), any());
     }
+
+    // ---- stopping (7.7c): a failure caused by the shutdown is not the submission's ERROR ----
+
+    @Test
+    void aFailureAfterStopIsFinishedNeitherErrorNorGradedSoTheRowStaysRunning() {
+        // The interrupt flag already cleared on the way (a caught InterruptedException): stop() alone decides.
+        claimable();
+        SubmissionWorker worker = worker(id -> {
+            throw new IllegalStateException("the sandbox was interrupted");
+        });
+
+        worker.stop();
+        worker.work(ID);
+
+        verify(submissions).claim(ID, NOW_MICROS);
+        verify(submissions, never()).finish(anyLong(), any(), any());
+        assertThat(Thread.currentThread().isInterrupted()).isFalse();
+    }
+
+    @Test
+    void aFailureOnAnInterruptedThreadIsNotFinishedEither() {
+        claimable();
+
+        try {
+            worker(id -> {
+                        Thread.currentThread().interrupt(); // as the sandbox restores it (4.3d)
+                        throw new IllegalStateException("the sandbox was interrupted");
+                    })
+                    .work(ID);
+        } finally {
+            Thread.interrupted(); // not into the next test
+        }
+
+        verify(submissions, never()).finish(anyLong(), any(), any());
+    }
+
+    @Test
+    void anErrorAfterStopIsRethrownWithoutFinishing() {
+        claimable();
+        StackOverflowError overflow = new StackOverflowError();
+        SubmissionWorker worker = worker(id -> {
+            throw overflow;
+        });
+        worker.stop();
+
+        assertThatThrownBy(() -> worker.work(ID)).isSameAs(overflow);
+
+        verify(submissions, never()).finish(anyLong(), any(), any());
+    }
+
+    @Test
+    void aGradingThatCompletesAfterStopIsStillGraded() {
+        claimable();
+        SubmissionWorker worker = worker(calls::add);
+        worker.stop();
+
+        worker.work(ID);
+
+        assertThat(calls).containsExactly(ID);
+        verify(submissions).finish(ID, SubmissionStatus.GRADED, NOW_MICROS);
+    }
+
+    @Test
+    void stopIsAboutThisWorkerOnly() {
+        // The control for the tests above: another worker that was not stopped still writes ERROR.
+        claimable();
+        worker(id -> {
+                    throw new IllegalStateException("grading crashed");
+                })
+                .stop();
+
+        worker(id -> {
+                    throw new IllegalStateException("grading crashed");
+                })
+                .work(ID);
+
+        verify(submissions).finish(ID, SubmissionStatus.ERROR, NOW_MICROS);
+    }
 }

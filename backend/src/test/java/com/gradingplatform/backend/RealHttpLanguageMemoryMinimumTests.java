@@ -22,6 +22,8 @@ import org.junit.jupiter.params.provider.ValueSource;
  * 7.1c: an assignment's memory limit may not be below its language's `min-memory-mb` (128 MB for
  * Java in `application.yml`, none for Python). Checked on create, and on update only when the
  * language or the memory limit changes, so an assignment made before the minimum is not frozen.
+ * 7.7f: nor below the sandbox's own floor, `LanguageSpec.SANDBOX_MIN_MEMORY_MB` (8 MB), whatever the
+ * language, by the same check.
  */
 class RealHttpLanguageMemoryMinimumTests extends RealHttpTestBase {
 
@@ -66,11 +68,36 @@ class RealHttpLanguageMemoryMinimumTests extends RealHttpTestBase {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {1, 16, 64})
-    void aLanguageWithoutAMinimumTakesAnyValidLimit(int memory) throws Exception {
+    @ValueSource(ints = {8, 16, 64})
+    void aLanguageWithoutAMinimumTakesAnyLimitFromTheSandboxFloor(int memory) throws Exception {
         HttpResponse<String> response = create(body("PYTHON", memory));
 
         assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
+    }
+
+    // ---- 7.7f: the sandbox's floor, 8 MB for every language ----
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 5, 6, 7})
+    void anAssignmentBelowTheSandboxFloorIsRefusedEvenForALanguageWithoutAMinimum(int memory) throws Exception {
+        // Docker refuses under 6 MB and Python is killed for memory at 6-7 MB: nothing could be graded.
+        HttpResponse<String> response = create(body("PYTHON", memory));
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(400);
+        assertThat(JsonPath.<String>read(response.body(), "$.code")).isEqualTo(CODE);
+        assertThat(assignments.count()).isZero();
+    }
+
+    @Test
+    void anOldAssignmentBelowTheFloorStaysEditableUntilItsMemoryChanges() throws Exception {
+        Assignment old = stored("PYTHON", 4); // made before 7.7f
+
+        assertThat(update(old, body("PYTHON", 4, "title", "\"Renamed\"")).statusCode())
+                .isEqualTo(200);
+        assertThat(update(old, body("PYTHON", 7)).statusCode()).isEqualTo(400);
+        assertThat(update(old, body("PYTHON", 8)).statusCode()).isEqualTo(200);
+        assertThat(assignments.findById(old.getId()).orElseThrow().getMemoryLimitMb())
+                .isEqualTo(8);
     }
 
     @Test

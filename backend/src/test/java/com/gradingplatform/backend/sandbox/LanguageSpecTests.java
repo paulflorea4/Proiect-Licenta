@@ -84,11 +84,36 @@ class LanguageSpecTests {
     // ---- 7.1c: the memory minimum ----
 
     @Test
-    void withoutAMinimumAnyMemoryLimitIsAllowed() {
+    void withoutAMinimumAnyLimitFromTheSandboxFloorIsAllowed() {
         LanguageSpec spec = new LanguageSpec("img", "main.py", List.of(), RUN);
 
         assertThat(spec.minMemoryMb()).isNull();
-        assertThat(spec.allowsMemoryLimit(1)).isTrue();
+        assertThat(spec.allowsMemoryLimit(8)).isTrue();
+        assertThat(spec.allowsMemoryLimit(1024)).isTrue();
+    }
+
+    // ---- 7.7f: the sandbox's own floor, for every language ----
+
+    @Test
+    void theSandboxFloorIsEightMegabytes() {
+        // The human's value (7.7f): the smallest limit at which the Python interpreter starts.
+        assertThat(LanguageSpec.SANDBOX_MIN_MEMORY_MB).isEqualTo(8);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 5, 6, 7})
+    void belowTheSandboxFloorNothingIsAllowedEvenWithoutAMinimum(int memory) {
+        assertThat(new LanguageSpec("img", "main.py", List.of(), RUN).allowsMemoryLimit(memory))
+                .isFalse();
+    }
+
+    @Test
+    void aLanguageMinimumBelowTheFloorDoesNotLowerIt() {
+        LanguageSpec spec = new LanguageSpec("img", "main.py", List.of(), RUN, 4);
+
+        assertThat(spec.allowsMemoryLimit(4)).isFalse();
+        assertThat(spec.allowsMemoryLimit(7)).isFalse();
+        assertThat(spec.allowsMemoryLimit(8)).isTrue();
     }
 
     @Test

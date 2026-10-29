@@ -194,6 +194,51 @@ class SubmissionDispatcherTests {
     }
 
     @Test
+    void aRefillThatFailsDoesNotCostTheTaskItsOwnSubmission() throws Exception {
+        // 7.7d: the refill and the task's own work shared one try, so the failure skipped the work and
+        // the row stayed QUEUED with no task holding it.
+        AtomicInteger refills = new AtomicInteger();
+        dispatcher = new SubmissionDispatcher(new SubmissionWorkerProperties(1, 1), this::work, limit -> {
+            refills.incrementAndGet();
+            throw new IllegalStateException("the database is gone");
+        });
+        permits.release(3);
+
+        submit(1);
+        eventually("the first graded", () -> worked.size() == 1);
+        submit(2);
+        eventually("the second graded on the same worker", () -> worked.size() == 2);
+
+        assertThat(worked).containsExactly(1L, 2L);
+        assertThat(refills.get()).as("each task still tried to refill").isEqualTo(2);
+    }
+
+    @Test
+    void aRefillThatFailsOnceLeavesTheWaitingForTheNextTasksRefill() throws Exception {
+        AtomicBoolean failNext = new AtomicBoolean(true);
+        dispatcher = new SubmissionDispatcher(new SubmissionWorkerProperties(1, 1), this::work, limit -> {
+            if (failNext.getAndSet(false)) {
+                throw new IllegalStateException("the database is gone");
+            }
+            return queuedRows.stream().limit(limit).toList();
+        });
+        submit(1);
+        eventually("the first is being graded", () -> running.get() == 1);
+        queuedRows.add(2L); // committed while the pool was busy, offered by nobody yet
+
+        permits.release();
+        eventually("the first graded", () -> worked.size() == 1);
+        assertThat(queuedRows).as("its refill failed: the second still waits").containsExactly(2L);
+
+        submit(3); // the next task's refill takes the second
+        permits.release(2);
+
+        eventually("both graded", () -> worked.size() == 3);
+        // The third's own work runs first: the second was only queued behind it by its refill.
+        assertThat(worked).containsExactly(1L, 3L, 2L);
+    }
+
+    @Test
     void destroyTellsTheWorkItIsStoppingBeforeInterruptingIt() throws Exception {
         // 7.7c: the worker must already know when the interrupt reaches the grading, or it writes ERROR.
         AtomicBoolean stopped = new AtomicBoolean();

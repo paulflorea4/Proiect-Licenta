@@ -15,11 +15,12 @@ import java.lang.annotation.Target;
  * TEXT} refuses it, so without this check a NUL sent in JSON as {@code \u0000} reached the database
  * and came back as a 500 (7.6a). Every text field of a request record carries it, except the
  * submitted source code, which has its own rule ({@code SOURCE_NOT_TEXT}, 5.1c), and passwords,
- * which are only hashed; {@code NoNulTests} fails on a new text field without it.
+ * which are only hashed; {@code NoNulTests} fails on a new text field without it. It may also mark
+ * the elements of a list ({@code List<@NoNul String>}, 7.7i), which the guard then requires.
  */
 @Documented
 @Constraint(validatedBy = NoNul.Validator.class)
-@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
+@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT, ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface NoNul {
 

@@ -4,11 +4,13 @@ import com.gradingplatform.backend.dto.PageResponse;
 import com.gradingplatform.backend.dto.RoleChangeRequest;
 import com.gradingplatform.backend.dto.UserResponse;
 import com.gradingplatform.backend.dto.UserSummaryResponse;
+import com.gradingplatform.backend.security.AuthenticatedUser;
 import com.gradingplatform.backend.service.UserAdminService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,12 +32,16 @@ public class AdminUserController {
 
     /**
      * The only way a `TEACHER` or `ADMIN` is created in the running system. The change reaches the
-     * user's token only at their next signin (the token carries the role, 2.4b).
+     * user's token only at their next signin (the token carries the role, 2.4b). The caller's own
+     * role is checked again in the database (7.7e): a demoted admin's token still says `ADMIN`.
      */
     @PatchMapping("/{id}/role")
     @PreAuthorize("hasRole('ADMIN')")
-    public UserResponse changeRole(@PathVariable long id, @Valid @RequestBody RoleChangeRequest request) {
-        return UserResponse.from(userAdminService.changeRole(id, request.role()));
+    public UserResponse changeRole(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @PathVariable long id,
+            @Valid @RequestBody RoleChangeRequest request) {
+        return UserResponse.from(userAdminService.changeRole(principal.id(), id, request.role()));
     }
 
     /**

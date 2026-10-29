@@ -1,4 +1,4 @@
 - Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m; then Phase 8 starts with 8.0a)
-- Next commit: 7.7l — The leak guard counts bare statement lines as code (`return a + b`, `print(a + b).`)
+- Next commit: 7.7m — GATE (the length): the leak guard's similarity check skips or truncates lines over a named length
 - In progress: —
-- Blocked: PR #166 (commit 7.7k) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #167 (commit 7.7l) awaiting review; then 7.7m needs the human's length (timings in `docs/suggestions.md`). Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

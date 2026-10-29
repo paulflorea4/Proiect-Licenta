@@ -1,4 +1,6 @@
 import json
+import random
+import time
 
 import pytest
 
@@ -6,6 +8,7 @@ from ai_service.feedback import SAMPLE_REQUEST, generate_feedback
 from ai_service.leak_guard import (
     LINE_SIMILARITY,
     MAX_CODE_LINES,
+    MAX_COMPARED_LENGTH,
     PROGRAM_SHARE,
     SAFE_HINT,
     Leak,
@@ -298,6 +301,52 @@ def test_the_same_idea_on_other_names_is_not_an_edit() -> None:
     assert leak("For example:\n" + fenced("print(a + b)"), 3) is (
         Leak.EDITED_STUDENT_LINE
     )
+
+
+# ---- 7.7m: long lines are compared on their first MAX_COMPARED_LENGTH characters ----
+
+
+def long_line(length: int, changed_at: int | None = None) -> str:
+    """`s = "..."` with `length` seeded random characters, one of them changed."""
+    chars = list(random.Random(7).choices("abcdefgh+*()=", k=length))
+    if changed_at is not None:
+        chars[changed_at] = "Z"
+    return 's = "' + "".join(chars) + '"'
+
+
+LONG = SAMPLE_REQUEST.model_copy(
+    update={"code": long_line(50_000) + "\nprint(len(s))\n"}
+)
+
+
+def test_lines_are_compared_on_the_humans_length() -> None:
+    assert MAX_COMPARED_LENGTH == 500
+
+
+def test_a_very_long_edited_line_is_judged_in_well_under_a_second() -> None:
+    # Before 7.7m difflib compared all 50,000 characters: about 26 s for this one pair.
+    hint = "Write:\n" + fenced(long_line(50_000, changed_at=25_000))
+
+    started = time.perf_counter()
+    found = leak(hint, 3, LONG)
+    elapsed = time.perf_counter() - started
+
+    assert found is Leak.EDITED_STUDENT_LINE
+    assert elapsed < 1.0
+
+
+@pytest.mark.parametrize("changed_at", [100, 40_000], ids=["early", "late"])
+def test_an_edit_anywhere_in_a_long_line_is_still_an_edit(changed_at: int) -> None:
+    # Late: the first 500 characters are the student's, so the line is theirs edited.
+    hint = "Write:\n" + fenced(long_line(50_000, changed_at=changed_at))
+
+    assert leak(hint, 3, LONG) is Leak.EDITED_STUDENT_LINE
+
+
+def test_a_long_line_of_the_students_quoted_unchanged_is_not_new() -> None:
+    hint = "Your first line:\n" + fenced(long_line(50_000))
+
+    assert leak(hint, 1, LONG) is None
 
 
 def test_the_check_is_pure() -> None:

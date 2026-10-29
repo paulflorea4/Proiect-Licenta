@@ -29,6 +29,14 @@ MAX_CODE_LINES: dict[int, int] = {1: 0, 2: 0, 3: MAX_SNIPPET_LINES}
 # other names, apart.
 LINE_SIMILARITY = 0.8
 
+# Lines are compared on at most this many characters (whitespace already removed; 7.7m,
+# the human's value). difflib's ratio is quadratic: measured on two nearly equal lines,
+# 3 ms at 500 characters, 4.2 s at 20,000 and about 26 s projected at 50,000, for every
+# pair of a hint line and a student line. Real code lines are rarely over 200. A long
+# line whose start matches a student line still compares as edited, wherever the edit
+# is.
+MAX_COMPARED_LENGTH = 500
+
 # A block of code in a hint that shows at least this share of the student's lines
 # (each as written or edited, `LINE_SIMILARITY`) but is not their program as written is
 # their program reworked: a line added, removed or reordered (7.7k, the human's value).
@@ -246,6 +254,7 @@ def _student_lines(code: str) -> set[str]:
 
 
 def _similar(a: str, b: str) -> bool:
+    a, b = a[:MAX_COMPARED_LENGTH], b[:MAX_COMPARED_LENGTH]
     matcher = SequenceMatcher(None, a, b, autojunk=False)
     return (
         matcher.real_quick_ratio() >= LINE_SIMILARITY

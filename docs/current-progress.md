@@ -1,4 +1,4 @@
 - Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m; then Phase 8 starts with 8.0a)
-- Next commit: 7.7h — Signup hashes the password before its transaction opens
+- Next commit: 7.7i — The NUL guard (`NoNulTests`) also walks nested records and collection elements, and requires `@Valid` on each `@RequestBody`
 - In progress: —
-- Blocked: PR #162 (commit 7.7g) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #163 (commit 7.7h) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

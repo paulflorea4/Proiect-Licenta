@@ -37,6 +37,20 @@ JAVA = SAMPLE_REQUEST.model_copy(
 )
 
 
+# The same task with the arithmetic in a function: `return a * b`.
+FUNCTION = SAMPLE_REQUEST.model_copy(
+    update={
+        "code": (
+            "def solve(a, b):\n"
+            "    return a * b\n"
+            "\n"
+            "a, b = map(int, input().split())\n"
+            "print(solve(a, b))\n"
+        ),
+    }
+)
+
+
 def leak(hint: str, level: int, request: FeedbackRequest = PYTHON) -> Leak | None:
     return find_leak(hint, request.model_copy(update={"hint_level": level}))
 
@@ -60,6 +74,10 @@ def fenced(*lines: str, fence: str = "```") -> str:
         "- First, read the description again.\n- Then compare with your output.",
         "Note (see the test above): your output is 6.",
         SAFE_HINT,
+        # 7.7l: a statement keyword followed by words, not an expression.
+        "- if the result is too large, look at the operator\n- return to the "
+        "description and read it again\n- while reading the input, note both values",
+        "If you are done, return the result.",
     ],
     ids=[
         "one sentence",
@@ -69,6 +87,8 @@ def fenced(*lines: str, fence: str = "```") -> str:
         "a list",
         "parentheses",
         "the safe hint",
+        "keywords starting bullets",
+        "a sentence ending in a full stop",
     ],
 )
 def test_prose_is_not_code(hint: str, level: int) -> None:
@@ -84,8 +104,16 @@ def test_prose_is_not_code(hint: str, level: int) -> None:
         "Look at this line:\n" + fenced("print( a*b )"),
         "Your whole program:\n"
         + fenced("a, b = map(int, input().split())", "print(a * b)"),
+        # 7.7l: the full stop is the sentence's, not the line's.
+        "Look at this line:\nprint(a * b).",
     ],
-    ids=["in a span", "in a fence", "spaced differently", "the whole program"],
+    ids=[
+        "in a span",
+        "in a fence",
+        "spaced differently",
+        "the whole program",
+        "with a full stop",
+    ],
 )
 def test_quoting_the_students_own_code_unchanged_is_not_a_leak(
     hint: str, level: int
@@ -115,6 +143,11 @@ def test_the_allowance_is_none_at_levels_1_and_2_and_the_snippet_at_level_3() ->
         "Write it like this:\n}",
         "Write it like this:\nsum(numbers)",
         "Open a fence and never close it:\n```\ntotal = 0",
+        # 7.7l: bare statements without the punctuation the other patterns want.
+        "Write it like this:\nreturn a + b",
+        "Write it like this:\nif total > limit",
+        "Try `return a + b`.",
+        "Write it like this:\nsum(numbers).",
     ],
     ids=[
         "a fenced line",
@@ -128,6 +161,10 @@ def test_the_allowance_is_none_at_levels_1_and_2_and_the_snippet_at_level_3() ->
         "a closing brace",
         "a call",
         "an unclosed fence",
+        "a bare return",
+        "a bare condition",
+        "a bare return in a span",
+        "a call with a full stop",
     ],
 )
 def test_any_new_code_is_too_much_at_levels_1_and_2(hint: str, level: int) -> None:
@@ -234,6 +271,9 @@ def test_reading_and_printing_quoted_from_the_students_code_is_not_new() -> None
         ),
         ("Change it to:\n```java\nSystem.out.println(a + b);\n```", JAVA),
         ("Use `System.out.println(a + b);` there.", JAVA),
+        # 7.7l: before, neither was seen as code, so neither was compared.
+        ("Write:\nprint(a + b).", PYTHON),
+        ("Write it as\nreturn a + b", FUNCTION),
     ],
     ids=[
         "the fixed line",
@@ -241,6 +281,8 @@ def test_reading_and_printing_quoted_from_the_students_code_is_not_new() -> None
         "the corrected program",
         "a fixed line of a longer program",
         "a fixed line of a longer program in a span",
+        "the fixed line with a full stop",
+        "a fixed bare return",
     ],
 )
 def test_an_edited_line_of_the_students_code_is_a_leak(

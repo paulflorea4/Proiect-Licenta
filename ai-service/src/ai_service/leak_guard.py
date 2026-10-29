@@ -78,6 +78,18 @@ _ASSIGNMENT = re.compile(
 )
 _CALL = re.compile(r"^[A-Za-z_][\w.]*\(.*\)\s*;?$")
 
+# A statement keyword followed by an expression: operands joined by symbol operators,
+# e.g. `return a + b` or `if a > b` (7.7l). Two bare words in a row are prose ("if the
+# result", "return to the description"), so they never match; at least one operator or
+# call is required on top (see `_looks_like_code`), so "if done" stays prose too.
+_OPERAND = r"-?[\w.]+(?:\[[^\]]*\]|\([^()]*\))*"
+_OPERATOR = r"(?:\*\*|//|==|!=|<=|>=|&&|\|\||[-+*/%<>])"
+_KEYWORD_EXPRESSION = re.compile(
+    rf"^(?:return|yield|raise|throw|if|elif|while|assert)\s+{_OPERAND}"
+    rf"(?:\s*{_OPERATOR}\s*{_OPERAND})*\s*;?$"
+)
+_HAS_OPERATOR_OR_CALL = re.compile(rf"[\w)\]]\s*{_OPERATOR}\s*[-\w(]|\w\(")
+
 # What a whole program for a stdin-to-stdout assignment does: read the input, print the
 # answer, or declare an entry point. One list for every language (no branch per
 # language); a new language may add its own words here.
@@ -151,14 +163,14 @@ def _code_blocks(hint: str) -> list[list[str]]:
         if opening:
             run = _close(run, blocks)
             fence = opening.group("fence")
-        elif _looks_like_code(line):
-            run.append(line)
+        elif (statement := _as_code(line)) is not None:
+            run.append(statement)
         else:
             run = _close(run, blocks)
             blocks += [
-                [span.group("code")]
+                [statement]
                 for span in _INLINE_CODE.finditer(line)
-                if _looks_like_code(span.group("code"))
+                if (statement := _as_code(span.group("code"))) is not None
             ]
     _close(run, blocks)
     return blocks
@@ -199,11 +211,27 @@ def _without_container(line: str) -> str:
     return _CONTAINER.sub("", line.strip(), count=1)
 
 
+def _as_code(text: str) -> str | None:
+    """The text as a line of code, if it reads as one: as written, or without the one
+    full stop a sentence ends with (7.7l: `print(a + b).`), which is then not kept, so a
+    student's line quoted with a full stop still matches their code."""
+    line = _without_container(text)
+    if _looks_like_code(line):
+        return line
+    if line.endswith(".") and not line.endswith("..") and _looks_like_code(line[:-1]):
+        return line[:-1]
+    return None
+
+
 def _looks_like_code(text: str) -> bool:
     line = _without_container(text)
     return bool(
         _STATEMENT_END.search(line)
         or (_KEYWORD_START.match(line) and re.search(r"[:;{)]$|[(=\[]", line))
+        or (
+            _KEYWORD_EXPRESSION.match(line)
+            and _HAS_OPERATOR_OR_CALL.search(line.split(None, 1)[1])
+        )
         or _ASSIGNMENT.match(line)
         or _CALL.match(line)
     )

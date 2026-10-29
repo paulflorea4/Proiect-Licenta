@@ -5,13 +5,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -52,13 +53,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService, JsonMapper jsonMapper)
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtService jwtService,
+            JsonMapper jsonMapper,
+            CorsConfigurationSource corsConfigurationSource)
             throws Exception {
         var writer = new JsonErrorWriter(jsonMapper);
+        // The filter `http.cors(...)` would add, from the same `corsConfigurationSource` bean
+        // (config/CorsConfig) and at the same place, ahead of authentication, so it answers
+        // preflight requests itself; built here only to refuse in the standard error body (8.0b).
+        var cors = new CorsFilter(corsConfigurationSource);
+        cors.setCorsProcessor(new JsonCorsProcessor(writer));
         http.csrf(AbstractHttpConfigurer::disable)
-                // Uses the `corsConfigurationSource` bean (config/CorsConfig). It answers preflight
-                // requests itself, ahead of the authentication filter.
-                .cors(Customizer.withDefaults())
+                .addFilter(cors)
                 .sessionManagement(sessions -> sessions.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)

@@ -2,8 +2,10 @@ package com.gradingplatform.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.gradingplatform.backend.dto.ErrorCode;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
+import com.jayway.jsonpath.JsonPath;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
@@ -15,7 +17,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 /**
  * 2.4d: CORS over a real HTTP connection, through the whole security chain. A preflight carries no
- * token, so these also prove CORS is answered ahead of authentication.
+ * token, so these also prove CORS is answered ahead of authentication. 8.0b: every refusal is the
+ * standard JSON error body.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -67,16 +70,14 @@ class RealHttpCorsTests extends RealHttpTestBase {
     void aPreflightFromAnyOtherOriginIsRefused(String origin) throws Exception {
         HttpResponse<String> response = preflight("/auth/me", origin, "GET", "authorization");
 
-        assertThat(response.statusCode()).isEqualTo(403);
+        assertRefusedInTheStandardShape(response);
         assertThat(response.headers().firstValue(ALLOW_ORIGIN)).isEmpty();
     }
 
     @Test
     void aPreflightForAMethodOrHeaderThatIsNotListedIsRefused() throws Exception {
-        assertThat(preflight("/auth/me", ALLOWED, "TRACE", "authorization").statusCode())
-                .isEqualTo(403);
-        assertThat(preflight("/auth/me", ALLOWED, "GET", "x-something-else").statusCode())
-                .isEqualTo(403);
+        assertRefusedInTheStandardShape(preflight("/auth/me", ALLOWED, "TRACE", "authorization"));
+        assertRefusedInTheStandardShape(preflight("/auth/me", ALLOWED, "GET", "x-something-else"));
     }
 
     // --- actual requests ---------------------------------------------------------------------
@@ -124,9 +125,24 @@ class RealHttpCorsTests extends RealHttpTestBase {
         HttpResponse<String> response =
                 get("/auth/me", "https://evil.example", "Bearer " + tokenFor("ada@example.com"));
 
-        assertThat(response.statusCode()).isEqualTo(403);
+        assertRefusedInTheStandardShape(response);
         assertThat(response.headers().firstValue(ALLOW_ORIGIN)).isEmpty();
         assertThat(response.body()).doesNotContain("ada@example.com");
+    }
+
+    @Test
+    void aWriteFromAnotherOriginIsRefusedInTheStandardShapeAndChangesNothing() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/auth/signup"))
+                .header("Origin", "https://evil.example")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"email\":\"eve@example.com\",\"password\":\"correct horse\",\"fullName\":\"Eve\"}"))
+                .build();
+
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertRefusedInTheStandardShape(response);
+        assertThat(users.findByEmail("eve@example.com")).isEmpty();
     }
 
     @Test
@@ -138,6 +154,21 @@ class RealHttpCorsTests extends RealHttpTestBase {
     }
 
     // --- helpers ---------------------------------------------------------------------------
+
+    /**
+     * 8.0b: a CORS refusal is the standard 403 `ACCESS_DENIED` body (2.6a), not Spring's plain
+     * text, and keeps the `Vary` headers the check adds.
+     */
+    private static void assertRefusedInTheStandardShape(HttpResponse<String> response) {
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(header(response, "Content-Type")).startsWith("application/json");
+        assertThat(JsonPath.<Integer>read(response.body(), "$.status")).isEqualTo(403);
+        assertThat(JsonPath.<String>read(response.body(), "$.code")).isEqualTo("ACCESS_DENIED");
+        assertThat(JsonPath.<String>read(response.body(), "$.message"))
+                .isEqualTo(ErrorCode.ACCESS_DENIED.defaultMessage());
+        assertThat(response.body()).doesNotContain("Invalid CORS request");
+        assertThat(header(response, "Vary")).containsIgnoringCase("Origin");
+    }
 
     private String tokenFor(String email) {
         return jwtService

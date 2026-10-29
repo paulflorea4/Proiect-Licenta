@@ -121,8 +121,14 @@ public class SubmissionDispatcher implements DisposableBean {
 
     private void run(long submissionId) {
         try {
-            // This task just left the in-memory queue: its place goes to the oldest one waiting.
-            pickUpQueued();
+            // This task just left the in-memory queue: its place goes to the oldest one waiting. A
+            // refill that fails (the database, say) must not cost this task its own submission (7.7d):
+            // the ones it could not offer stay QUEUED for the next task's refill.
+            try {
+                pickUpQueued();
+            } catch (RuntimeException e) {
+                log.error("The waiting submissions could not be offered before submission {}", submissionId, e);
+            }
             work.accept(submissionId);
         } catch (RuntimeException e) {
             // Nothing may stop the thread. A failed grading is already ERROR (SubmissionWorker); what

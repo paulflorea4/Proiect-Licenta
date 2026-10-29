@@ -1,4 +1,4 @@
 - Phase: Phase 7 — `docs/tasks/tasks-phase-07.md` (review rows 7.7a-7.7m; then Phase 8 starts with 8.0a)
-- Next commit: 7.7d — A failed queue refill (`pickUpQueued`) does not skip the task's own submission
+- Next commit: 7.7e — A demoted admin cannot change roles with their old token: the caller's stored role is re-read under the admin lock
 - In progress: —
-- Blocked: PR #158 (commit 7.7c) awaiting review. Open question for the human, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #159 (commit 7.7d) awaiting review. Open question for the human, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

@@ -3,6 +3,7 @@ package com.gradingplatform.backend.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.Locale;
 
 /**
  * Body of `POST /auth/signup`. There is deliberately no `role` field: a role sent by the client is
@@ -18,13 +19,15 @@ public record SignupRequest(
         @NotBlank @Size(max = 255) @NoNul String fullName) {
 
     /**
-     * Surrounding whitespace on the email (a typical copy-paste slip) is dropped here, before
-     * validation runs, so it is not reported as an invalid address. Lower-casing happens in
-     * `AuthService.normalizeEmail`.
+     * The email is normalized here, before validation runs, exactly as `AuthService.normalizeEmail`
+     * does (`SignupRequestTests` keeps the two the same): surrounding whitespace (a typical
+     * copy-paste slip) is dropped, so it is not reported as an invalid address, and it is
+     * lower-cased, so `@Size` measures what is stored. Lower-casing can lengthen it (`İ` becomes
+     * two characters), which used to pass the check and fail the insert with a 500 (8.0d).
      */
     public SignupRequest {
         if (email != null) {
-            email = email.trim();
+            email = email.trim().toLowerCase(Locale.ROOT);
         }
     }
 

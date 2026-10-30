@@ -5,7 +5,7 @@
 | 8.0a | Numeric values for enum fields are a 400 (`FAIL_ON_NUMBERS_FOR_ENUMS`) | Done | From the phases 0-7 review (`docs/suggestions.md`, low, auth), approved by the human. 2.5b says a numeric role is refused; Jackson 3 accepts ordinals by default (not yet run). Test `{"role":1}`; also `CriterionType`, `TestVisibility`. |
 | 8.0b | A request from an origin not on the CORS list gets the standard JSON error body (`ACCESS_DENIED`), not plain text | Done | From the phases 0-7 review (`docs/suggestions.md`, low, auth), approved by the human. |
 | 8.0c | A multipart body over 1 MB outside the submission upload is 413 `REQUEST_TOO_LARGE`, not `SOURCE_TOO_LARGE` | Done | From the phases 0-7 review (`docs/suggestions.md`, low, auth), approved by the human. |
-| 8.0d | An email longer than 255 characters after lower-casing is a 400, not a 500 | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, auth), approved by the human. |
+| 8.0d | An email longer than 255 characters after lower-casing is a 400, not a 500 | Done | From the phases 0-7 review (`docs/suggestions.md`, low, auth), approved by the human. |
 | 8.0e | **GATE** (the maximum) — a deadline beyond what the database stores is a 400, not a 500 | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
 | 8.0f | Deadlines are truncated to microseconds when received, so an echoed deadline is never a change | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
 | 8.0g | An auto-appended test position never exceeds `TestCaseRequest.POSITION_MAX` | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |

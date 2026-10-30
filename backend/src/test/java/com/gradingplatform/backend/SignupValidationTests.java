@@ -117,6 +117,47 @@ class SignupValidationTests {
         signup(tooLong, PASSWORD, "Ada").andExpect(status().isBadRequest());
     }
 
+    /** A valid address of exactly 255 characters as typed: the local part, then a 190-character domain. */
+    private static String email255(String localPart) {
+        String domain = "a".repeat(63) + "." + "b".repeat(63) + "." + "c".repeat(58) + ".com";
+        String email = localPart + "@" + domain;
+        assertThat(email).hasSize(255);
+        return email;
+    }
+
+    @Test
+    void anEmailThatLowerCasingMakesLongerThanTheColumnIsRejectedNotADatabaseError() throws Exception {
+        // 8.0d: `İ` lower-cases to two characters (`i` and a combining dot), so 255 typed become 319.
+        String typed = email255("İ".repeat(64));
+
+        signup(typed, PASSWORD, "Ada")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("email"));
+
+        assertThat(users.count()).isZero();
+    }
+
+    @Test
+    void anEmailOfExactlyTheColumnsLengthIsAccepted() throws Exception {
+        // The control for the test above: the same shape, but nothing lengthens when lower-cased.
+        signup(email255("I".repeat(64)), PASSWORD, "Ada").andExpect(status().isCreated());
+
+        assertThat(users.findAll())
+                .singleElement()
+                .satisfies(u -> assertThat(u.getEmail()).hasSize(255).startsWith("i".repeat(64) + "@"));
+    }
+
+    @Test
+    void aShortEmailWithADottedCapitalIIsStoredLowerCasedAsBefore() throws Exception {
+        signup("İnci@example.com", PASSWORD, "Inci").andExpect(status().isCreated());
+
+        assertThat(users.findAll())
+                .singleElement()
+                .satisfies(
+                        u -> assertThat(u.getEmail()).isEqualTo("İnci@example.com".toLowerCase(java.util.Locale.ROOT)));
+    }
+
     @Test
     void aFullNameLongerThanTheColumnIsRejectedNotADatabaseError() throws Exception {
         signup("ada@example.com", PASSWORD, "A".repeat(256)).andExpect(status().isBadRequest());

@@ -4,10 +4,13 @@ import com.gradingplatform.backend.dto.ApiException;
 import com.gradingplatform.backend.dto.ErrorCode;
 import com.gradingplatform.backend.dto.ErrorResponse;
 import com.gradingplatform.backend.dto.ErrorResponse.FieldError;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -22,9 +25,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
@@ -47,6 +55,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final AuthenticationTrustResolver trustResolver = new AuthenticationTrustResolverImpl();
+
+    /** Looked up when needed: the mapping is built from the controller advice, this class included. */
+    private final ObjectProvider<RequestMappingHandlerMapping> handlerMappings;
+
+    public GlobalExceptionHandler(ObjectProvider<RequestMappingHandlerMapping> handlerMappings) {
+        this.handlerMappings = handlerMappings;
+    }
 
     @ExceptionHandler(ApiException.class)
     ResponseEntity<Object> handleApiException(ApiException ex) {
@@ -102,15 +117,43 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
-     * An upload over the server's multipart limit ({@code spring.servlet.multipart}), refused while
-     * the request is parsed. The only upload is a submission's source file (5.1b), so it is the same
-     * answer as a file over {@code SubmissionService.SOURCE_MAX_BYTES}.
+     * A multipart body over the server's limit ({@code spring.servlet.multipart}), refused while the
+     * request is parsed, before a controller method is chosen. Sent to an endpoint that takes an
+     * uploaded file (today only a submission's source file, 5.1b), it is the same answer as a file
+     * over {@code SubmissionService.SOURCE_MAX_BYTES}; anywhere else it is the generic
+     * {@code REQUEST_TOO_LARGE} (8.0c), not a message about source code.
      */
     @Override
     protected ResponseEntity<Object> handleMaxUploadSizeExceededException(
             MaxUploadSizeExceededException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        ErrorCode code = ErrorCode.SOURCE_TOO_LARGE;
+        ErrorCode code = isFileUpload(request) ? ErrorCode.SOURCE_TOO_LARGE : ErrorCode.REQUEST_TOO_LARGE;
         return json(code.status(), ErrorResponse.of(code), headers);
+    }
+
+    /**
+     * Whether the request is addressed to a controller method with a {@link MultipartFile}
+     * parameter, asked of Spring MVC's own mapping (path, method and content type), so no path is
+     * repeated here. A request no method takes is not an upload.
+     */
+    private boolean isFileUpload(WebRequest request) {
+        RequestMappingHandlerMapping mapping = handlerMappings.getIfUnique();
+        if (mapping == null || !(request instanceof ServletWebRequest servlet)) {
+            return false;
+        }
+        try {
+            HandlerExecutionChain chain = mapping.getHandler(servlet.getRequest());
+            return chain != null
+                    && chain.getHandler() instanceof HandlerMethod method
+                    && Arrays.stream(method.getMethodParameters()).anyMatch(GlobalExceptionHandler::isFile);
+        } catch (Exception noHandler) {
+            // No method takes it (a wrong path, method or content type): not an upload.
+            return false;
+        }
+    }
+
+    private static boolean isFile(MethodParameter parameter) {
+        return MultipartFile.class.isAssignableFrom(parameter.getParameterType())
+                || MultipartFile.class.equals(parameter.nested().getNestedParameterType());
     }
 
     /** Every other Spring web exception: the status Spring chose, our shape and a fixed message. */

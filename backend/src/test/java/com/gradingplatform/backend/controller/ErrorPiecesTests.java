@@ -7,6 +7,7 @@ import com.gradingplatform.backend.dto.ErrorCode;
 import com.gradingplatform.backend.dto.ErrorResponse;
 import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -14,12 +15,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /** 2.6a: the pieces of the error contract that do not need a server. */
 class ErrorPiecesTests {
 
-    private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    private final GlobalExceptionHandler handler = new GlobalExceptionHandler(
+            new StaticListableBeanFactory().getBeanProvider(RequestMappingHandlerMapping.class));
 
     // --- ErrorCode -----------------------------------------------------------------------------
 

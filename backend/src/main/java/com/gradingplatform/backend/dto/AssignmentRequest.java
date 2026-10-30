@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.time.Period;
 
 /**
  * Body of `POST /courses/{id}/assignments`. There is no `published`, `courseId` or id: the course
@@ -56,6 +57,14 @@ public record AssignmentRequest(
     public static final int MAX_ATTEMPTS_MAX = 100;
     public static final int TIME_LIMIT_MAX_MS = 10_000;
     public static final int MEMORY_LIMIT_MAX_MB = 1024;
+
+    /**
+     * The furthest a deadline may be from the time it is set (8.0e, the human's value): beyond it the
+     * request is 400 {@code DEADLINE_TOO_FAR}. Counted in calendar years, UTC, from the application
+     * clock. It also keeps every deadline far inside what the {@code timestamptz} column stores
+     * (up to the year 294276), past which the insert was a 500.
+     */
+    public static final Period DEADLINE_MAX_AHEAD = Period.ofYears(5);
 
     /** Surrounding whitespace on the title is dropped, and blank starter code is the same as none. */
     public AssignmentRequest {

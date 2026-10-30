@@ -206,6 +206,37 @@ class RealHttpAssignmentCreateTests extends RealHttpTestBase {
         assertThat(assignmentRepository.count()).isZero();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"+300000-01-01T00:00:00Z", "9999-12-31T23:59:59Z"})
+    void aDeadlineTooFarAheadIsRefusedNotADatabaseError(String farAway) throws Exception {
+        // 8.0e: year 300000 is past what timestamptz stores, and was a 500 at insert.
+        HttpResponse<String> response = create(owner, body("deadline", "\"" + farAway + "\""));
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(400);
+        assertThat(JsonPath.<String>read(response.body(), "$.code")).isEqualTo("DEADLINE_TOO_FAR");
+        assertThat(response.body()).doesNotContain(farAway);
+        assertThat(assignmentRepository.count()).isZero();
+    }
+
+    @Test
+    void aDeadlineSixYearsAheadIsRefusedAndFourIsAccepted() throws Exception {
+        String six = Instant.now()
+                .atOffset(java.time.ZoneOffset.UTC)
+                .plusYears(6)
+                .toInstant()
+                .toString();
+        String four = Instant.now()
+                .atOffset(java.time.ZoneOffset.UTC)
+                .plusYears(4)
+                .toInstant()
+                .toString();
+
+        assertThat(create(owner, body("deadline", "\"" + six + "\"")).statusCode())
+                .isEqualTo(400);
+        assertThat(create(owner, body("deadline", "\"" + four + "\"")).statusCode())
+                .isEqualTo(201);
+    }
+
     @Test
     void aDeadlineAMomentAgoIsRefused() throws Exception {
         String justPassed = Instant.now().minusSeconds(1).toString();

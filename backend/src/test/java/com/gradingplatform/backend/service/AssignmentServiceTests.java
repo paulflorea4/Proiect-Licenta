@@ -18,6 +18,7 @@ import com.gradingplatform.backend.sandbox.SandboxProperties;
 import com.gradingplatform.backend.sandbox.TestLanguages;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Period;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,6 +93,30 @@ class AssignmentServiceTests {
         assertThat(created.isPublished()).isFalse();
         assertThat(created.getCreatedAt()).isNotNull();
         assertThat(created.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void theLatestDeadlineIsFiveYearsAhead() {
+        // 8.0e, the human's value.
+        assertThat(AssignmentRequest.DEADLINE_MAX_AHEAD).isEqualTo(Period.ofYears(5));
+    }
+
+    @Test
+    void aDeadlineExactlyFiveYearsAheadIsAccepted() {
+        Instant latest = Instant.parse("2035-06-01T12:00:00Z");
+
+        Assignment created = service.create(teacher.getId(), Role.TEACHER, course.getId(), request(latest));
+
+        assertThat(created.getDeadline()).isEqualTo(latest);
+    }
+
+    @Test
+    void aDeadlineOneMillisecondPastFiveYearsAheadIsRefused() {
+        Instant tooFar = Instant.parse("2035-06-01T12:00:00Z").plusMillis(1);
+
+        assertThatThrownBy(() -> service.create(teacher.getId(), Role.TEACHER, course.getId(), request(tooFar)))
+                .isInstanceOf(DeadlineTooFarException.class);
+        assertThat(assignments.count()).isZero();
     }
 
     @Test

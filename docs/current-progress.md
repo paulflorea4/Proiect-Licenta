@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (review rows 8.0a-8.0k first)
-- Next commit: 8.0e — GATE (the maximum): a deadline beyond what the database stores is a 400, not a 500
+- Next commit: 8.0f — Deadlines are truncated to microseconds when received, so an echoed deadline is never a change
 - In progress: —
-- Blocked: PR #172 (commit 8.0d) awaiting review; then 8.0e needs the human's maximum deadline. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #173 (commit 8.0e) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

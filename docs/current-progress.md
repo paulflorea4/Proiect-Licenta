@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (review rows 8.0a-8.0k first)
-- Next commit: 8.0b — A request from an origin not on the CORS list gets the standard JSON error body (`ACCESS_DENIED`), not plain text
+- Next commit: 8.0c — A multipart body over 1 MB outside the submission upload is 413 `REQUEST_TOO_LARGE`, not `SOURCE_TOO_LARGE`
 - In progress: —
-- Blocked: PR #169 (commit 8.0a) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #170 (commit 8.0b) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

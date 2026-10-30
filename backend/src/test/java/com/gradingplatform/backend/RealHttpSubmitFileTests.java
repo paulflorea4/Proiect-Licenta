@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /** 5.1b: `POST /assignments/{id}/submissions` with the code uploaded as one file, over real HTTP. */
@@ -270,6 +272,48 @@ class RealHttpSubmitFileTests extends RealHttpTestBase {
 
         assertRefused(upload(student, python, "main.py", huge), 413, "SOURCE_TOO_LARGE");
         assertThat(submissions.count()).isZero();
+    }
+
+    @Test
+    void anOversizedUploadToTheSubmissionByAWrongRoleIsStillTheSourceAnswer() throws Exception {
+        // Parsed before the role rule (5.1b): the size is judged first, by the endpoint addressed.
+        byte[] huge = "#".repeat(1536 * 1024).getBytes(UTF_8);
+
+        assertRefused(upload(owner, python, "main.py", huge), 413, "SOURCE_TOO_LARGE");
+    }
+
+    @ParameterizedTest(name = "{0} {1}")
+    @CsvSource({
+        "POST, /courses, teacher",
+        "POST, /auth/signup, nobody",
+        "PUT, /assignments/1, teacher",
+        "POST, /no/such/path, student",
+        "GET, /assignments/1/submissions, teacher"
+    })
+    void aMultipartBodyOverTheLimitSentElsewhereIsTheGenericTooLarge(String method, String path, String caller)
+            throws Exception {
+        // 8.0c: these endpoints take no file, so the answer is not about source code.
+        User as = switch (caller) {
+            case "teacher" -> owner;
+            case "student" -> student;
+            default -> null;
+        };
+        String boundary = "test-" + UUID.randomUUID();
+        byte[] body = ("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a.txt\"\r\n\r\n"
+                        + "#".repeat(1536 * 1024)
+                        + "\r\n--" + boundary + "--\r\n")
+                .getBytes(UTF_8);
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .method(method, HttpRequest.BodyPublishers.ofByteArray(body));
+        if (as != null) {
+            request.header("Authorization", "Bearer " + tokenFor(as));
+        }
+
+        HttpResponse<String> response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+
+        assertRefused(response, 413, "REQUEST_TOO_LARGE");
+        assertThat(response.body()).doesNotContain("source");
     }
 
     @Test

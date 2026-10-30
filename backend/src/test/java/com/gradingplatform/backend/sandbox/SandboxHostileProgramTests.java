@@ -59,6 +59,14 @@ class SandboxHostileProgramTests {
     /** A run may take its limit, the start-up allowance and a few seconds to kill and clean up. */
     private static final Duration KILL_ALLOWANCE = Duration.ofSeconds(8);
 
+    /**
+     * For the fork bombs (8.0d, a CI failure): removing a container that still holds about 127
+     * processes can take longer than the rest of the run on a busy runner (24 s in all for a 10 s
+     * limit), so the run is held to its limit by its own {@code runtime()}, and the wall clock,
+     * which includes that removal, only to this. Leftovers are checked after every test.
+     */
+    private static final Duration FORK_BOMB_CLEANUP_ALLOWANCE = Duration.ofSeconds(30);
+
     private static final ExecutionLimits PROBE = new ExecutionLimits(20_000, 128);
 
     /**
@@ -172,6 +180,20 @@ class SandboxHostileProgramTests {
                 .isLessThan(Duration.ofMillis(timeLimitMs)
                         .plus(DockerCliSandboxRunner.START_GRACE)
                         .plus(KILL_ALLOWANCE));
+    }
+
+    /**
+     * The run itself (its {@code runtime()}, our kill included) ended within the usual bound; the
+     * whole call, container removal included, within {@link #FORK_BOMB_CLEANUP_ALLOWANCE} more.
+     */
+    private static void assertForkBombStoppedInTime(SandboxResult result, long timeLimitMs, long startedNanos) {
+        Duration stopBound = Duration.ofMillis(timeLimitMs)
+                .plus(DockerCliSandboxRunner.START_GRACE)
+                .plus(KILL_ALLOWANCE);
+        assertThat(result.runtime()).as("stopped by a limit").isLessThan(stopBound);
+        assertThat(Duration.ofNanos(System.nanoTime() - startedNanos))
+                .as("stopped and removed")
+                .isLessThan(stopBound.plus(FORK_BOMB_CLEANUP_ALLOWANCE));
     }
 
     /** After a hostile program the sandbox still works: an honest one gets its answer. */
@@ -312,10 +334,7 @@ class SandboxHostileProgramTests {
 
         assertThat(result.status()).isIn(SandboxStatus.TIMEOUT, SandboxStatus.MEMORY_LIMIT);
         assertThat(result.completedCleanly()).isFalse();
-        assertThat(Duration.ofNanos(System.nanoTime() - started))
-                .isLessThan(Duration.ofMillis(1_000)
-                        .plus(DockerCliSandboxRunner.START_GRACE)
-                        .plus(KILL_ALLOWANCE));
+        assertForkBombStoppedInTime(result, 1_000, started);
         assertSandboxStillGradesAnHonestProgram();
     }
 
@@ -333,10 +352,7 @@ class SandboxHostileProgramTests {
         assertThat(result.status())
                 .isIn(SandboxStatus.RUNTIME_ERROR, SandboxStatus.MEMORY_LIMIT, SandboxStatus.TIMEOUT);
         assertThat(result.completedCleanly()).isFalse();
-        assertThat(Duration.ofNanos(System.nanoTime() - started))
-                .isLessThan(Duration.ofMillis(10_000)
-                        .plus(DockerCliSandboxRunner.START_GRACE)
-                        .plus(KILL_ALLOWANCE));
+        assertForkBombStoppedInTime(result, 10_000, started);
         if (result.status() == SandboxStatus.RUNTIME_ERROR) {
             assertThat(result.stderr()).contains("Resource temporarily unavailable");
         }

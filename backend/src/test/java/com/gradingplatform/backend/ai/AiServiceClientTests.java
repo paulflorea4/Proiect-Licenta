@@ -157,6 +157,8 @@ class AiServiceClientTests {
                 "{\"fallback\": false}",
                 "{\"hint\": null, \"fallback\": false}",
                 "{\"hint\": \"   \", \"fallback\": false}",
+                "{\"hint\": \"Look \\u0000 here\", \"fallback\": false}",
+                "{\"hint\": \"\\u0000\", \"fallback\": false}",
                 "{\"hint\": \"Look.\", \"fallback\": null}",
                 "{\"hint\": [\"" + BODY_MARKER + "\"], \"fallback\": false}",
             })

@@ -256,6 +256,34 @@ class RealHttpHintOutgoingRequestTests extends RealHttpTestBase {
 
     // ---- helpers ----
 
+    @Test
+    void aHintHoldingANulIsHintsUnavailableNotAFailedInsert() throws Exception {
+        // 8.0h: Postgres TEXT refuses U+0000, so storing such a hint was a 500 after the AI call.
+        long id = graded(
+                TestOutcome.FAILED,
+                TestOutcome.PASSED,
+                TestOutcome.PASSED,
+                TestOutcome.PASSED,
+                TestOutcome.PASSED,
+                TestOutcome.PASSED);
+        wire.server()
+                .expect(
+                        ExpectedCount.once(),
+                        request -> assertThat(request.getURI().getPath()).isEqualTo("/feedback"))
+                .andRespond(withSuccess(
+                        "{\"hint\": \"Look at the \\u0000 operator.\", \"fallback\": false}",
+                        MediaType.APPLICATION_JSON));
+
+        HttpResponse<String> response = hint(id);
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(503);
+        assertThat(JsonPath.<String>read(response.body(), "$.code")).isEqualTo("HINTS_UNAVAILABLE");
+        wire.server().verify();
+        assertThat(jdbc.queryForObject("select count(*) from ai_feedback", Long.class))
+                .as("nothing stored, so the level stays unused")
+                .isZero();
+    }
+
     private void assertNoHiddenDetailIn(String body) {
         for (int test = 1; test <= 4; test++) {
             for (String what : WHAT) {

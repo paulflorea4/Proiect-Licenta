@@ -90,7 +90,13 @@ public class AiServiceClient {
         } catch (RestClientException e) {
             throw new AiServiceException("The AI service's answer could not be read", (Integer) null);
         }
-        if (response == null || response.hint() == null || response.hint().isBlank() || response.fallback() == null) {
+        // A NUL (U+0000) is refused as unreadable: the hint is stored in a Postgres TEXT column, which
+        // rejects it, and the insert would be a 500 after the call (8.0h). The AI service refuses it too.
+        if (response == null
+                || response.hint() == null
+                || response.hint().isBlank()
+                || response.hint().indexOf('\0') >= 0
+                || response.fallback() == null) {
             throw new AiServiceException("The AI service's answer could not be read", (Integer) null);
         }
         return response;

@@ -9,7 +9,7 @@
 | 8.0e | **GATE** (the maximum) — a deadline beyond what the database stores is a 400, not a 500 | Done | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
 | 8.0f | Deadlines are truncated to microseconds when received, so an echoed deadline is never a change | Done | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
 | 8.0g | An auto-appended test position never exceeds `TestCaseRequest.POSITION_MAX` | Done | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
-| 8.0h | A model hint containing NUL is a bad answer (clean retry, then 503), never a 500 at insert | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, hints and AI (two audits)), approved by the human. |
+| 8.0h | A model hint containing NUL is a bad answer (clean retry, then 503), never a 500 at insert | Done | From the phases 0-7 review (`docs/suggestions.md`, low, hints and AI (two audits)), approved by the human. |
 | 8.0i | The AI service treats a deeply nested model answer (`RecursionError`) and an odd `promptFeedback` as `LlmBadResponse` | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, AI service), approved by the human. Add a row to `MALFORMED`. |
 | 8.0j | Real-HTTP test of the container error path (`ApiErrorController`), e.g. `GET /auth/me;x`, asserting the JSON shape | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, auth), approved by the human. |
 | 8.0k | Token verification pins HS256 and requires `exp`; the different-algorithm test uses the same key | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, auth), approved by the human. |

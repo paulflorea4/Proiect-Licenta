@@ -67,6 +67,14 @@ class SandboxHostileProgramTests {
      */
     private static final Duration FORK_BOMB_CLEANUP_ALLOWANCE = Duration.ofSeconds(30);
 
+    /**
+     * For the fork bombs (8.0g, a CI failure): {@code docker kill} on that container is slow too,
+     * and {@code runtime()} includes it (20.27 s against a 20 s bound, a 10 s limit that ran out
+     * its 2 s start allowance and then took 8.3 s to kill), so the kill gets this instead of
+     * {@link #KILL_ALLOWANCE}. Still a bound: a bomb that is never stopped fails it.
+     */
+    private static final Duration FORK_BOMB_KILL_ALLOWANCE = Duration.ofSeconds(16);
+
     private static final ExecutionLimits PROBE = new ExecutionLimits(20_000, 128);
 
     /**
@@ -189,7 +197,7 @@ class SandboxHostileProgramTests {
     private static void assertForkBombStoppedInTime(SandboxResult result, long timeLimitMs, long startedNanos) {
         Duration stopBound = Duration.ofMillis(timeLimitMs)
                 .plus(DockerCliSandboxRunner.START_GRACE)
-                .plus(KILL_ALLOWANCE);
+                .plus(FORK_BOMB_KILL_ALLOWANCE);
         assertThat(result.runtime()).as("stopped by a limit").isLessThan(stopBound);
         assertThat(Duration.ofNanos(System.nanoTime() - startedNanos))
                 .as("stopped and removed")

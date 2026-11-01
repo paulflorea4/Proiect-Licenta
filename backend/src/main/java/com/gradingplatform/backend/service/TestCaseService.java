@@ -57,7 +57,8 @@ public class TestCaseService {
     }
 
     /**
-     * Adds a test, after the last one unless the request gives a position.
+     * Adds a test, after the last one unless the request gives a position. An appended position never
+     * exceeds {@link TestCaseRequest#POSITION_MAX}.
      *
      * @throws AssignmentNotFoundException if there is no such assignment or the user may not manage it
      * @throws TestsLockedException if the assignment has submissions
@@ -68,7 +69,11 @@ public class TestCaseService {
     public TestCase create(long userId, Role role, long assignmentId, TestCaseRequest request) {
         assignmentService.lockDraftForGradingChange(userId, role, assignmentId, TestsLockedException::new);
         requireTestsCriterion(assignmentId, request.criterionId());
-        int position = request.position() != null ? request.position() : tests.nextPosition(assignmentId);
+        // Capped at what a request may name (8.0f/8.0g): past it, echoing the stored test back would be a 400.
+        // Tests with equal positions run in id order, so a capped test still runs after the earlier ones.
+        int position = request.position() != null
+                ? request.position()
+                : Math.min(tests.nextPosition(assignmentId), TestCaseRequest.POSITION_MAX);
         return tests.saveAndFlush(new TestCase(
                 assignmentId,
                 request.criterionId(),

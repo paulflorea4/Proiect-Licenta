@@ -31,6 +31,9 @@ FENCE = "```"
 GOOD = '{"hint": "Look at the operator."}'
 NOT_A_HINT = "The model's answer is not a {hint} object"
 BLANK = "The model's hint is blank"
+HAS_NUL = "The model's hint contains a NUL character"
+# What a refusal may say: all fixed text, none of it quoting the answer.
+REFUSALS = {NOT_A_HINT, BLANK, HAS_NUL}
 # Every malformed answer below carries this, so a test can show it never comes back.
 TRACE = "SECRET-OUTPUT"
 
@@ -60,6 +63,10 @@ MALFORMED: dict[str, str] = {
     "zero-width hint": json.dumps({"hint": "​​"}),
     "no-break-space hint": json.dumps({"hint": "  "}),
     "control-character hint": json.dumps({"hint": "\u0000\u0007"}),
+    "NUL inside a hint": json.dumps({"hint": f"Look at the \u0000 operator {TRACE}"}),
+    "NUL at the end of a hint": json.dumps(
+        {"hint": f"Look at the operator. {TRACE}\u0000"}
+    ),
     "unclosed fence": f'{FENCE}json\n{{"hint": "{TRACE}"}}',
     "fence then text": f'{FENCE}json\n{{"hint": "Look."}}\n{FENCE}\n{TRACE}',
     "two fences": (
@@ -96,7 +103,7 @@ def test_a_malformed_answer_is_refused_with_a_fixed_message(name: str) -> None:
     with pytest.raises(LlmBadResponse) as refused:
         parse_hint(MALFORMED[name])
 
-    assert str(refused.value) in {NOT_A_HINT, BLANK}
+    assert str(refused.value) in REFUSALS
     assert TRACE not in str(refused.value)
     # Nor in the traceback a log would print: the parsing error it replaces (pydantic
     # quotes the input) is not chained to it.
@@ -116,11 +123,14 @@ def test_a_well_formed_answer_is_read(name: str) -> None:
         ("zero-width hint", BLANK),
         ("control-character hint", BLANK),
         ("duplicate key", NOT_A_HINT),
+        ("NUL inside a hint", HAS_NUL),
+        ("NUL at the end of a hint", HAS_NUL),
     ],
 )
-def test_the_three_answers_6_6d_now_refuses_say_why(name: str, message: str) -> None:
+def test_the_answers_now_refused_say_why(name: str, message: str) -> None:
     # Before 6.6d, the first two were returned as hints the student would see as
-    # nothing, and the third kept its second "hint".
+    # nothing, and the third kept its second "hint". Before 8.0h, the last two were
+    # returned with their NUL, which the backend could not store (a failed insert).
     with pytest.raises(LlmBadResponse, match=message.replace("{", "\\{")):
         parse_hint(MALFORMED[name])
 
@@ -148,7 +158,7 @@ def test_two_malformed_answers_end_in_a_clean_error_after_two_calls(
         generate_feedback(provider, SAMPLE_REQUEST)
 
     assert len(provider.prompts) == MAX_ATTEMPTS == 2
-    assert str(raised.value) in {NOT_A_HINT, BLANK}
+    assert str(raised.value) in REFUSALS
     assert TRACE not in str(raised.value)
 
 
@@ -182,6 +192,7 @@ def client() -> Iterator[TestClient]:
         ("zero-width hint", "zero-width hint"),
         ("duplicate key", "extra key"),
         ("html page", "two fences"),
+        ("NUL inside a hint", "NUL at the end of a hint"),
     ],
 )
 def test_the_endpoint_answers_two_malformed_answers_with_a_clean_502(
@@ -196,7 +207,7 @@ def test_the_endpoint_answers_two_malformed_answers_with_a_clean_502(
     )
 
     assert response.status_code == 502
-    assert response.json() in ({"detail": NOT_A_HINT}, {"detail": BLANK})
+    assert response.json()["detail"] in REFUSALS
     assert "SECRET" not in response.text
     assert len(recording.provider.prompts) == 2
     assert recording.provider.closed

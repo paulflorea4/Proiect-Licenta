@@ -83,7 +83,8 @@ class _ModelAnswer(BaseModel):
 
 def parse_hint(text: str) -> str:
     """The hint in the model's answer, which must be ``{"hint": "<non-blank text>"}``
-    and nothing else (a Markdown code fence around it is allowed).
+    and nothing else (a Markdown code fence around it is allowed). A hint holding a NUL
+    character is refused too: the backend cannot store it.
 
     Raises:
         LlmBadResponse: anything else. The message is fixed text; the answer itself
@@ -104,6 +105,11 @@ def parse_hint(text: str) -> str:
     # characters), which the student would see as nothing (6.6d).
     if not any(c.isprintable() and not c.isspace() for c in hint):
         raise LlmBadResponse("The model's hint is blank")
+    # JSON lets a string hold U+0000, but the backend stores the hint in a Postgres TEXT
+    # column, which refuses it. Refused here it is retried and then a 502, which the
+    # backend turns into "hints unavailable"; stored it would be a failed insert (8.0h).
+    if "\x00" in hint:
+        raise LlmBadResponse("The model's hint contains a NUL character")
     return hint
 
 

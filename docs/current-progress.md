@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.1b — `react-router` set up with placeholder routes (`/`, `/signin`, `/signup`, `/courses`); needs the human's approval to add `react-router` (a new dependency, gate)
+- Next commit: 8.2a — Fetch/axios wrapper reading API base URL from env, typed response helpers, consistent error handling for the backend's error shape (2.6a)
 - In progress: —
-- Blocked: PR #180 (commit 8.1a) awaiting review; then 8.1b's dependency gate. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #181 (commit 8.1b) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

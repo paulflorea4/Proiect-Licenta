@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.1a — Confirm the `/frontend` React+TS app (0.1d) is still current before adding to it
+- Next commit: 8.1b — `react-router` set up with placeholder routes (`/`, `/signin`, `/signup`, `/courses`); needs the human's approval to add `react-router` (a new dependency, gate)
 - In progress: —
-- Blocked: PR #179 (commit 8.0k) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #180 (commit 8.1a) awaiting review; then 8.1b's dependency gate. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

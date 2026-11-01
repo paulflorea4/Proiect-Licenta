@@ -14,7 +14,7 @@ React + TypeScript on Vite, npm. Project-wide rules (gates, defaults, Git safety
 
 ## Layout and test setup
 
-- Source is in `src/`; the app is still the unmodified Vite template (`App.tsx`, `main.tsx`).
+- Source is in `src/`; the app is still the unmodified Vite template (`App.tsx`, `main.tsx`), confirmed current at 8.1a (Node 24, install, build, tests, lint, format and the dev server checked). 8.1a also ran `npm audit fix` (lockfile only, the human's approval): `npm audit --omit=dev` is clean, and 13 moderate dev-only findings in the ESLint chain remain with no non-downgrade fix (`docs/suggestions.md`). A lockfile change is a dependency change: ask first.
 - Vitest runs on jsdom with Testing Library. `src/test/setup.ts` is the setup file and registers `cleanup` itself.
 - Vitest globals are off: import `describe`, `it` and `expect` explicitly in every test file.
 - Tests live next to the code (`src/App.test.tsx`).

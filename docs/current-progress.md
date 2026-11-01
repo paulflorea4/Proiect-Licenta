@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (review rows 8.0a-8.0k first)
-- Next commit: 8.0i — The AI service treats a deeply nested model answer (`RecursionError`) and an odd `promptFeedback` as `LlmBadResponse`
+- Next commit: 8.0j — Real-HTTP test of the container error path (`ApiErrorController`), e.g. `GET /auth/me;x`, asserting the JSON shape
 - In progress: —
-- Blocked: PR #176 (commit 8.0h) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #177 (commit 8.0i) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

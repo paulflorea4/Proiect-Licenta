@@ -36,6 +36,8 @@ HAS_NUL = "The model's hint contains a NUL character"
 REFUSALS = {NOT_A_HINT, BLANK, HAS_NUL}
 # Every malformed answer below carries this, so a test can show it never comes back.
 TRACE = "SECRET-OUTPUT"
+# Far past what the JSON parser reads (about a thousand levels), on any host.
+DEPTH = 100_000
 
 MALFORMED: dict[str, str] = {
     "empty": "",
@@ -75,6 +77,9 @@ MALFORMED: dict[str, str] = {
     "tilde fence": f'~~~json\n{{"hint": "{TRACE}"}}\n~~~',
     "html page": f"<html><body>{TRACE}</body></html>",
     "byte order mark": f'﻿{{"hint": "{TRACE}"}}',
+    # 8.0i: deeper than the parser reads, a RecursionError (a 500, no retry) before.
+    "deeply nested array": "[" * DEPTH + f'"{TRACE}"' + "]" * DEPTH,
+    "deeply nested object": '{"hint": ' * DEPTH + f'"{TRACE}"' + "}" * DEPTH,
 }
 
 ACCEPTED: dict[str, tuple[str, str]] = {

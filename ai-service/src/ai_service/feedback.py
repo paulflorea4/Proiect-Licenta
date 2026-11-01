@@ -98,7 +98,8 @@ def parse_hint(text: str) -> str:
         answer = _ModelAnswer.model_validate(
             json.loads(body, object_pairs_hook=_refuse_duplicate_keys)
         )
-    except (ValueError, ValidationError):
+    except (ValueError, ValidationError, RecursionError):
+        # RecursionError: an answer nested deeper than the parser reads (8.0i).
         raise LlmBadResponse("The model's answer is not a {hint} object") from None
     hint = answer.hint.strip()
     # Blank is also a hint of only invisible characters (zero-width spaces, control

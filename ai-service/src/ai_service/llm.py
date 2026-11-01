@@ -107,7 +107,8 @@ class GeminiProvider(LlmProvider):
             )
         try:
             body = response.json()
-        except ValueError:
+        except (ValueError, RecursionError):
+            # A body nested deeper than the parser reads is no usable answer (8.0i).
             raise LlmBadResponse("Gemini's answer is not JSON") from None
         return _text_of(body)
 
@@ -123,7 +124,7 @@ def _status_word(response: httpx.Response) -> str | None:
     word; nothing else of the error body is ever read into a message."""
     try:
         status = response.json()["error"]["status"]
-    except (ValueError, KeyError, TypeError):
+    except (ValueError, KeyError, TypeError, RecursionError):
         return None
     if isinstance(status, str) and _STATUS_WORD.fullmatch(status):
         return status
@@ -134,7 +135,12 @@ def _text_of(body: Any) -> str:
     """The text of the first candidate, its parts joined; refuses anything else."""
     if not isinstance(body, dict):
         raise LlmBadResponse("Gemini's answer has an unexpected shape")
-    if (body.get("promptFeedback") or {}).get("blockReason"):
+    feedback = body.get("promptFeedback")
+    # Absent is fine; present, it is an object (8.0i: a list, string or number was an
+    # AttributeError, so a 500 with a traceback and no retry).
+    if feedback is not None and not isinstance(feedback, dict):
+        raise LlmBadResponse("Gemini's answer has an unexpected shape")
+    if feedback and feedback.get("blockReason"):
         raise LlmBadResponse("Gemini blocked the prompt")
     candidates = body.get("candidates")
     if not isinstance(candidates, list) or not candidates:

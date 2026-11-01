@@ -198,6 +198,10 @@ def test_a_failed_request_is_unavailable(failure: Exception, message: str) -> No
         {"candidates": ["not an object"]},
         {"candidates": "not a list"},
         ["not", "an", "object"],
+        {"promptFeedback": ["SAFETY"], "candidates": answer("hello")["candidates"]},
+        {"promptFeedback": "blocked", "candidates": answer("hello")["candidates"]},
+        {"promptFeedback": 7, "candidates": answer("hello")["candidates"]},
+        {"promptFeedback": True, "candidates": answer("hello")["candidates"]},
     ],
     ids=[
         "prompt blocked",
@@ -212,6 +216,10 @@ def test_a_failed_request_is_unavailable(failure: Exception, message: str) -> No
         "candidate not an object",
         "candidates not a list",
         "not an object",
+        "prompt feedback a list",
+        "prompt feedback a string",
+        "prompt feedback a number",
+        "prompt feedback a boolean",
     ],
 )
 def test_an_answer_without_usable_text_is_a_bad_response(body: object) -> None:
@@ -228,6 +236,39 @@ def test_an_answer_that_is_not_json_is_a_bad_response() -> None:
 
     with pytest.raises(LlmBadResponse):
         gemini.generate("Say hello.")
+
+
+# 8.0i: far past what the JSON parser reads, whatever the host's limit.
+DEEP = b"[" * 100_000 + b"]" * 100_000
+
+
+def test_an_answer_nested_too_deeply_is_a_bad_response() -> None:
+    # A RecursionError from the parser was a 500 with a traceback, and no retry.
+    gemini, _ = replying(raw=DEEP)
+
+    with pytest.raises(LlmBadResponse) as raised:
+        gemini.generate("Say hello.")
+
+    assert_says_nothing_secret(raised.value)
+
+
+def test_an_error_body_nested_too_deeply_still_gives_the_status() -> None:
+    gemini, _ = replying(503, raw=DEEP)
+
+    with pytest.raises(LlmUnavailable) as raised:
+        gemini.generate("Say hello.")
+
+    assert str(raised.value) == "Gemini answered HTTP 503"
+    assert raised.value.status_code == 503
+
+
+@pytest.mark.parametrize("feedback", [None, {}, {"safetyRatings": []}])
+def test_a_prompt_feedback_that_blocks_nothing_is_no_obstacle(
+    feedback: object,
+) -> None:
+    gemini, _ = replying(body=answer("hello") | {"promptFeedback": feedback})
+
+    assert gemini.generate("Say hello.") == "hello"
 
 
 # ---- configuration ----

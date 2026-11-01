@@ -54,3 +54,12 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
 - **Not changed:** the update's "only a changed deadline is checked" rule (3.3c); the microsecond precision of `updated_at`/`submitted_at` (those come from the `Clock`, already cut).
 - **Tests (+4, backend 2588 -> 2592; ai-service 985 and frontend 3 unchanged and passing):** `AssignmentRequestTests` (3: nanoseconds cut not rounded, microseconds unchanged, null stays null), `RealHttpAssignmentChangeTests` +1 (the echo above).
 - **Mutation-checked:** without the truncation, the unit test and the real-HTTP test fail (the latter with the 400 above).
+
+## 8.0g — An appended test position never exceeds `POSITION_MAX` (review, low)
+
+- **Clamp, not a second cap on the stored value** (the review offered "clamp, or apply the cap to both paths"): `TestCaseService.create` uses `min(nextPosition, TestCaseRequest.POSITION_MAX)` when the request gives no position. Raising the cap on the append path would not do, since the request's `@Max` is what refuses an echoed `100001`, and loosening that would let a request name any position.
+- **Order survives the clamp:** tests with equal positions run in id order (`findByAssignmentIdOrderByPositionAscIdAsc`), and an appended test always has a higher id, so the second test appended at the cap still runs after the first.
+- **Not changed:** `TestCaseRepository.nextPosition` (still `max + 1`, and still the right answer below the cap) and update, which keeps the stored position when none is sent.
+- **Reproduced:** a test stored at 100000, one appended without a position got 100001 (201), and a `PUT` sending that position back was 400 `VALIDATION_FAILED` on `position` ("must be less than or equal to 100000").
+- **Tests (+2, backend 2592 -> 2594; ai-service 985 and frontend 3 unchanged and passing):** `RealHttpTestCaseTests` +2 (two tests appended after one at the maximum both get 100000 and list in creation order; the position the server returned is sent back in a `PUT` and is a 200).
+- **Mutation-checked:** without the clamp both fail, the second with the 400 above. The first draft of the echo test sent the constant `POSITION_MAX`, not the returned position, and so passed without the fix; the mutation run showed it, and it now sends what the server answered.

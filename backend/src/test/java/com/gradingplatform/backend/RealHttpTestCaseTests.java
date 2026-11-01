@@ -2,6 +2,7 @@ package com.gradingplatform.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.gradingplatform.backend.dto.TestCaseRequest;
 import com.gradingplatform.backend.entity.Assignment;
 import com.gradingplatform.backend.entity.Course;
 import com.gradingplatform.backend.entity.CriterionType;
@@ -273,6 +274,34 @@ class RealHttpTestCaseTests extends RealHttpTestBase {
         assertThat(JsonPath.<Integer>read(next.body(), "$.position")).isEqualTo(11);
         assertThat(JsonPath.<List<String>>read(listTests(owner, assignment).body(), "$.tests[*].name"))
                 .containsExactly("a", "b", "c", "d");
+    }
+
+    @Test
+    void anAppendedPositionNeverExceedsTheMaximumARequestMayName() throws Exception {
+        // 8.0g: max + 1 was 100001, which a PUT echoing the stored test then refused as a 400.
+        test(assignment, criterion, "last", TestCaseRequest.POSITION_MAX);
+
+        HttpResponse<String> first = add(owner, assignment, body("name", "\"first appended\""));
+        HttpResponse<String> second = add(owner, assignment, body("name", "\"second appended\""));
+
+        assertThat(first.statusCode()).isEqualTo(201);
+        assertThat(JsonPath.<Integer>read(first.body(), "$.position")).isEqualTo(TestCaseRequest.POSITION_MAX);
+        assertThat(JsonPath.<Integer>read(second.body(), "$.position")).isEqualTo(TestCaseRequest.POSITION_MAX);
+        assertThat(JsonPath.<List<String>>read(listTests(owner, assignment).body(), "$.tests[*].name"))
+                .containsExactly("last", "first appended", "second appended");
+    }
+
+    @Test
+    void aTestAppendedAtTheMaximumCanBeSentBackUnchanged() throws Exception {
+        test(assignment, criterion, "last", TestCaseRequest.POSITION_MAX);
+        HttpResponse<String> created = add(owner, assignment, body("name", "\"appended\""));
+        long id = JsonPath.<Number>read(created.body(), "$.id").longValue();
+        int position = JsonPath.<Integer>read(created.body(), "$.position");
+        String echoed = body("name", "\"appended\"", "position", String.valueOf(position));
+
+        HttpResponse<String> response = replace(owner, assignment, id, echoed);
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
     }
 
     @Test

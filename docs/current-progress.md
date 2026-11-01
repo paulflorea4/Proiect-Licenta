@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (review rows 8.0a-8.0k first)
-- Next commit: 8.0g — An auto-appended test position never exceeds `TestCaseRequest.POSITION_MAX`
+- Next commit: 8.0h — A model hint containing NUL is a bad answer (clean retry, then 503), never a 500 at insert
 - In progress: —
-- Blocked: PR #174 (commit 8.0f) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #175 (commit 8.0g) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (review rows 8.0a-8.0k first)
-- Next commit: 8.0j — Real-HTTP test of the container error path (`ApiErrorController`), e.g. `GET /auth/me;x`, asserting the JSON shape
+- Next commit: 8.0k — Token verification pins HS256 and requires `exp`; the different-algorithm test uses the same key
 - In progress: —
-- Blocked: PR #177 (commit 8.0i) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #178 (commit 8.0j) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

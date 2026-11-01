@@ -136,8 +136,13 @@ class AuthorizationMatrixTests extends RealHttpTestBase {
     private static final String COURSE_BODY = "{\"title\":\"Databases\"}";
 
     private static String assignmentBody() {
-        return "{\"title\":\"Sorting\",\"description\":\"Sort it\",\"language\":\"JAVA\","
-                + "\"deadline\":\"2999-01-01T00:00:00Z\",\"timeLimitMs\":2000,\"memoryLimitMb\":256}";
+        // A year ahead: within the 5-year limit on deadlines (8.0e), whatever the date the tests run.
+        String deadline = Instant.now()
+                .plus(365, ChronoUnit.DAYS)
+                .truncatedTo(ChronoUnit.SECONDS)
+                .toString();
+        return "{\"title\":\"Sorting\",\"description\":\"Sort it\",\"language\":\"JAVA\"," + "\"deadline\":\""
+                + deadline + "\",\"timeLimitMs\":2000,\"memoryLimitMb\":256}";
     }
 
     private static final String CRITERION_BODY = "{\"name\":\"More tests\",\"type\":\"TESTS\",\"weight\":10}";

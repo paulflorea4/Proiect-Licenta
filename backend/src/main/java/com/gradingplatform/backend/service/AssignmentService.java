@@ -8,6 +8,7 @@ import com.gradingplatform.backend.sandbox.LanguageSpec;
 import com.gradingplatform.backend.sandbox.SandboxProperties;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.function.Supplier;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -51,6 +52,7 @@ public class AssignmentService {
      * @throws UnsupportedLanguageException if the language is not in the supported list
      * @throws MemoryLimitBelowLanguageMinimumException if the memory limit is below the language's minimum
      * @throws DeadlineNotInFutureException if the deadline is not after the current time
+     * @throws DeadlineTooFarException if the deadline is more than {@code DEADLINE_MAX_AHEAD} ahead
      */
     @Transactional
     public Assignment create(long userId, Role role, long courseId, AssignmentRequest request) {
@@ -60,9 +62,7 @@ public class AssignmentService {
         if (!spec.allowsMemoryLimit(request.memoryLimitMb())) {
             throw new MemoryLimitBelowLanguageMinimumException();
         }
-        if (!request.deadline().isAfter(clock.instant())) {
-            throw new DeadlineNotInFutureException();
-        }
+        requireDeadlineInRange(request.deadline());
         Assignment assignment = new Assignment(
                 courseId,
                 request.title(),
@@ -127,6 +127,7 @@ public class AssignmentService {
      * @throws MemoryLimitBelowLanguageMinimumException if the language or the memory limit changes and
      *     the limit is below the language's minimum
      * @throws DeadlineNotInFutureException if the deadline is changed to one that is not in the future
+     * @throws DeadlineTooFarException if the deadline is changed to one too far ahead
      * @throws AssignmentLanguageLockedException if the language changes and there are submissions
      */
     @Transactional
@@ -145,9 +146,8 @@ public class AssignmentService {
                         .isPresent()) {
             throw new MemoryLimitBelowLanguageMinimumException();
         }
-        if (!request.deadline().equals(assignment.getDeadline())
-                && !request.deadline().isAfter(clock.instant())) {
-            throw new DeadlineNotInFutureException();
+        if (!request.deadline().equals(assignment.getDeadline())) {
+            requireDeadlineInRange(request.deadline());
         }
         if (languageChanged && assignments.hasSubmissions(assignmentId)) {
             throw new AssignmentLanguageLockedException();
@@ -285,6 +285,23 @@ public class AssignmentService {
             access.requireManageable(userId, role, courseId);
         } catch (CourseNotFoundException e) {
             throw new AssignmentNotFoundException();
+        }
+    }
+
+    /**
+     * A deadline must be after the current time and at most {@link AssignmentRequest#DEADLINE_MAX_AHEAD}
+     * after it (8.0e; exactly at the limit is allowed). Both are judged on the application clock.
+     */
+    private void requireDeadlineInRange(Instant deadline) {
+        Instant now = clock.instant();
+        if (!deadline.isAfter(now)) {
+            throw new DeadlineNotInFutureException();
+        }
+        Instant latest = now.atOffset(ZoneOffset.UTC)
+                .plus(AssignmentRequest.DEADLINE_MAX_AHEAD)
+                .toInstant();
+        if (deadline.isAfter(latest)) {
+            throw new DeadlineTooFarException();
         }
     }
 

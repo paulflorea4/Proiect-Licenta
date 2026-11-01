@@ -236,6 +236,29 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
     }
 
     @Test
+    void aChangedDeadlineMustBeAtMostFiveYearsAhead() throws Exception {
+        // 8.0e: year 300000 was a 500 at the update.
+        HttpResponse<String> response = put(owner, body("deadline", "\"+300000-01-01T00:00:00Z\""));
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(code(response)).isEqualTo("DEADLINE_TOO_FAR");
+        assertThat(stored().getDeadline()).isBefore(Instant.now().plus(30, ChronoUnit.DAYS));
+    }
+
+    @Test
+    void anUnchangedDeadlineFurtherThanTheLimitDoesNotBlockOtherEdits() throws Exception {
+        // Set before 8.0e (here by SQL): like a past one, it is only checked when it changes.
+        Instant far = Instant.now().plus(10 * 366, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+        jdbc.update(
+                "update assignments set deadline = ? where id = ?", java.sql.Timestamp.from(far), assignment.getId());
+
+        HttpResponse<String> response = put(owner, body("deadline", "\"" + far + "\""));
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        assertThat(stored().getDeadline()).isEqualTo(far);
+    }
+
+    @Test
     void anUnchangedPastDeadlineDoesNotBlockOtherEdits() throws Exception {
         Instant past = Instant.now().minus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
         jdbc.update(

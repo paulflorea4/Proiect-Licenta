@@ -41,6 +41,12 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
 
     private static final Set<Role> ANYONE_SIGNED_IN = EnumSet.allOf(Role.class);
 
+    /** A valid deadline in the sample bodies: within the 5-year limit (8.0e) whatever the date. */
+    private static final String A_YEAR_AHEAD = java.time.Instant.now()
+            .plus(365, java.time.temporal.ChronoUnit.DAYS)
+            .truncatedTo(java.time.temporal.ChronoUnit.SECONDS)
+            .toString();
+
     /** Who may call an endpoint: everybody including anonymous, or only these roles. */
     private record Endpoint(
             String method, String pattern, String path, String body, boolean isPublic, Set<Role> roles) {
@@ -133,8 +139,8 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     "PUT",
                     "/assignments/{id}",
                     "/assignments/987654321",
-                    "{\"title\":\"Sorting\",\"description\":\"Sort it\",\"language\":\"JAVA\","
-                            + "\"deadline\":\"2999-01-01T00:00:00Z\",\"timeLimitMs\":2000,\"memoryLimitMb\":256}",
+                    "{\"title\":\"Sorting\",\"description\":\"Sort it\",\"language\":\"JAVA\"," + "\"deadline\":\""
+                            + A_YEAR_AHEAD + "\",\"timeLimitMs\":2000,\"memoryLimitMb\":256}",
                     Role.TEACHER,
                     Role.ADMIN),
             Endpoint.rolesOnly(
@@ -267,8 +273,8 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     "POST",
                     "/courses/{courseId}/assignments",
                     "/courses/987654321/assignments",
-                    "{\"title\":\"Sorting\",\"description\":\"Sort it\",\"language\":\"JAVA\","
-                            + "\"deadline\":\"2999-01-01T00:00:00Z\",\"timeLimitMs\":2000,\"memoryLimitMb\":256}",
+                    "{\"title\":\"Sorting\",\"description\":\"Sort it\",\"language\":\"JAVA\"," + "\"deadline\":\""
+                            + A_YEAR_AHEAD + "\",\"timeLimitMs\":2000,\"memoryLimitMb\":256}",
                     Role.TEACHER));
 
     static Stream<Arguments> endpointsAndCallers() {

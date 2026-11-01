@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md` (review rows 8.0a-8.0k first)
-- Next commit: 8.0f — Deadlines are truncated to microseconds when received, so an echoed deadline is never a change
+- Next commit: 8.0g — An auto-appended test position never exceeds `TestCaseRequest.POSITION_MAX`
 - In progress: —
-- Blocked: PR #173 (commit 8.0e) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #174 (commit 8.0f) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

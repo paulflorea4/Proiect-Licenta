@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.time.Period;
+import java.time.temporal.ChronoUnit;
 
 /**
  * Body of `POST /courses/{id}/assignments`. There is no `published`, `courseId` or id: the course
@@ -66,10 +67,18 @@ public record AssignmentRequest(
      */
     public static final Period DEADLINE_MAX_AHEAD = Period.ofYears(5);
 
-    /** Surrounding whitespace on the title is dropped, and blank starter code is the same as none. */
+    /**
+     * Surrounding whitespace on the title is dropped, and blank starter code is the same as none. The
+     * deadline is cut to microseconds (8.0f), the precision of the {@code timestamptz} column: Postgres
+     * rounds, so a deadline kept with more digits would be echoed as sent but stored as something else,
+     * and sending the stored one back would then count as a change.
+     */
     public AssignmentRequest {
         if (title != null) {
             title = title.trim();
+        }
+        if (deadline != null) {
+            deadline = deadline.truncatedTo(ChronoUnit.MICROS);
         }
         if (starterCode != null && starterCode.isBlank()) {
             starterCode = null;

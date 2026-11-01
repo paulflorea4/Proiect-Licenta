@@ -259,6 +259,23 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
     }
 
     @Test
+    void aDeadlineSentWithNanosecondsIsTheSameAsItsStoredMicroseconds() throws Exception {
+        // 8.0f: the create answer echoed the nanoseconds as sent while Postgres kept (and rounded
+        // to) microseconds, so sending it back after the deadline was a change, refused as past.
+        Instant stored = Instant.now().minus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MICROS);
+        jdbc.update(
+                "update assignments set deadline = ? where id = ?",
+                java.sql.Timestamp.from(stored),
+                assignment.getId());
+        Instant echoed = stored.plusNanos(999);
+
+        HttpResponse<String> response = put(owner, body("deadline", "\"" + echoed + "\""));
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        assertThat(stored().getDeadline()).isEqualTo(stored);
+    }
+
+    @Test
     void anUnchangedPastDeadlineDoesNotBlockOtherEdits() throws Exception {
         Instant past = Instant.now().minus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
         jdbc.update(

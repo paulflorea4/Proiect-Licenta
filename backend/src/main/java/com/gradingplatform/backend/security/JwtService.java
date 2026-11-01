@@ -41,17 +41,23 @@ public class JwtService {
         this.validFor = properties.expiration();
         this.clock = clock;
         // Only tokens signed with our key verify: unsigned ("alg": "none") and other-key tokens are
-        // refused, and the expiry is judged by the injected clock.
+        // refused, and the expiry is judged by the injected clock. HS256 is the only algorithm
+        // accepted (8.0k): by default the parser takes any HMAC algorithm the key is long enough
+        // for, so a token we never issue (HS384 with our own key) would verify.
         this.parser = Jwts.parser()
                 .verifyWith(key)
+                .sig()
+                .clear()
+                .add(Jwts.SIG.HS256)
+                .and()
                 .clock(() -> Date.from(clock.instant()))
                 .build();
     }
 
     /**
      * The user a token describes, or empty when it is not one of ours: malformed, unsigned, signed
-     * with another key, expired, or missing a claim. The reason is deliberately not reported, so
-     * callers cannot tell a forger what was wrong.
+     * with another key or algorithm, expired, without an expiry, or missing a claim. The reason is
+     * deliberately not reported, so callers cannot tell a forger what was wrong.
      */
     public Optional<AuthenticatedUser> parse(String token) {
         if (token == null || token.isBlank()) {
@@ -61,7 +67,9 @@ public class JwtService {
             Claims claims = parser.parseSignedClaims(token).getPayload();
             String email = claims.get(CLAIM_EMAIL, String.class);
             String role = claims.get(CLAIM_ROLE, String.class);
-            if (claims.getSubject() == null || email == null || role == null) {
+            // The parser judges `exp` only when it is present; a token that never expires is not ours
+            // (issue() always sets one), so it is refused here (8.0k).
+            if (claims.getExpiration() == null || claims.getSubject() == null || email == null || role == null) {
                 return Optional.empty();
             }
             return Optional.of(new AuthenticatedUser(Long.parseLong(claims.getSubject()), email, Role.valueOf(role)));

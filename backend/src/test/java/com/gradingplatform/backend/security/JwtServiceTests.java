@@ -177,7 +177,36 @@ class JwtServiceTests {
     }
 
     @Test
-    void parseRefusesATokenSignedWithADifferentAlgorithm() {
+    void parseRefusesATokenSignedWithADifferentAlgorithmAndOurOwnKey() {
+        // 8.0k: the same secret, so only the algorithm can make it fail. The key is 48 bytes, long
+        // enough for HS384 (jjwt picks it for `signWith(key)`), too short for HS512. Before, the
+        // parser took any HMAC algorithm the key allowed and this was accepted.
+        String hs384 = Jwts.builder()
+                .subject("1")
+                .claim("email", "a@example.com")
+                .claim("role", "STUDENT")
+                .expiration(java.util.Date.from(NOW.plus(Duration.ofHours(1))))
+                .signWith(key(SECRET), Jwts.SIG.HS384)
+                .compact();
+
+        assertThat(service.parse(hs384)).isEmpty();
+    }
+
+    @Test
+    void parseAcceptsHs256WithOurKeyAsTheBaselineOfThatTest() {
+        String hs256 = Jwts.builder()
+                .subject("1")
+                .claim("email", "a@example.com")
+                .claim("role", "STUDENT")
+                .expiration(java.util.Date.from(NOW.plus(Duration.ofHours(1))))
+                .signWith(key(SECRET), Jwts.SIG.HS256)
+                .compact();
+
+        assertThat(service.parse(hs256)).isPresent();
+    }
+
+    @Test
+    void parseRefusesATokenSignedWithADifferentAlgorithmAndAnotherKey() {
         String hs512 = Jwts.builder()
                 .subject("1")
                 .claim("email", "a@example.com")
@@ -187,6 +216,19 @@ class JwtServiceTests {
                 .compact();
 
         assertThat(service.parse(hs512)).isEmpty();
+    }
+
+    @Test
+    void parseRefusesAnHs256TokenWithoutAnExpiry() {
+        // 8.0k: jjwt only judges `exp` when it is there, so a token that never expires verified.
+        String forever = Jwts.builder()
+                .subject("1")
+                .claim("email", "a@example.com")
+                .claim("role", "ADMIN")
+                .signWith(key(SECRET), Jwts.SIG.HS256)
+                .compact();
+
+        assertThat(service.parse(forever)).isEmpty();
     }
 
     @Test
@@ -242,7 +284,7 @@ class JwtServiceTests {
                 .claim("email", email)
                 .claim("role", role)
                 .expiration(java.util.Date.from(NOW.plus(Duration.ofHours(1))))
-                .signWith(key(SECRET))
+                .signWith(key(SECRET), Jwts.SIG.HS256)
                 .compact();
     }
 

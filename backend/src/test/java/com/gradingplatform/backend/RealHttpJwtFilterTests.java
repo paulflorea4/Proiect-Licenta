@@ -188,9 +188,8 @@ class RealHttpJwtFilterTests {
     @Test
     void aTokenFromSigninWorksOnAProtectedPath() throws Exception {
         post("/auth/signup", "{\"email\":\"ada@example.com\",\"password\":\"correct horse\",\"fullName\":\"Ada\"}");
-        String body = post("/auth/signin", "{\"email\":\"ada@example.com\",\"password\":\"correct horse\"}")
-                .body();
-        String token = body.replaceAll(".*\"token\":\"([^\"]+)\".*", "$1");
+        String token = SigninCookies.tokenOf(
+                post("/auth/signin", "{\"email\":\"ada@example.com\",\"password\":\"correct horse\"}"));
 
         assertThat(get(PROTECTED, "Bearer " + token).statusCode()).isEqualTo(404);
     }

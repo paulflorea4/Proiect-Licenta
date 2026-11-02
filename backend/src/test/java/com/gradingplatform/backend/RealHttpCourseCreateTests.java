@@ -287,9 +287,7 @@ class RealHttpCourseCreateTests extends RealHttpTestBase {
     }
 
     private String signinToken(String email) throws Exception {
-        return JsonPath.read(
-                post("/auth/signin", "{\"email\":\"" + email + "\",\"password\":\"correct horse\"}", null)
-                        .body(),
-                "$.token");
+        return SigninCookies.tokenOf(
+                post("/auth/signin", "{\"email\":\"" + email + "\",\"password\":\"correct horse\"}", null));
     }
 }

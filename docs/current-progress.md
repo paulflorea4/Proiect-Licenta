@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.3b — Sign-in form wired to `POST /auth/signin`, store the JWT
+- Next commit: 8.2c — `JwtAuthenticationFilter` also reads the token from the cookie; `Authorization: Bearer` stays accepted and wins when both are sent
 - In progress: —
-- Blocked: PR #183 (commit 8.3a) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #184 (commit 8.2b) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

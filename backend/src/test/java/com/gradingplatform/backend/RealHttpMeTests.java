@@ -55,9 +55,8 @@ class RealHttpMeTests {
         post(
                 "/auth/signup",
                 "{\"email\":\"ada@example.com\",\"password\":\"" + PASSWORD + "\",\"fullName\":\"Ada L\"}");
-        String signin = post("/auth/signin", "{\"email\":\"ada@example.com\",\"password\":\"" + PASSWORD + "\"}")
-                .body();
-        String token = signin.replaceAll(".*\"token\":\"([^\"]+)\".*", "$1");
+        String token = SigninCookies.tokenOf(
+                post("/auth/signin", "{\"email\":\"ada@example.com\",\"password\":\"" + PASSWORD + "\"}"));
 
         HttpResponse<String> me = get("/auth/me", "Bearer " + token);
 

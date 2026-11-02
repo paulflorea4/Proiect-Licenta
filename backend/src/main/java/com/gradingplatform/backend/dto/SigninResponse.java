@@ -1,22 +1,10 @@
 package com.gradingplatform.backend.dto;
 
 /**
- * Body of a successful signin. The token is returned in the body only (no cookie); the client
- * sends it back as `Authorization: Bearer <token>`.
+ * Body of a successful signin. The token itself is not here: it is set as an {@code httpOnly}
+ * cookie ({@code security.AuthCookie}, 8.2b), so no script ever reads it, this response included.
  *
- * @param token the signed JWT
- * @param tokenType always `Bearer`
- * @param expiresIn seconds until the token expires (there is no refresh flow)
+ * @param expiresIn seconds until the token (and its cookie) expire (there is no refresh flow)
  * @param user who signed in
  */
-public record SigninResponse(String token, String tokenType, long expiresIn, UserResponse user) {
-
-    public static final String BEARER = "Bearer";
-
-    /** Never print the token into a log line. */
-    @Override
-    public String toString() {
-        return "SigninResponse[token=<redacted>, tokenType=" + tokenType + ", expiresIn=" + expiresIn + ", user=" + user
-                + "]";
-    }
-}
+public record SigninResponse(long expiresIn, UserResponse user) {}

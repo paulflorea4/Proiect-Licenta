@@ -314,8 +314,7 @@ class RealHttpAdminRoleTests extends RealHttpTestBase {
         String admin = tokenFor(saved("root@example.com", Role.ADMIN));
         post("/auth/signup", "{\"email\":\"ada@example.com\",\"password\":\"correct horse\",\"fullName\":\"Ada L\"}");
         String oldToken =
-                tokenFrom(post("/auth/signin", "{\"email\":\"ada@example.com\",\"password\":\"correct horse\"}")
-                        .body());
+                tokenFrom(post("/auth/signin", "{\"email\":\"ada@example.com\",\"password\":\"correct horse\"}"));
         long adaId = users.findByEmail("ada@example.com").orElseThrow().getId();
 
         assertThat(setRole(adaId, "ADMIN", admin).statusCode()).isEqualTo(200);
@@ -327,14 +326,13 @@ class RealHttpAdminRoleTests extends RealHttpTestBase {
         HttpResponse<String> signin =
                 post("/auth/signin", "{\"email\":\"ada@example.com\",\"password\":\"correct horse\"}");
         assertThat(signin.body()).contains("\"role\":\"ADMIN\"");
-        assertThat(setRole(adaId, "TEACHER", tokenFrom(signin.body())).statusCode())
-                .isEqualTo(200);
+        assertThat(setRole(adaId, "TEACHER", tokenFrom(signin)).statusCode()).isEqualTo(200);
     }
 
     // --- helpers ---------------------------------------------------------------------------
 
-    private static String tokenFrom(String signinBody) {
-        return signinBody.replaceAll(".*\"token\":\"([^\"]+)\".*", "$1");
+    private static String tokenFrom(HttpResponse<String> signin) {
+        return SigninCookies.tokenOf(signin);
     }
 
     private String roleInDatabase(User user) {

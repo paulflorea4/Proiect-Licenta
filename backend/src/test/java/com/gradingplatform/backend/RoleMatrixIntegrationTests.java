@@ -402,10 +402,8 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
 
         // And the account really has a student's rights: the token it signs in with is refused
         // on every admin endpoint.
-        String token = JsonPath.read(
-                post("/auth/signin", "{\"email\":\"mallory@example.com\",\"password\":\"correct horse\"}", null)
-                        .body(),
-                "$.token");
+        String token = SigninCookies.tokenOf(
+                post("/auth/signin", "{\"email\":\"mallory@example.com\",\"password\":\"correct horse\"}", null));
         assertThat(JsonPath.<String>read(get("/auth/me", token).body(), "$.role"))
                 .isEqualTo("STUDENT");
         assertThat(get("/admin/users", token).statusCode()).isEqualTo(403);
@@ -456,9 +454,7 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
     }
 
     private String signinToken(String email) throws Exception {
-        return JsonPath.read(
-                post("/auth/signin", "{\"email\":\"" + email + "\",\"password\":\"correct horse\"}", null)
-                        .body(),
-                "$.token");
+        return SigninCookies.tokenOf(
+                post("/auth/signin", "{\"email\":\"" + email + "\",\"password\":\"correct horse\"}", null));
     }
 }

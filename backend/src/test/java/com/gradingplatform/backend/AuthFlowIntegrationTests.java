@@ -32,8 +32,7 @@ class AuthFlowIntegrationTests extends RealHttpTestBase {
 
         HttpResponse<String> signin = signin("ada@example.com");
         assertThat(signin.statusCode()).isEqualTo(200);
-        String token = JsonPath.read(signin.body(), "$.token");
-        assertThat(JsonPath.<String>read(signin.body(), "$.tokenType")).isEqualTo("Bearer");
+        String token = SigninCookies.tokenOf(signin);
         assertThat(token).isNotBlank();
 
         HttpResponse<String> me = get("/auth/me", token);
@@ -60,10 +59,11 @@ class AuthFlowIntegrationTests extends RealHttpTestBase {
     void theIssuedTokenCarriesTheNewUsersIdentityAndTheConfiguredLifetime() throws Exception {
         long id = JsonPath.<Number>read(signup("ada@example.com", "Ada L").body(), "$.id")
                 .longValue();
-        String signinBody = signin("ada@example.com").body();
+        HttpResponse<String> signin = signin("ada@example.com");
+        String signinBody = signin.body();
 
         // The server's own reading of the token must give back exactly the signed-up account.
-        assertThat(jwtService.parse(JsonPath.read(signinBody, "$.token")))
+        assertThat(jwtService.parse(SigninCookies.tokenOf(signin)))
                 .contains(new AuthenticatedUser(id, "ada@example.com", Role.STUDENT));
         assertThat(JsonPath.<Number>read(signinBody, "$.expiresIn").longValue())
                 .isEqualTo(jwtProperties.expiration().toSeconds());
@@ -165,6 +165,6 @@ class AuthFlowIntegrationTests extends RealHttpTestBase {
     }
 
     private static String tokenOf(HttpResponse<String> signin) {
-        return JsonPath.read(signin.body(), "$.token");
+        return SigninCookies.tokenOf(signin);
     }
 }

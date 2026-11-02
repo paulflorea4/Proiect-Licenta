@@ -51,7 +51,8 @@ class RealHttpAuthTests {
         HttpResponse<String> signin = signin("ada@example.com", PASSWORD);
 
         assertThat(signin.statusCode()).isEqualTo(200);
-        assertThat(signin.body()).contains("\"token\":\"").contains("\"tokenType\":\"Bearer\"");
+        assertThat(signin.body()).doesNotContain("\"token\"").contains("\"expiresIn\":");
+        assertThat(SigninCookies.tokenOf(signin)).isNotBlank();
     }
 
     @Test
@@ -108,12 +109,15 @@ class RealHttpAuthTests {
     }
 
     @Test
-    void signinSetsNoCookieAndNoSession() throws Exception {
+    void signinSetsOnlyTheAuthCookieOverRealHttpAndNoSession() throws Exception {
         signup("ada@example.com", PASSWORD);
 
         HttpResponse<String> signin = signin("ada@example.com", PASSWORD);
 
-        assertThat(signin.headers().firstValue("Set-Cookie")).isEmpty();
+        // One Set-Cookie (no JSESSIONID: still stateless), with every attribute as Tomcat sent it.
+        assertThat(signin.headers().allValues("Set-Cookie")).hasSize(1);
+        assertThat(SigninCookies.headerOf(signin).split("; "))
+                .contains("HttpOnly", "Secure", "SameSite=Strict", "Path=/", "Max-Age=86400");
     }
 
     @Test

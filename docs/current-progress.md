@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.2c — `JwtAuthenticationFilter` also reads the token from the cookie; `Authorization: Bearer` stays accepted and wins when both are sent
+- Next commit: 8.2d — CSRF protection for cookie-authenticated requests: a state-changing request authenticated by the cookie must carry a custom header
 - In progress: —
-- Blocked: PR #184 (commit 8.2b) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #185 (commit 8.2c) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

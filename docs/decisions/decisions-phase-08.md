@@ -234,3 +234,20 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - a different path on the clearing cookie: 4
   - signout not public: 5
   - credentials off: 1
+
+## 8.2f — The frontend client sends the cookie and the CSRF header (new row)
+
+- **`credentials: 'include'` on every call.** The dev frontend (`localhost:5173`) and the API (`localhost:8080`) are different origins. Without it the browser neither sends the auth cookie nor stores the one in the signin answer (8.2b); the backend's CORS now allows credentials (8.2e). `same-origin` would work only if a later deployment (Phase 16) serves both from one origin, and `include` is right in both cases, so the client doesn't have to know which.
+- **`X-Requested-With: XMLHttpRequest` on every non-GET call** (`CSRF_HEADER`, `CSRF_HEADER_VALUE`, exported for tests and later code). The backend accepts any non-blank value (8.2d); `XMLHttpRequest` is the conventional one, which some proxies and frameworks recognise. It is **set after the caller's headers**, so a caller can't remove or blank it by accident. **Not on GET:** a GET changes nothing and the backend doesn't ask for the header there, while sending it would turn every read into a preflighted CORS request (a non-safelisted header), one extra round trip each.
+- **No token handling in the frontend at all**, which is the point of the cookie: there is nothing to store, refresh or attach. The `headers` option stays for other uses.
+- **Tests (frontend 68 -> 78; backend and ai-service unchanged and passing):** `client.test.ts`:
+  - the existing header assertions now include the CSRF header on the JSON `POST` and the `FormData` upload, and its absence on the plain `GET`;
+  - each shorthand sends `credentials: 'include'` (5);
+  - each write sends the header while a `GET` does not (4);
+  - a caller's blank `X-Requested-With` does not replace it (1).
+- **Mutation-checked:**
+  - no `credentials`: 5 failures
+  - header on GET too: 6
+  - header never: 7
+  - the caller's value wins: 1
+- **Not verified in a real browser yet:** the cross-origin cookie round trip (signin sets it, `/auth/me` sends it) needs a page that signs in. 8.3b builds it and is the place to check it end to end in the browser pane, Safari's `Secure`-on-localhost caveat included (`docs/suggestions.md`, 8.2b).

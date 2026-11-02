@@ -52,6 +52,10 @@ export function isApiError(error: unknown, code?: string): error is ApiError {
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
+/** The backend's `AuthCookie.CSRF_HEADER` (8.2d); any non-blank value is accepted. */
+export const CSRF_HEADER = 'X-Requested-With'
+export const CSRF_HEADER_VALUE = 'XMLHttpRequest'
+
 export interface ApiRequestOptions {
   method?: HttpMethod
   /** Sent as JSON, except a `FormData` (multipart), which is sent as is. */
@@ -88,6 +92,11 @@ export async function apiRequest<T>(
     Accept: 'application/json',
     ...options.headers,
   }
+  if (method !== 'GET') {
+    // The backend refuses a cookie-authenticated write without it (8.2d, CSRF). Set last, so a
+    // caller's headers cannot drop it; not on GET, where it would only add a CORS preflight.
+    headers[CSRF_HEADER] = CSRF_HEADER_VALUE
+  }
   let requestBody: BodyInit | undefined
   if (body instanceof FormData) {
     // The browser sets the multipart Content-Type with its boundary.
@@ -105,6 +114,9 @@ export async function apiRequest<T>(
       method,
       headers,
       body: requestBody,
+      // The API is another origin (:8080 vs :5173 in dev): without this the browser neither
+      // sends the httpOnly auth cookie nor keeps the one signin sets (8.2b, 8.2e).
+      credentials: 'include',
       signal,
     })
   } catch (error) {

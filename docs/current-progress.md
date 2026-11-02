@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.2a — Fetch/axios wrapper reading API base URL from env, typed response helpers, consistent error handling for the backend's error shape (2.6a)
+- Next commit: 8.3a — Sign-up form wired to `POST /auth/signup`
 - In progress: —
-- Blocked: PR #181 (commit 8.1b) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #182 (commit 8.2a) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

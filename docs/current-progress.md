@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
 - Next commit: 8.3b — Sign-in form wired to `POST /auth/signin`; the backend's `httpOnly` cookie holds the JWT, the app learns who is signed in from `GET /auth/me`
 - In progress: —
-- Blocked: PR #188 (commit 8.2f) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #189 (commit 8.2g) awaiting review.

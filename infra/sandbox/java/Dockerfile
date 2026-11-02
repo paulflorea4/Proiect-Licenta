@@ -22,4 +22,13 @@ RUN groupadd --gid 10001 sandbox \
 # The submission's directory is mounted here; the source file is written to it and commands run in it.
 WORKDIR /work
 
+# No entrypoint (8.2g, the human's decision on the 7.7b suggestion). The base image's
+# /__cacert_entrypoint.sh ran every command through a shell, so a compile or run command missing
+# from the image came back as the shell's exit 127, which looks exactly like a program's own
+# exit(127) and was graded as the student's COMPILE_ERROR / RUNTIME_ERROR. Without it Docker cannot
+# start such a container at all, and the runner reports SANDBOX_ERROR, as on the Python image. The
+# script only imports host CA certificates (USE_SYSTEM_CA_CERTS), which a sandbox without network
+# never needs. SandboxImagesTests pins that no runner image has an entrypoint.
+ENTRYPOINT []
+
 USER 10001:10001

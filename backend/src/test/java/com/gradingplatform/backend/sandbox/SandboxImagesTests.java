@@ -58,6 +58,22 @@ class SandboxImagesTests {
     }
 
     @Test
+    void noImageHasAnEntrypoint() {
+        // 8.2g: an entrypoint script (the Java base image's /__cacert_entrypoint.sh) runs every command
+        // through a shell, turning a command missing from the image into exit 127 of a container that
+        // ran, which reads as the student's own exit(127). Without one Docker cannot start such a
+        // container and the runner reports SANDBOX_ERROR (7.7b). A new language's image must keep it so.
+        for (String id : languages.ids()) {
+            String image = build(id);
+
+            DockerCli.Output out = docker(RUN, "image", "inspect", "--format", "{{json .Config.Entrypoint}}", image);
+
+            assertThat(out.exitCode()).as(id + " " + out.stderr()).isZero();
+            assertThat(out.stdout().trim()).as(id).isIn("null", "[]");
+        }
+    }
+
+    @Test
     void bothImagesRunAsTheSameUnprivilegedUserInTheWorkDirectory() {
         for (String id : languages.ids()) {
             String image = build(id);

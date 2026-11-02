@@ -14,7 +14,8 @@ React + TypeScript on Vite, npm. Project-wide rules (gates, defaults, Git safety
 
 ## Layout and test setup
 
-- Source is in `src/`; the app is still the unmodified Vite template (`App.tsx`, `main.tsx`), confirmed current at 8.1a (Node 24, install, build, tests, lint, format and the dev server checked). 8.1a also ran `npm audit fix` (lockfile only, the human's approval): `npm audit --omit=dev` is clean, and 13 moderate dev-only findings in the ESLint chain remain with no non-downgrade fix (`docs/suggestions.md`). A lockfile change is a dependency change: ask first.
+- Source is in `src/`. Confirmed current at 8.1a (Node 24, install, build, tests, lint, format and the dev server checked); 8.1a also ran `npm audit fix` (lockfile only, the human's approval): `npm audit --omit=dev` is clean, and 13 moderate dev-only findings in the ESLint chain remain with no non-downgrade fix (`docs/suggestions.md`). A lockfile change is a dependency change: ask first.
+- Routing (8.1b): `react-router` ^8.5.1 (the human's approval), declarative mode. `main.tsx` wraps `App` in `BrowserRouter`; **`App.tsx` holds only the `<Routes>`**, so tests render `App` inside a `MemoryRouter initialEntries={[path]}` (see `App.test.tsx`'s `renderAt`). Routes: `/`, `/signin`, `/signup`, `/courses` (placeholders) and `*` (not-found page with a link home). Import everything from `react-router` (v8 has no `react-router-dom`). Deep links need the server to answer every path with `index.html`: Vite's dev server does; the production host must too (Phase 16, `docs/suggestions.md`).
 - Vitest runs on jsdom with Testing Library. `src/test/setup.ts` is the setup file and registers `cleanup` itself.
 - Vitest globals are off: import `describe`, `it` and `expect` explicitly in every test file.
 - Tests live next to the code (`src/App.test.tsx`).
@@ -22,7 +23,7 @@ React + TypeScript on Vite, npm. Project-wide rules (gates, defaults, Git safety
 
 ## Conventions
 
-- There are no real components yet, so no component conventions exist. Don't invent any — they are set by the tasks that introduce the first real components.
+- Pages (8.1b, the first real components): one per route in `src/pages/`, file `<Name>Page.tsx`, a plain `function` with `export default` (as `App`); its root is `<main>` with exactly one `<h1>` (tests find pages by that heading). Shared components, state and styling conventions are still unset: the tasks that introduce them decide.
 - Only `VITE_`-prefixed variables are exposed to client code, and everything in them ends up in the browser bundle: never put a secret there. Local values go in `.env.local`. The only variable so far is `VITE_API_BASE_URL` (the Spring Boot base URL, default `http://localhost:8080`, no trailing slash — see `frontend/.env.example`).
 - The frontend talks only to the Spring Boot API, never to the Python service (`docs/project-specifications.md`, Architecture).
 - Tests are part of the commit that adds the code, and all tests of all three projects must pass before a task counts as finished (root `CLAUDE.md`, Workflow).

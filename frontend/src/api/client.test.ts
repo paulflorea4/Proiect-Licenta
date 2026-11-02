@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ApiError,
+  CSRF_HEADER,
+  CSRF_HEADER_VALUE,
   NETWORK_ERROR,
   UNEXPECTED_RESPONSE,
   api,
@@ -76,6 +78,7 @@ describe('apiRequest: the request', () => {
     expect(url).toBe('http://api.test/courses?page=0')
     expect(init.method).toBe('GET')
     expect(init.body).toBeUndefined()
+    // No CSRF header on a GET: it changes nothing and would only add a CORS preflight.
     expect(init.headers).toEqual({ Accept: 'application/json' })
   })
 
@@ -88,6 +91,7 @@ describe('apiRequest: the request', () => {
     expect(init.method).toBe('POST')
     expect(init.headers).toEqual({
       Accept: 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
       'Content-Type': 'application/json',
     })
     expect(init.body).toBe('{"email":"a@b.c","password":"secret123"}')
@@ -102,7 +106,10 @@ describe('apiRequest: the request', () => {
 
     const { init } = lastCall()
     expect(init.body).toBe(form)
-    expect(init.headers).toEqual({ Accept: 'application/json' })
+    expect(init.headers).toEqual({
+      Accept: 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    })
   })
 
   it('adds the caller’s headers and passes the abort signal', async () => {
@@ -134,6 +141,44 @@ describe('apiRequest: the request', () => {
     await api[name]('/courses/1')
 
     expect(lastCall().init.method).toBe(method)
+  })
+
+  it.each(['get', 'post', 'put', 'patch', 'delete'] as const)(
+    'api.%s sends the auth cookie (credentials: include)',
+    async (name) => {
+      fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+      await api[name]('/courses/1')
+
+      expect(lastCall().init.credentials).toBe('include')
+    },
+  )
+
+  it.each(['post', 'put', 'patch', 'delete'] as const)(
+    'api.%s sends the CSRF header, a GET does not',
+    async (name) => {
+      fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+      await api[name]('/courses/1')
+      const write = lastCall().init.headers as Record<string, string>
+      await api.get('/courses/1')
+      const read = lastCall().init.headers as Record<string, string>
+
+      expect(write[CSRF_HEADER]).toBe(CSRF_HEADER_VALUE)
+      expect(read).not.toHaveProperty(CSRF_HEADER)
+    },
+  )
+
+  it('a caller’s headers cannot remove or blank the CSRF header', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+    await api.post('/auth/signout', undefined, {
+      headers: { [CSRF_HEADER]: '' },
+    })
+
+    expect(
+      (lastCall().init.headers as Record<string, string>)[CSRF_HEADER],
+    ).toBe('XMLHttpRequest')
   })
 
   it.each(['courses', 'http://elsewhere.test/x', '//elsewhere.test/x', ''])(

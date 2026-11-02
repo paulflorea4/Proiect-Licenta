@@ -29,12 +29,25 @@ public final class AuthCookie {
 
     /** The {@code Set-Cookie} value for a freshly signed token valid for {@code validFor}. */
     public static ResponseCookie issue(String token, Duration validFor) {
-        return ResponseCookie.from(NAME, token)
+        return withAttributes(token, validFor);
+    }
+
+    /**
+     * The {@code Set-Cookie} value that makes the browser drop the cookie (8.2e, signout): empty, with
+     * {@code Max-Age=0} and otherwise the same attributes, since a browser matches the cookie to
+     * delete by name, path and (absent) domain.
+     */
+    public static ResponseCookie clear() {
+        return withAttributes("", Duration.ZERO);
+    }
+
+    private static ResponseCookie withAttributes(String value, Duration maxAge) {
+        return ResponseCookie.from(NAME, value)
                 .httpOnly(true)
                 .secure(true)
                 .sameSite(SAME_SITE)
                 .path("/")
-                .maxAge(validFor)
+                .maxAge(maxAge)
                 .build();
     }
 }

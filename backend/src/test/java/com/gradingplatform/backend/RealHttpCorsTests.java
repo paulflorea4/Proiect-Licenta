@@ -101,16 +101,25 @@ class RealHttpCorsTests extends RealHttpTestBase {
     }
 
     @Test
-    void credentialsAreNeverAllowed() throws Exception {
+    void credentialsAreAllowedForAListedOriginWhichIsEchoedNeverStarred() throws Exception {
+        // 8.2e: the browser sends the httpOnly auth cookie cross-origin only when this is true.
         HttpResponse<String> response = get("/auth/me", ALLOWED, "Bearer " + tokenFor("ada@example.com"));
 
-        assertThat(response.headers().firstValue("Access-Control-Allow-Credentials"))
+        assertThat(header(response, "Access-Control-Allow-Credentials")).isEqualTo("true");
+        assertThat(header(response, ALLOW_ORIGIN)).isEqualTo(ALLOWED);
+        HttpResponse<String> preflight = preflight("/courses", ALLOWED, "POST", "content-type,x-requested-with");
+        assertThat(header(preflight, "Access-Control-Allow-Credentials")).isEqualTo("true");
+        assertThat(header(preflight, ALLOW_ORIGIN)).isEqualTo(ALLOWED);
+    }
+
+    @Test
+    void anOriginNotOnTheListGetsNoCredentialsGrant() throws Exception {
+        HttpResponse<String> preflight = preflight("/auth/me", "https://evil.example", "GET", "x-requested-with");
+
+        assertThat(preflight.statusCode()).isEqualTo(403);
+        assertThat(preflight.headers().firstValue("Access-Control-Allow-Credentials"))
                 .isEmpty();
-        assertThat(header(response, ALLOW_ORIGIN)).isNotEqualTo("*");
-        assertThat(preflight("/auth/me", ALLOWED, "GET", "authorization")
-                        .headers()
-                        .firstValue("Access-Control-Allow-Credentials"))
-                .isEmpty();
+        assertThat(preflight.headers().firstValue(ALLOW_ORIGIN)).isEmpty();
     }
 
     @Test

@@ -99,6 +99,7 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
             Endpoint.publicEndpoint("GET", "/health"),
             Endpoint.publicEndpoint("POST", "/auth/signup"),
             Endpoint.publicEndpoint("POST", "/auth/signin"),
+            Endpoint.publicEndpoint("POST", "/auth/signout"),
             Endpoint.signedIn("GET", "/auth/me"),
             Endpoint.rolesOnly("GET", "/admin/users", "/admin/users", "{}", Role.ADMIN),
             Endpoint.rolesOnly(

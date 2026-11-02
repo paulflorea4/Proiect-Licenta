@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.2e — CORS allows credentials (`allowCredentials(true)`); public `POST /auth/signout` clears the cookie
+- Next commit: 8.2f — The frontend API client sends `credentials: 'include'` and the 8.2d header on state-changing requests
 - In progress: —
-- Blocked: PR #186 (commit 8.2d) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #187 (commit 8.2e) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

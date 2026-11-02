@@ -52,6 +52,15 @@ class RealHttpCorsTests extends RealHttpTestBase {
     }
 
     @Test
+    void aPreflightForACookieAuthenticatedWriteWithTheCsrfHeaderIsAllowed() throws Exception {
+        // 8.2d: the frontend's writes carry X-Requested-With, so the preflight must allow it.
+        HttpResponse<String> response = preflight("/courses", ALLOWED, "POST", "content-type,x-requested-with");
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(header(response, "Access-Control-Allow-Headers")).containsIgnoringCase("x-requested-with");
+    }
+
+    @Test
     void everyConfiguredOriginIsAllowed() throws Exception {
         assertThat(header(preflight("/auth/me", ALLOWED_TOO, "GET", "authorization"), ALLOW_ORIGIN))
                 .isEqualTo(ALLOWED_TOO);

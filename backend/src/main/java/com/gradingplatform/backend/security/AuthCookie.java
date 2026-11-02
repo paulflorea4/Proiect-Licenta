@@ -15,6 +15,13 @@ public final class AuthCookie {
     /** The cookie's name; the filter (8.2c) and signout (8.2e) use the same one. */
     public static final String NAME = "access_token";
 
+    /**
+     * The header a state-changing request authenticated by this cookie must carry (8.2d, CSRF), with
+     * any non-blank value. A form or a plain link on another site cannot add a header, and script on
+     * another origin can only after a CORS preflight, which refuses origins not on the allow-list.
+     */
+    public static final String CSRF_HEADER = "X-Requested-With";
+
     /** {@code Strict}: the browser never attaches it to a request started by another site. */
     public static final String SAME_SITE = "Strict";
 

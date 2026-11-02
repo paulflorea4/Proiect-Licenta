@@ -1,5 +1,6 @@
 package com.gradingplatform.backend.config;
 
+import com.gradingplatform.backend.security.AuthCookie;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -30,7 +31,8 @@ public class CorsConfig {
         // Exact origins only; with an empty list nothing is allowed cross-origin.
         cors.setAllowedOrigins(properties.allowedOrigins());
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        // X-Requested-With: the CSRF header a cookie-authenticated write must carry (8.2d).
+        cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", AuthCookie.CSRF_HEADER));
         cors.setAllowCredentials(false);
         cors.setMaxAge(PREFLIGHT_MAX_AGE);
 

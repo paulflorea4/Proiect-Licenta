@@ -77,7 +77,8 @@ public class SecurityConfig {
                 // body (2.6a), written here because these answers never reach the MVC handler.
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(new JsonAuthenticationEntryPoint(writer))
                         .accessDeniedHandler(new JsonAccessDeniedHandler(writer)))
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(jwtService, writer), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(requests -> requests
                         // Spring MVC reports an error status (400, 401, 409...) by forwarding to
                         // /error, which this chain also guards. Without this every error answered

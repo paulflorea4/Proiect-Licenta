@@ -16,7 +16,7 @@
 | 8.1a | Confirm the `/frontend` React+TS app (0.1d) is still current before adding to it | Done | If 0.1d already scaffolded this, don't re-run `npm create vite`. |
 | 8.1b | `react-router` set up with placeholder routes (`/`, `/signin`, `/signup`, `/courses`) | Done |  |
 | 8.2a | Fetch/axios wrapper reading API base URL from env, typed response helpers, consistent error handling for the backend's error shape (2.6a) | Done | Reads the var from `frontend/.env.example` (0.3c). Every later phase's frontend work goes through this, not raw `fetch`. |
-| 8.3a | Sign-up form wired to `POST /auth/signup` | Not started | No role selector — signup always creates a student. |
+| 8.3a | Sign-up form wired to `POST /auth/signup` | Done | No role selector — signup always creates a student. |
 | 8.3b | Sign-in form wired to `POST /auth/signin`, store the JWT | Not started | Default: httpOnly cookie if Spring Boot sets one; otherwise document the fallback storage explicitly — don't silently pick `localStorage`. |
 | 8.3c | `ProtectedRoute` (redirects unauthenticated users to `/signin`) and `RoleRoute` (redirects users without the required role) | Not started | Frontend role checks are a convenience only — the backend (2.5a) is what actually enforces access. |
 | 8.4a | Landing page for guests describing the platform, redirecting signed-in users to their role's home | Not started | Student home = their courses, teacher home = their courses with management actions, admin home = user management. |

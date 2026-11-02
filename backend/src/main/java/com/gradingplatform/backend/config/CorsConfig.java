@@ -15,8 +15,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * name Spring Security's `http.cors(...)` looks up, so the check runs inside the security chain
  * before authentication: a preflight `OPTIONS` request never carries a token and must not get a 401.
  *
- * <p>No credentials: the JWT travels in the `Authorization` header, never as a cookie (2.4a), so the
- * browser has nothing ambient to attach and `Access-Control-Allow-Credentials` stays off.
+ * <p>Credentials allowed since 8.2e: the JWT is an `httpOnly` cookie (8.2b), which the browser sends
+ * on a cross-origin call (the dev frontend on :5173 to the API on :8080) only when the response
+ * allows credentials. That is safe only because the origins are exact (never `*`, which the
+ * browser refuses with credentials anyway) and cookie-authenticated writes need the CSRF header
+ * (8.2d).
  */
 @Configuration
 @EnableConfigurationProperties(CorsProperties.class)
@@ -33,7 +36,7 @@ public class CorsConfig {
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         // X-Requested-With: the CSRF header a cookie-authenticated write must carry (8.2d).
         cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", AuthCookie.CSRF_HEADER));
-        cors.setAllowCredentials(false);
+        cors.setAllowCredentials(true);
         cors.setMaxAge(PREFLIGHT_MAX_AGE);
 
         var source = new UrlBasedCorsConfigurationSource();

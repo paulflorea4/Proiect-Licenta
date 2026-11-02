@@ -205,3 +205,32 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - bearer requests checked too: 3
   - a blank header counts: 1
   - header missing from CORS: 1
+
+## 8.2e — CORS allows credentials; `POST /auth/signout` clears the cookie (new row)
+
+- **CORS credentials on (`CorsConfig`, `setAllowCredentials(true)`):** the dev frontend (`localhost:5173`) and API (`localhost:8080`) are different origins. A browser sends a cookie on such a `fetch` only with `credentials: 'include'` (8.2f), and accepts the answer only if it says `Access-Control-Allow-Credentials: true` and echoes the exact origin. Turning it on is safe because the origins are exact (2.4d refuses `*` and patterns at startup; a browser would refuse `*` with credentials anyway) and cookie-authenticated writes need the CSRF header (8.2d). An unlisted origin's preflight is still a 403 without the grant.
+- **Signout, `POST /auth/signout`:**
+  - **Shape:** public (`permitAll`), no body, 204, and a `Set-Cookie` from `AuthCookie.clear()`: empty value, `Max-Age=0`, otherwise the same attributes as `issue`. A browser deletes the cookie that matches name, path and domain, so the path and the absence of `Domain` must be identical; the security attributes are kept too, since some browsers refuse to overwrite a `Secure` cookie with a non-secure one. `issue` and `clear` share one builder, so they can't drift.
+  - **Why public and idempotent:** signing out must work with an expired or bad cookie, and with none (a second click), always answering 204 and clearing. With no credential there is nothing to protect.
+  - **Forced signout is blocked:** a valid cookie without the CSRF header is a 403 like any cookie-authenticated write (8.2d), with no `Set-Cookie`, so another site cannot sign a user out.
+  - **Not revoked:** the API is stateless (no session or token table), so signout removes only the browser's copy. A copied token stays valid until `exp` (24h). A deny-list would be a new table and a check on every request, which is new scope, not this row. Pinned by a test so it can't be mistaken for revocation.
+  - **Bearer callers** get 204 too. The clearing header is harmless to a client without the cookie.
+- **Role matrix:** the new endpoint has its row (`publicEndpoint("POST", "/auth/signout")`), as `everyMappedEndpointHasARowInTheMatrix` requires.
+- **Tests (backend 2653 -> 2667; ai-service and frontend unchanged and passing):**
+  - **`RealHttpSignoutTests`** (new, 8, real HTTP):
+    - with a cookie and the header: 204, empty body, cleared;
+    - the clearing cookie has the issued one's `Path`, `Secure`, `HttpOnly`, `SameSite` and no `Domain`;
+    - no cookie: 204, cleared;
+    - a bad cookie: 204, cleared;
+    - bearer: 204;
+    - a valid cookie without the header: 403 `CSRF_HEADER_MISSING`, nothing cleared;
+    - the token still works after signout;
+    - `GET` does not sign out.
+  - **`RealHttpCorsTests`:** "credentials are never allowed" is replaced by credentials allowed for a listed origin, echoed and never `*`, on a request and on a write's preflight; an unlisted origin's preflight is 403 without the grant.
+  - **The role-matrix row.**
+  - **`CorsPropertiesTests`** (unit): "never allows credentials or a wildcard" is now "allows credentials only with exact origins and no wildcard". The first full run failed on it, as expected after the change.
+- **Mutation-checked:**
+  - clearing without `Max-Age=0`: 3 failures
+  - a different path on the clearing cookie: 4
+  - signout not public: 5
+  - credentials off: 1

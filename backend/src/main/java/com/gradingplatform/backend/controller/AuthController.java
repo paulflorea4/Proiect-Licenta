@@ -52,4 +52,17 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(new SigninResponse(result.token().validFor().toSeconds(), UserResponse.from(result.user())));
     }
+
+    /**
+     * Signs the browser out (8.2e): 204 with a {@code Set-Cookie} that clears the auth cookie. Public
+     * and idempotent (no cookie, or a bad one, is still 204), but a valid cookie needs the CSRF header
+     * like any write (8.2d), so another site cannot sign a user out. The token itself is not revoked:
+     * the API is stateless, so a copy of it stays valid until it expires.
+     */
+    @PostMapping("/signout")
+    public ResponseEntity<Void> signout() {
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, AuthCookie.clear().toString())
+                .build();
+    }
 }

@@ -99,12 +99,13 @@ class CorsPropertiesTests {
     }
 
     @Test
-    void theConfigurationNeverAllowsCredentialsOrAWildcard() {
+    void theConfigurationAllowsCredentialsOnlyWithExactOriginsAndNoWildcard() {
         var source = new CorsConfig().corsConfigurationSource(new CorsProperties(List.of("http://localhost:5173")));
         CorsConfiguration cors = source.getCorsConfiguration(new MockHttpServletRequest("GET", "/auth/me"));
 
         assertThat(cors).isNotNull();
-        assertThat(cors.getAllowCredentials()).isNotEqualTo(Boolean.TRUE);
+        // 8.2e: credentials on (the auth cookie), which is safe only with the exact origins below.
+        assertThat(cors.getAllowCredentials()).isEqualTo(Boolean.TRUE);
         assertThat(cors.getAllowedOrigins()).containsExactly("http://localhost:5173");
         assertThat(cors.getAllowedOriginPatterns()).isNullOrEmpty();
         assertThat(cors.getAllowedHeaders()).doesNotContain("*");

@@ -87,7 +87,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/health")
                         .permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/signup", "/auth/signin")
+                        .requestMatchers(HttpMethod.POST, "/auth/signup", "/auth/signin", "/auth/signout")
                         .permitAll()
                         .anyRequest()
                         .authenticated());

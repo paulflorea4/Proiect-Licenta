@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.gradingplatform.backend.dto.SigninRequest;
 import com.gradingplatform.backend.dto.SigninResponse;
-import com.gradingplatform.backend.dto.UserResponse;
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
 import com.gradingplatform.backend.repository.UserRepository;
@@ -54,13 +53,13 @@ class SigninEndpointTests {
     // --- success ---------------------------------------------------------------------------
 
     @Test
-    void returns200WithATokenTheUserAndTheExpiry() throws Exception {
+    void returns200WithTheUserAndTheExpiryButNoTokenInTheBody() throws Exception {
         signUp("ada@example.com", "Ada Lovelace");
 
         signIn("ada@example.com", PASSWORD)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isString())
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.tokenType").doesNotExist())
                 .andExpect(jsonPath("$.expiresIn").value(24 * 60 * 60))
                 .andExpect(jsonPath("$.user.email").value("ada@example.com"))
                 .andExpect(jsonPath("$.user.fullName").value("Ada Lovelace"))
@@ -73,7 +72,7 @@ class SigninEndpointTests {
         signUp("ada@example.com", "Ada");
         User ada = users.findByEmail("ada@example.com").orElseThrow();
 
-        Claims claims = claimsOf(signInBody("ada@example.com", PASSWORD).token());
+        Claims claims = claimsOf(signInToken("ada@example.com", PASSWORD));
 
         assertThat(claims.getSubject()).isEqualTo(String.valueOf(ada.getId()));
         assertThat(claims.get("email", String.class)).isEqualTo("ada@example.com");
@@ -85,7 +84,7 @@ class SigninEndpointTests {
         signUp("ada@example.com", "Ada");
         Instant before = Instant.now();
 
-        Claims claims = claimsOf(signInBody("ada@example.com", PASSWORD).token());
+        Claims claims = claimsOf(signInToken("ada@example.com", PASSWORD));
 
         Duration lifetime = Duration.between(
                 claims.getIssuedAt().toInstant(), claims.getExpiration().toInstant());
@@ -99,10 +98,9 @@ class SigninEndpointTests {
         users.saveAndFlush(
                 new User("teacher@example.com", passwordEncoder.encode(PASSWORD), "Tom Teacher", Role.TEACHER));
 
-        SigninResponse body = signInBody("teacher@example.com", PASSWORD);
-
-        assertThat(claimsOf(body.token()).get("role", String.class)).isEqualTo("TEACHER");
-        assertThat(body.user().role()).isEqualTo(Role.TEACHER);
+        assertThat(claimsOf(signInToken("teacher@example.com", PASSWORD)).get("role", String.class))
+                .isEqualTo("TEACHER");
+        assertThat(signInBody("teacher@example.com", PASSWORD).user().role()).isEqualTo(Role.TEACHER);
     }
 
     @Test
@@ -134,14 +132,39 @@ class SigninEndpointTests {
     }
 
     @Test
-    void theTokenIsInTheBodyOnlyNotInACookieOrHeader() throws Exception {
+    void theTokenIsAnHttpOnlySecureStrictCookieForTheTokensLifetime() throws Exception {
         signUp("ada@example.com", "Ada");
 
         var response = signIn("ada@example.com", PASSWORD).andReturn().getResponse();
 
-        assertThat(response.getCookies()).isEmpty();
-        assertThat(response.getHeader("Set-Cookie")).isNull();
+        assertThat(response.getHeaders("Set-Cookie")).hasSize(1);
+        String header = SigninCookies.headerOf(response);
+        assertThat(header).startsWith("access_token=");
+        assertThat(header.split("; "))
+                .contains("HttpOnly", "Secure", "SameSite=Strict", "Path=/", "Max-Age=" + 24 * 60 * 60);
+        // Host-only: no Domain, so no other host (a subdomain) ever receives it.
+        assertThat(header).doesNotContainIgnoringCase("domain=");
         assertThat(response.getHeader("Authorization")).isNull();
+    }
+
+    @Test
+    void theCookieHoldsAValidTokenThatTheBodyNeverRepeats() throws Exception {
+        signUp("ada@example.com", "Ada");
+
+        var response = signIn("ada@example.com", PASSWORD).andReturn().getResponse();
+
+        String token = SigninCookies.tokenOf(response);
+        assertThat(claimsOf(token).get("email", String.class)).isEqualTo("ada@example.com");
+        assertThat(response.getContentAsString()).doesNotContain(token).doesNotContain("eyJ");
+    }
+
+    @Test
+    void theSigninResponseIsNeverCached() throws Exception {
+        signUp("ada@example.com", "Ada");
+
+        var response = signIn("ada@example.com", PASSWORD).andReturn().getResponse();
+
+        assertThat(response.getHeader("Cache-Control")).contains("no-store");
     }
 
     // --- failure ---------------------------------------------------------------------------
@@ -185,6 +208,18 @@ class SigninEndpointTests {
     }
 
     @Test
+    void aFailedSigninSetsNoCookie() throws Exception {
+        signUp("ada@example.com", "Ada");
+
+        var wrongPassword =
+                signIn("ada@example.com", "wrong password").andReturn().getResponse();
+        var invalidBody = signIn("  ", PASSWORD).andReturn().getResponse();
+
+        assertThat(wrongPassword.getHeaders("Set-Cookie")).isEmpty();
+        assertThat(invalidBody.getHeaders("Set-Cookie")).isEmpty();
+    }
+
+    @Test
     void missingAndBlankFieldsAreBadRequests() throws Exception {
         rawSignIn("{\"password\":\"" + PASSWORD + "\"}").andExpect(status().isBadRequest());
         rawSignIn("{\"email\":\"ada@example.com\"}").andExpect(status().isBadRequest());
@@ -206,13 +241,10 @@ class SigninEndpointTests {
     // --- logging safety --------------------------------------------------------------------
 
     @Test
-    void theRequestAndResponseObjectsNeverPrintTheirSecrets() {
+    void theRequestObjectNeverPrintsThePassword() {
         SigninRequest request = new SigninRequest("ada@example.com", PASSWORD);
-        SigninResponse response = new SigninResponse(
-                "eyJ.secret.token", "Bearer", 86400, new UserResponse(1L, "ada@example.com", "Ada", Role.STUDENT));
 
         assertThat(request.toString()).doesNotContain(PASSWORD).contains("ada@example.com");
-        assertThat(response.toString()).doesNotContain("eyJ.secret.token").contains("ada@example.com");
     }
 
     // --- helpers ---------------------------------------------------------------------------
@@ -250,5 +282,10 @@ class SigninEndpointTests {
                 .getResponse()
                 .getContentAsString();
         return new tools.jackson.databind.json.JsonMapper().readValue(json, SigninResponse.class);
+    }
+
+    private String signInToken(String email, String password) throws Exception {
+        return SigninCookies.tokenOf(
+                signIn(email, password).andExpect(status().isOk()).andReturn().getResponse());
     }
 }

@@ -270,7 +270,7 @@ class RealHttpSeededGradingTests {
         HttpResponse<String> response =
                 send("POST", "/auth/signin", null, "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}");
         assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
-        return string(response.body(), "$.token");
+        return SigninCookies.tokenOf(response);
     }
 
     private long assignmentId(String title) {

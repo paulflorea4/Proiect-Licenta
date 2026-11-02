@@ -33,6 +33,8 @@ import org.springframework.context.annotation.Import;
 class DockerCliSandboxRunnerTests {
 
     private static final ExecutionLimits LIMITS = new ExecutionLimits(5_000, 128);
+    /** A JVM is given more room than the Python cases need (Java's min-memory-mb is 128, 7.1c). */
+    private static final ExecutionLimits JAVA_LIMITS = new ExecutionLimits(5_000, 256);
 
     @Autowired
     SandboxProperties languages;
@@ -277,8 +279,8 @@ class DockerCliSandboxRunnerTests {
     @Test
     void aCompileCommandMissingFromTheImageIsASandboxErrorNotTheStudentsCompileError() throws IOException {
         // The build step (4.4b) the same way: its container is `created` with exit 127 and never runs,
-        // which read as an exit code alone was COMPILE_ERROR on every test. On the Python image, which
-        // has no entrypoint script; see 7.7b in decisions-phase-07 for the Java image's.
+        // which read as an exit code alone was COMPILE_ERROR on every test. The Java image the same way
+        // since 8.2g, below.
         LanguageSpec real = languages.find("PYTHON").orElseThrow();
         Map<String, LanguageSpec> map = new LinkedHashMap<>();
         map.put(
@@ -301,14 +303,82 @@ class DockerCliSandboxRunnerTests {
         assertThat(entriesOf(workRoot)).isEmpty();
     }
 
+    @Test
+    void onTheJavaImageACompileCommandMissingFromTheImageIsASandboxError() {
+        // 8.2g: before ENTRYPOINT [] the base image's entrypoint script ran the command through a
+        // shell, whose exit 127 for a missing command was graded as the student's COMPILE_ERROR.
+        LanguageSpec real = javaSpec();
+        DockerCliSandboxRunner typo =
+                javaRunnerWith(List.of("javac-does-not-exist", real.sourceFileName()), real.runCommand());
+
+        SandboxResult result = typo.run(javaRequest());
+
+        assertThat(result.status()).as(result.stderr()).isEqualTo(SandboxStatus.SANDBOX_ERROR);
+        assertThat(result.exitCode()).isNull();
+        assertThat(result.stderr()).doesNotContain("javac-does-not-exist");
+    }
+
+    @Test
+    void onTheJavaImageARunCommandMissingFromTheImageIsASandboxError() {
+        // The build succeeds with the real javac; the run container cannot start.
+        LanguageSpec real = javaSpec();
+        DockerCliSandboxRunner typo = javaRunnerWith(real.compileCommand(), List.of("jav-does-not-exist", "Main"));
+
+        SandboxResult result = typo.run(javaRequest());
+
+        assertThat(result.status()).as(result.stderr()).isEqualTo(SandboxStatus.SANDBOX_ERROR);
+        assertThat(result.exitCode()).isNull();
+        assertThat(result.stderr()).doesNotContain("jav-does-not-exist");
+    }
+
+    @Test
+    void onTheJavaImageAProgramThatItselfExits127IsStillTheStudentsRuntimeError() {
+        // The control for the two above, on the same image.
+        SandboxResult result = javaRunnerWith(
+                        javaSpec().compileCommand(), javaSpec().runCommand())
+                .run(new SandboxRequest(
+                        "JAVA",
+                        List.of(new SourceFile(
+                                javaSpec().sourceFileName(),
+                                "public class Main { public static void main(String[] a) { System.exit(127); } }")),
+                        "",
+                        JAVA_LIMITS));
+
+        assertThat(result.status()).as(result.stderr()).isEqualTo(SandboxStatus.RUNTIME_ERROR);
+        assertThat(result.exitCode()).isEqualTo(127);
+    }
+
     /**
-     * The Python entry of the real config with the run command replaced. Python's image has no
+     * The Python entry of the real config with the run command replaced. The image has no
      * entrypoint script, so a missing command leaves the container `created` (7.7b).
      */
     private DockerCliSandboxRunner runnerWithRunCommand(List<String> runCommand) {
         LanguageSpec real = languages.find("PYTHON").orElseThrow();
         Map<String, LanguageSpec> map = new LinkedHashMap<>();
         map.put("PYTHON", new LanguageSpec(real.image(), real.sourceFileName(), real.compileCommand(), runCommand));
+        return new DockerCliSandboxRunner(new SandboxProperties(map), workRoot);
+    }
+
+    private LanguageSpec javaSpec() {
+        SandboxTestImages.ensureBuilt(languages, "JAVA");
+        return languages.find("JAVA").orElseThrow();
+    }
+
+    private SandboxRequest javaRequest() {
+        return new SandboxRequest(
+                "JAVA",
+                List.of(new SourceFile(
+                        javaSpec().sourceFileName(),
+                        "public class Main { public static void main(String[] a) { System.out.println(1); } }")),
+                "",
+                JAVA_LIMITS);
+    }
+
+    /** The Java entry of the real config with the given commands; the image has no entrypoint (8.2g). */
+    private DockerCliSandboxRunner javaRunnerWith(List<String> compileCommand, List<String> runCommand) {
+        LanguageSpec real = javaSpec();
+        Map<String, LanguageSpec> map = new LinkedHashMap<>();
+        map.put("JAVA", new LanguageSpec(real.image(), real.sourceFileName(), compileCommand, runCommand));
         return new DockerCliSandboxRunner(new SandboxProperties(map), workRoot);
     }
 

@@ -171,3 +171,37 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - a cookie that does not authenticate: a garbage, empty or tampered token is anonymous (401 `UNAUTHENTICATED`); a valid token under another name (`token`, `ACCESS_TOKEN`) is ignored; two auth cookies are refused (two users, or the same token twice); a bad cookie does not block `/health`;
   - header and cookie together: both valid gives the header's user; a valid header is not spoilt by a bad cookie; a bad bearer header or a `Basic` header is not rescued by a valid cookie.
 - **Mutation-checked:** cookie never read (4 failures), cookie wins when both are sent (4), duplicates allowed (1), a non-bearer header falls through to the cookie (1).
+
+## 8.2d — CSRF: cookie-authenticated writes need `X-Requested-With` (new row)
+
+- **The rule (the human's choice at 8.3b: a custom header over Spring's CSRF token):** when the cookie authenticates a request whose method is not safe (RFC 9110's safe methods are `GET HEAD OPTIONS TRACE`; everything else counts, not only the four listed), the request must carry `X-Requested-With` (`AuthCookie.CSRF_HEADER`) with a non-blank value. Otherwise the answer is 403 in the standard body with a new code, `CSRF_HEADER_MISSING`, before routing, so nothing changes. **Why this works:** a form, link or image on another site can't add a header. Script on another origin can only send one after a CORS preflight, and the allow-list refuses that preflight for any origin not on it. `SameSite=Strict` already keeps the cookie off cross-site requests; this is the second, independent layer.
+- **Any value, the name case-insensitive.** The defense rests on the header being present at all (it forces the preflight), not on its content. A specific value would add nothing; 8.2f's client sends one.
+- **Where:** in `JwtAuthenticationFilter`, right after the token verifies, because only the filter knows that the credential came from the cookie (`tokenOf` reads it only when no `Authorization` header is sent). No new filter and no request attribute. The filter now gets `JsonErrorWriter`, the same writer as the other pre-MVC refusals. Its Javadoc names this as its one refusal.
+- **What is exempt:**
+  - **A bearer-authenticated request:** a browser never attaches an `Authorization` header by itself, so there is nothing to forge, and every existing test keeps working.
+  - **A cookie that does not verify:** there is no credential to misuse, so it is simply anonymous (401 on a protected path, and a public signup still works).
+  - **Safe methods.**
+- **Public endpoints are covered too:** the rule follows the credential, not the endpoint. A valid cookie on `POST /auth/signin` without the header is 403. That blocks a login-CSRF attempt while the victim is signed in, and it will protect 8.2e's `POST /auth/signout` from a forced sign-out. The frontend always sends the header (8.2f), so it is never hit in normal use.
+- **CORS:** `X-Requested-With` is added to the allowed headers, or our own frontend's preflight would fail. Credentials stay off until 8.2e.
+- **Why a 403 with its own code, not "just anonymous":** treating the request as anonymous would give a 401 `UNAUTHENTICATED`, which a frontend reads as "sign in again". A distinct code tells a developer exactly what is missing.
+- **Tests (backend 2641 -> 2653; ai-service and frontend unchanged and passing):** `RealHttpCsrfHeaderTests` (new, 11, real HTTP):
+  - **Refused:**
+    - a cookie-authenticated `POST /courses` without the header is 403 `CSRF_HEADER_MISSING` (JSON) and creates no course;
+    - `PUT` and `DELETE` of a course and `PATCH` of a role are refused and change nothing;
+    - a blank header doesn't count;
+    - an unmapped path and signin are refused too.
+  - **Allowed:**
+    - with the header, any value: 201;
+    - the header name matched in lower case;
+    - `GET` and `HEAD` need no header;
+    - a bearer write needs none, even with the cookie beside it;
+    - a cookie that doesn't verify is just anonymous (401 on a protected write, public signup 201);
+    - no credential at all is the usual 401.
+
+  Plus `RealHttpCorsTests`: a preflight asking for `content-type,x-requested-with` is allowed.
+- **Mutation-checked:**
+  - check off: 4 failures
+  - `DELETE` treated as safe: 1
+  - bearer requests checked too: 3
+  - a blank header counts: 1
+  - header missing from CORS: 1

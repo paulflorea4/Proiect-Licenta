@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.2d — CSRF protection for cookie-authenticated requests: a state-changing request authenticated by the cookie must carry a custom header
+- Next commit: 8.2e — CORS allows credentials (`allowCredentials(true)`); public `POST /auth/signout` clears the cookie
 - In progress: —
-- Blocked: PR #185 (commit 8.2c) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).
+- Blocked: PR #186 (commit 8.2d) awaiting review. Open, not blocking: the Java image's entrypoint (`docs/suggestions.md`, 7.7b).

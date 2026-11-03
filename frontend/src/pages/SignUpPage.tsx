@@ -2,6 +2,9 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api, isApiError } from '../api/client'
+import type { User } from '../auth/authContext'
+import TextField from '../components/TextField'
+import { fieldErrorsOf } from '../components/fieldErrors'
 
 // The limits of the backend's SignupRequest and PasswordPolicy, checked here only to answer
 // sooner: the backend enforces them (and the email format) and its field errors are shown too.
@@ -16,13 +19,6 @@ interface SignupBody {
   fullName: string
   email: string
   password: string
-}
-
-interface User {
-  id: number
-  email: string
-  fullName: string
-  role: string
 }
 
 const FIELDS: readonly Field[] = ['fullName', 'email', 'password']
@@ -92,12 +88,7 @@ function SignUpPage() {
     if (isApiError(error, 'EMAIL_ALREADY_USED')) {
       setFieldErrors({ email: error.message })
     } else if (isApiError(error, 'VALIDATION_FAILED')) {
-      const errors: FieldErrors = {}
-      for (const { field, message } of error.fieldErrors) {
-        if ((FIELDS as readonly string[]).includes(field)) {
-          errors[field as Field] ??= message
-        }
-      }
+      const errors = fieldErrorsOf(error, FIELDS)
       setFieldErrors(errors)
       if (Object.keys(errors).length === 0) {
         setFormError(error.message)
@@ -126,6 +117,7 @@ function SignUpPage() {
       <h1>Sign up</h1>
       <form onSubmit={submit} noValidate>
         <TextField
+          form="signup"
           field="fullName"
           label="Full name"
           autoComplete="name"
@@ -134,6 +126,7 @@ function SignUpPage() {
           onChange={change}
         />
         <TextField
+          form="signup"
           field="email"
           label="Email"
           type="email"
@@ -143,6 +136,7 @@ function SignUpPage() {
           onChange={change}
         />
         <TextField
+          form="signup"
           field="password"
           label="Password"
           type="password"
@@ -160,44 +154,6 @@ function SignUpPage() {
         Already have an account? <Link to="/signin">Sign in</Link>
       </p>
     </main>
-  )
-}
-
-interface TextFieldProps {
-  field: Field
-  label: string
-  type?: 'text' | 'email' | 'password'
-  autoComplete: string
-  value: string
-  error: string | undefined
-  onChange: (field: Field, value: string) => void
-}
-
-function TextField({
-  field,
-  label,
-  type = 'text',
-  autoComplete,
-  value,
-  error,
-  onChange,
-}: TextFieldProps) {
-  const id = `signup-${field}`
-  return (
-    <div>
-      <label htmlFor={id}>{label}</label>
-      <input
-        id={id}
-        name={field}
-        type={type}
-        autoComplete={autoComplete}
-        value={value}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-        onChange={(event) => onChange(field, event.target.value)}
-      />
-      {error && <p id={`${id}-error`}>{error}</p>}
-    </div>
   )
 }
 

@@ -261,3 +261,49 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - **`SandboxImagesTests`:** the new no-entrypoint guard (1).
   - **`DockerCliSandboxRunnerTests`:** the Java counterparts of 7.7b's Python cases. A compile command missing from the Java image is `SANDBOX_ERROR` with no exit code and nothing of Docker's text shown. A run command missing (the build with the real `javac` succeeds) is `SANDBOX_ERROR`. The control: a Java program's own `System.exit(127)` stays the student's `RUNTIME_ERROR`, exit 127. The comments that pointed at the Java gap are updated.
 - **Mutation-checked:** with `ENTRYPOINT []` removed (the image rebuilt with the script), the guard and both Java missing-command tests fail (3). The failure text shows the old behaviour exactly: `/__cacert_entrypoint.sh: line 123: exec: javac-does-not-exist: not found`, graded as the student's error. With it back, all pass and the image's entrypoint is `null` again.
+
+## 8.3b — Sign-in form; the cookie holds the JWT, `GET /auth/me` says who is signed in
+
+- **Storage, as resolved at 8.3b (the human's decision):** the JWT is the backend's `httpOnly` cookie (8.2b–8.2f). The frontend stores nothing: no `localStorage`, no `sessionStorage`, no token in memory. The row's text still says "store the JWT"; its notes (updated at 8.2b) record that the cookie does the storing.
+- **Auth state: React context, no library** (the first shared state; the frontend `CLAUDE.md` said the introducing task decides). `AuthProvider` asks `GET /auth/me` once on load. The browser attaches the cookie (`credentials: 'include'`, 8.2f), so 200 = `signedIn` with that user and anything else = `signedOut` (401, a deleted account, a server error, an unreadable answer, no network). **A server error counts as signed out, not as a third state:** the next action that needs a session will say so, and showing a sign-in form to someone whose session is fine is the lesser harm. `loading` lasts until the answer, which 8.3c's `ProtectedRoute` must wait for before redirecting.
+- **Race between sign-in and the load check:** `signedIn(user)` abandons a `GET /auth/me` still in flight (abort plus a guard on both branches), so a late 401 from before the sign-in cannot sign the user out again. Under `StrictMode` the dev build mounts twice; the first check is aborted by its cleanup (the `ERR_ABORTED` requests seen in the browser are this).
+- **Sign-out** is in the provider (`POST /auth/signout`, then `signedOut`; a failure is rethrown and the state kept, since the cookie may still be set). No button yet: 8.5a's header and menu place it.
+- **Sign-in page:** email and password, both required here (only "not empty": signin has no length rules of its own beyond the backend's). On success it records `response.user` (no second `/auth/me`) and navigates to `/courses` with `replace`, so Back doesn't return to the form. **`INVALID_CREDENTIALS`** (wrong password and unknown email are one answer, 2.4a) is one form message, with the password cleared and the email kept. `VALIDATION_FAILED` goes to the fields (or the form, if none match); anything else is one alert. The button is disabled while sending. **Someone already signed in** sees "You are signed in as …" with a link to their courses; the form stays, so they can sign in as someone else. No redirect: route guards are 8.3c.
+- **Shared form pieces, extracted as 8.3a planned:** `src/components/TextField.tsx` (generic over the form's field names, id prefix per form) and `fieldErrorsOf` in `src/components/fieldErrors.ts`. `SignUpPage` now uses both (its behaviour and tests unchanged), and its local `User` type is replaced by `auth/authContext`'s.
+- **`App` now wraps the routes in `AuthProvider`**, so a test of `App` gets the whole app. Every such test answers the provider's `/auth/me` through `src/test/api.ts`'s `stubApi`, which also keeps each page test's request counts its own.
+- **Checked in a real browser (Chromium, the desktop app's browser pane), against the dev profile backend and the Vite dev server** (8.2f left this for here):
+  - Signed in with the seeded dev login: the CORS preflight was 200, `POST /auth/signin` 200, and the page went to `/courses`.
+  - **After a full reload**, `GET /auth/me` was 200 and the sign-in page said "You are signed in as student1@dev.example.com". The cookie set by the cross-origin signin is kept and sent (`Secure` on `http://localhost`, `SameSite=Strict` between ports 5173 and 8080).
+  - `document.cookie` was empty: script can't see the token.
+  - From the page: `POST /auth/signout` without the CSRF header was 403 `CSRF_HEADER_MISSING`, and the user stayed signed in. With it: 204, and then `/auth/me` was 401.
+  - **Local setup found on the way** (`docs/suggestions.md`): a host Postgres service already holds 5432, so the compose database ran on 5433 for the check. `backend/.env`'s `AI_SERVICE_TOKEN` is blank, so the backend won't start from it (a throwaway value was set in the run script only; no file was changed).
+- **Tests (frontend 78 -> 102; backend and ai-service unchanged and passing):**
+  - **`AuthProvider.test.tsx`** (11):
+    - loading until `/auth/me` answers, then signed in;
+    - the one request, with the cookie;
+    - 401, a deleted account, 500, an unreadable answer and a network failure all mean signed out;
+    - `useAuth` outside the provider throws;
+    - `signedIn` records;
+    - a sign-in beats a late 401;
+    - sign-out posts with the CSRF header and signs out;
+    - a failed sign-out rethrows and keeps the user.
+  - **`SignInPage.test.tsx`** (12):
+    - the fields;
+    - the request (body, cookie, CSRF header);
+    - success goes to the courses;
+    - after a sign-in the state is known on another page without a second `/auth/me`;
+    - already signed in is told so;
+    - an empty form is refused without a request;
+    - wrong credentials: one message, password cleared, email kept;
+    - backend field errors, and the unknown-field fallback;
+    - a network failure, then a retry;
+    - the disabled button;
+    - the link to sign up.
+  - `App.test.tsx` and `SignUpPage.test.tsx` now use `stubApi`, with no other change.
+- **Mutation-checked:**
+  - a sign-in does not abandon the open check: 1 failure
+  - an error leaves it loading: 6
+  - signed out before the answer: 1
+  - the page does not record the user: 1
+  - the password kept after wrong credentials: 1
+  - no navigation: 4

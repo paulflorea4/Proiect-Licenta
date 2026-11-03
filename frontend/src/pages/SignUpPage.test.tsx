@@ -3,12 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
+import { stubApi } from '../test/api'
 
+// Every call but AuthProvider's GET /auth/me (signed out here).
 const fetchMock = vi.fn<typeof fetch>()
 
 beforeEach(() => {
-  vi.stubEnv('VITE_API_BASE_URL', 'http://api.test')
-  vi.stubGlobal('fetch', fetchMock)
+  stubApi(fetchMock)
 })
 
 afterEach(() => {

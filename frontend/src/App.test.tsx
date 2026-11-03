@@ -1,8 +1,19 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { stubApi } from './test/api'
+
+beforeEach(() => {
+  // AuthProvider asks GET /auth/me on load (signed out); the routes call nothing else.
+  stubApi(vi.fn<typeof fetch>())
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
+})
 
 function renderAt(path: string) {
   return render(

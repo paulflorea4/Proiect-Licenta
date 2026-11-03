@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.3b — Sign-in form wired to `POST /auth/signin`; the backend's `httpOnly` cookie holds the JWT, the app learns who is signed in from `GET /auth/me`
+- Next commit: 8.3c — `ProtectedRoute` (redirects unauthenticated users to `/signin`) and `RoleRoute` (redirects users without the required role)
 - In progress: —
-- Blocked: PR #189 (commit 8.2g) awaiting review.
+- Blocked: PR #190 (commit 8.3b) awaiting review.

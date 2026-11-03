@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router'
 import AuthProvider from './auth/AuthProvider'
+import { ProtectedRoute } from './auth/routeGuards'
 import CoursesPage from './pages/CoursesPage'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -15,7 +16,10 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/courses" element={<CoursesPage />} />
+        {/* Signed-in users only (8.3c); role-restricted routes go under <RoleRoute roles={...} />. */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/courses" element={<CoursesPage />} />
+        </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AuthProvider>

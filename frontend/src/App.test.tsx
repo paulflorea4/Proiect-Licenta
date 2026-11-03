@@ -3,7 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import { stubApi } from './test/api'
+import { jsonResponse, stubApi } from './test/api'
+
+const STUDENT = {
+  id: 7,
+  email: 'ana@example.com',
+  fullName: 'Ana Pop',
+  role: 'STUDENT',
+}
 
 beforeEach(() => {
   // AuthProvider asks GET /auth/me on load (signed out); the routes call nothing else.
@@ -28,7 +35,6 @@ describe('App routes', () => {
     ['/', 'Grading platform'],
     ['/signin', 'Sign in'],
     ['/signup', 'Sign up'],
-    ['/courses', 'Courses'],
   ])('%s shows its page', (path, heading) => {
     renderAt(path)
 
@@ -37,6 +43,28 @@ describe('App routes', () => {
     ).toBeInTheDocument()
     // Exactly one page at a time: no other route's heading is rendered.
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  })
+
+  it('/courses shows its page to a signed-in user', async () => {
+    stubApi(vi.fn<typeof fetch>(), () => jsonResponse(200, STUDENT))
+
+    renderAt('/courses')
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Courses' }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  })
+
+  it('/courses sends a signed-out user to sign in (8.3c)', async () => {
+    renderAt('/courses')
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Sign in' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { level: 1, name: 'Courses' }),
+    ).not.toBeInTheDocument()
   })
 
   it.each(['/nothing-here', '/courses/extra', '/SIGNIN/x'])(

@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.3c — `ProtectedRoute` (redirects unauthenticated users to `/signin`) and `RoleRoute` (redirects users without the required role)
+- Next commit: 8.4a — Landing page for guests describing the platform, redirecting signed-in users to their role's home
 - In progress: —
-- Blocked: PR #190 (commit 8.3b) awaiting review.
+- Blocked: PR #191 (commit 8.3c) awaiting review.

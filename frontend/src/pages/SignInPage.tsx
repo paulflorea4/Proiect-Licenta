@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { api, isApiError } from '../api/client'
-import { useAuth } from '../auth/authContext'
+import { returnPathOf, useAuth } from '../auth/authContext'
 import type { User } from '../auth/authContext'
 import TextField from '../components/TextField'
 import { fieldErrorsOf } from '../components/fieldErrors'
@@ -23,7 +23,7 @@ interface SigninResponse {
 
 const FIELDS: readonly Field[] = ['email', 'password']
 
-/** Where a successful signin goes. */
+/** Where a successful signin goes, unless a guarded route sent the user here (8.3c). */
 const AFTER_SIGNIN = '/courses'
 
 function validate(body: SigninBody): FieldErrors {
@@ -42,6 +42,7 @@ function validate(body: SigninBody): FieldErrors {
 function SignInPage() {
   const auth = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [body, setBody] = useState<SigninBody>({ email: '', password: '' })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -66,7 +67,7 @@ function SignInPage() {
     try {
       const response = await api.post<SigninResponse>('/auth/signin', body)
       auth.signedIn(response.user)
-      navigate(AFTER_SIGNIN, { replace: true })
+      navigate(returnPathOf(location.state) ?? AFTER_SIGNIN, { replace: true })
     } catch (error) {
       setSubmitting(false)
       showError(error)

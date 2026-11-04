@@ -307,3 +307,30 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - the page does not record the user: 1
   - the password kept after wrong credentials: 1
   - no navigation: 4
+
+## 8.3c — `ProtectedRoute` and `RoleRoute`
+
+- **Layout routes, not wrappers per element** (`src/auth/routeGuards.tsx`). `<Route element={<ProtectedRoute />}>` around the routes it guards, which render through `<Outlet />`. One guard covers a whole group of routes, and `App` stays a readable route table. Both files export only components (react-refresh lint), and `Role` and `returnPathOf` live in `authContext.ts`.
+- **Loading is not signed out:** while `GET /auth/me` (8.3b) has not answered, both guards show "Checking your sign-in…" (`role="status"`) and never redirect. Redirecting then would send a signed-in user to the sign-in page on every reload.
+- **Signed out → `/signin`, remembering where they were going:** `state.from` = path + query, set by `Navigate` with `replace`, so Back doesn't bounce off the guard. After a successful sign-in the page returns there instead of `/courses`. **`returnPathOf` accepts only a path of this app:** a string starting with one `/` (not `//host`, not `/\host`, which some browsers read as a host), and not the sign-in page itself. Anything else falls back to `/courses`. History state is set by our own code, but a crafted state must still never become an open redirect.
+- **Signed in without the role → `/`:** the row says "redirects"; 8.4a makes `/` send a signed-in user to their role's home, so `/` is the one target that is right for every role and can never loop back into a guarded route. No "forbidden" page: the backend's 403 is what protects data, and the UI just doesn't show what the role can't use.
+- **Roles are listed explicitly** (`roles={['TEACHER', 'ADMIN']}`): no role implies another, the same convention as the backend's `@PreAuthorize` (2.5a, no hierarchy). A test pins that a teacher is not let into an admin-only route.
+- **What is guarded now:** `/courses` (`ProtectedRoute`). No route needs a role yet. The first will be 8.5b's admin page (`RoleRoute roles={['ADMIN']}`), so `RoleRoute` is tested on stand-in routes.
+- **Sign-out on a guarded page** needs nothing extra: the state turns `signedOut` and the guard sends the user to `/signin`.
+- **Convenience only** (the row's note): every guard decision comes from `/auth/me`'s answer, and the backend checks every request itself.
+- **Not checked in a real browser this time:** the guards are pure routing on top of 8.3b's state, whose browser behaviour was checked at 8.3b. The router tests render the real `react-router` and the real provider.
+- **Tests (frontend 102 -> 129; backend and ai-service unchanged and passing):**
+  - **`routeGuards.test.tsx`** (24):
+    - `ProtectedRoute`: waits while loading, then shows the page; signed in sees it; signed out goes to `/signin` with path and query remembered; signing out on the page leads to `/signin`;
+    - `RoleRoute`: teacher and admin pass, a student goes to `/`, a teacher is refused an admin route, signed out goes to `/signin` remembering the path, it waits while loading;
+    - `returnPathOf`: 4 app paths kept, 10 non-paths refused.
+  - **`SignInPage.test.tsx`** (+2): through the real `App`, `/courses?page=3` signed out → sign-in → back at `/courses?page=3`; a crafted `//evil.example` return path ends at `/courses`.
+  - **`App.test.tsx`**: `/courses` shows for a signed-in user and sends a signed-out one to sign in (replacing the plain `/courses` case).
+- **Mutation-checked:**
+  - `ProtectedRoute` redirects while loading: 4 failures
+  - `RoleRoute` ignores the role: 2
+  - the query not remembered: 2
+  - `//` allowed as a return path: 2
+  - sign-in ignores the return path: 1
+  - `/courses` not guarded: 2
+- **Also in this commit (docs only):** the two local-setup items filed at 8.3b are marked resolved in `docs/suggestions.md`. The human stopped the host's Postgres service and copied the AI service token into `backend/.env`, and the backend then started from `backend/.env` alone (checked: health UP, seed signin 200, the two tokens equal by hash).

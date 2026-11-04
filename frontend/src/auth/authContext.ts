@@ -1,11 +1,37 @@
 import { createContext, useContext } from 'react'
 
+/** The backend's `Role`, spelled as its JSON does. */
+export type Role = 'STUDENT' | 'TEACHER' | 'ADMIN'
+
 /** A user as the API shows them (`UserResponse`: signup, signin, `GET /auth/me`). */
 export interface User {
   id: number
   email: string
   fullName: string
-  role: 'STUDENT' | 'TEACHER' | 'ADMIN'
+  role: Role
+}
+
+/**
+ * The path a guarded route remembers for after signin (8.3c), as `location.state.from`. Only a
+ * path of this app counts: anything else (another site, `//host`, the sign-in page itself) is
+ * null, so a crafted state can never send the user elsewhere.
+ */
+export function returnPathOf(state: unknown): string | null {
+  if (typeof state !== 'object' || state === null || !('from' in state)) {
+    return null
+  }
+  const from = (state as { from: unknown }).from
+  if (
+    typeof from !== 'string' ||
+    !from.startsWith('/') ||
+    from.startsWith('//') ||
+    from.startsWith('/\\') ||
+    from === '/signin' ||
+    from.startsWith('/signin?')
+  ) {
+    return null
+  }
+  return from
 }
 
 /**

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, useNavigate } from 'react-router'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
 import { API, jsonResponse, stubApi } from '../test/api'
@@ -37,12 +37,21 @@ function BackToSignIn() {
   )
 }
 
-function renderSignIn() {
+// Test-only: where the router is, path and query.
+function LocationProbe() {
+  const location = useLocation()
+  return <p data-testid="location">{location.pathname + location.search}</p>
+}
+
+function renderSignIn(
+  entry: string | { pathname: string; state: unknown } = '/signin',
+) {
   const user = userEvent.setup()
   render(
-    <MemoryRouter initialEntries={['/signin']}>
+    <MemoryRouter initialEntries={[entry]}>
       <App />
       <BackToSignIn />
+      <LocationProbe />
     </MemoryRouter>,
   )
   return user
@@ -125,6 +134,36 @@ describe('SignInPage', () => {
     )
     // Recorded from the signin answer: no second GET /auth/me was needed.
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('a guarded page sends a signed-out user here, and signing in returns there (8.3c)', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, SIGNED_IN))
+    const user = renderSignIn('/courses?page=3')
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Sign in' }),
+    ).toBeInTheDocument()
+
+    await fill(user, CREDENTIALS)
+    await submit(user)
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Courses' }),
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/courses?page=3')
+  })
+
+  it('a crafted return path to another site is ignored', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, SIGNED_IN))
+    const user = renderSignIn({
+      pathname: '/signin',
+      state: { from: '//evil.example/steal' },
+    })
+
+    await fill(user, CREDENTIALS)
+    await submit(user)
+
+    await screen.findByRole('heading', { level: 1, name: 'Courses' })
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/courses$/)
   })
 
   it('someone already signed in is told so', async () => {

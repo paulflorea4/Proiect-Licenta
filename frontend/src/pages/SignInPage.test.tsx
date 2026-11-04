@@ -106,7 +106,7 @@ describe('SignInPage', () => {
     )
   })
 
-  it('a successful signin goes to the courses', async () => {
+  it('a successful signin goes to the role’s home: the courses for a student', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, SIGNED_IN))
     const user = renderSignIn()
 
@@ -116,6 +116,24 @@ describe('SignInPage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Courses' }),
     ).toBeInTheDocument()
+  })
+
+  it('an admin’s signin goes to user management (8.4a)', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        expiresIn: 86400,
+        user: { ...ADA, role: 'ADMIN' },
+      }),
+    )
+    const user = renderSignIn()
+
+    await fill(user, CREDENTIALS)
+    await submit(user)
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Users' }),
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/admin/users')
   })
 
   it('after signing in the app knows who is signed in, on any page', async () => {

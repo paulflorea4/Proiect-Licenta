@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.4a — Landing page for guests describing the platform, redirecting signed-in users to their role's home
+- Next commit: 8.5a — Header + nav shell, role-aware menu, shows sign-in state, sign-out action
 - In progress: —
-- Blocked: PR #191 (commit 8.3c) awaiting review.
+- Blocked: PR #192 (commit 8.4a) awaiting review.

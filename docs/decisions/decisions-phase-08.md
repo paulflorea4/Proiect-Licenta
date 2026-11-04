@@ -334,3 +334,37 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - sign-in ignores the return path: 1
   - `/courses` not guarded: 2
 - **Also in this commit (docs only):** the two local-setup items filed at 8.3b are marked resolved in `docs/suggestions.md`. The human stopped the host's Postgres service and copied the AI service token into `backend/.env`, and the backend then started from `backend/.env` alone (checked: health UP, seed signin 200, the two tokens equal by hash).
+
+## 8.4a — Landing page for guests; signed-in users go to their role's home
+
+- **Role homes, from the row's notes, written once:** `homeOf(role)` in `src/auth/authContext.ts` (student `/courses`, teacher `/courses`, admin `/admin/users`). The teacher's "courses with management actions" is the same route as the student's; the course page grows those actions when it's built, so no separate teacher route is made now.
+- **The admin's home needed a route:** `/admin/users` is added as a placeholder page (`AdminUsersPage`, "Users"), behind `RoleRoute roles={['ADMIN']}`, the same way 8.1b added placeholders. 8.5b fills it with the user list and role selector. The path mirrors the backend's `GET /admin/users`. Without it, the admin's redirect would have landed on the not-found page.
+- **`/` decides by the auth state:**
+  - `loading`: "Checking your sign-in…" (no flash of the guest page for a signed-in user);
+  - `signedIn`: `Navigate` with `replace` to `homeOf(role)`;
+  - `signedOut`: the landing page.
+
+  This also completes 8.3c's wrong-role redirect: `RoleRoute` sends a user without the role to `/`, which now forwards to their own home (a student or teacher opening `/admin/users` ends at `/courses`). It can't loop, because each home is open to its own role.
+- **Sign-in follows the same rule:** without a return path from a guard (8.3c), it now goes to `homeOf(user.role)`, not always `/courses`, so an admin lands on user management. Its "already signed in" link points to the same home ("Continue").
+- **The landing text describes what the platform does as built or specified** (overview of `docs/project-specifications.md`):
+  - automatic testing of Java and Python submissions in an isolated sandbox;
+  - the rubric score;
+  - public test results;
+  - up to three hints that explain without giving the solution and never change the score;
+  - for teachers: courses, assignments with public and hidden tests, a weighted rubric, review and manual marks.
+
+  It doesn't advertise what isn't built yet (similarity checks, static analysis). The sign-up link says "create a student account", since signup always makes a student. No styling, as before.
+- **Tests (frontend 129 -> 141; backend and ai-service unchanged and passing):**
+  - **`HomePage.test.tsx`** (new, 11):
+    - a guest sees the landing (heading, both sections, the score sentence) and can go on to sign in and to sign up;
+    - student, teacher and admin are each sent to their home (location checked);
+    - it waits while `/auth/me` is open;
+    - `/admin/users` is open to an admin, a student and a teacher are sent through `/` to `/courses`, and a guest goes to sign in.
+  - **`SignInPage.test.tsx`** (+1): an admin's sign-in lands on `/admin/users`.
+  - **`App.test.tsx`**: the guest-page cases now wait for the auth check (`findByRole`).
+- **Mutation-checked:**
+  - signed-in users see the guest page: 5 failures
+  - the admin's home is the courses: 2
+  - no wait while loading: 1
+  - sign-in ignores the role: 1
+  - the admin page open to any signed-in user: 2

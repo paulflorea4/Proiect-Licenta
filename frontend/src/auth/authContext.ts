@@ -12,6 +12,20 @@ export interface User {
 }
 
 /**
+ * Each role's home (8.4a): where `/` sends a signed-in user and where signin goes when no guarded
+ * route sent them there. A teacher's courses get their management actions on the same page.
+ */
+const HOMES: Record<Role, string> = {
+  STUDENT: '/courses',
+  TEACHER: '/courses',
+  ADMIN: '/admin/users',
+}
+
+export function homeOf(role: Role): string {
+  return HOMES[role]
+}
+
+/**
  * The path a guarded route remembers for after signin (8.3c), as `location.state.from`. Only a
  * path of this app counts: anything else (another site, `//host`, the sign-in page itself) is
  * null, so a crafted state can never send the user elsewhere.

@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.6b — RTL test: protected route redirects when logged out
+- Next commit: 8.6c — RTL test: role route blocks a student from teacher/admin pages
 - In progress: —
-- Blocked: PR #195 (commit 8.6a) awaiting review.
+- Blocked: PR #196 (commit 8.6b) awaiting review.

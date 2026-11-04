@@ -116,7 +116,7 @@ Historical, append-only. Things that would meaningfully help (a missing MCP conn
   - [auditor] A deadline beyond Postgres' `timestamptz` range (e.g. year 300000) is a 500 (`timestamp out of range`), on create and update. Bound it so it is a 400.
   - [auditor] A deadline with sub-microsecond precision is echoed as sent but stored rounded to microseconds, so sending the create answer back later counts as a deadline change and can be refused after the deadline. Truncate to microseconds in the request.
   - [auditor] An auto-appended test position (`max + 1`) can exceed `TestCaseRequest.POSITION_MAX`, after which a `PUT` that echoes the stored test is a 400. Clamp, or apply the cap to both paths.
-  - [auditor] The roster (`GET /courses/{id}/students`) lists users promoted to teacher (enrollments survive a role change; 3.2b says "always STUDENT"). GATE: filter by role, or drop enrollments on promotion.
+  - [auditor] The roster (`GET /courses/{id}/students`) lists users promoted to teacher (enrollments survive a role change; 3.2b says "always STUDENT"). GATE: filter by role, or drop enrollments on promotion. **Decided by the human on 2026-11-04: drop them, done at 9.0d (PR #201): a role change away from `STUDENT` deletes the user's enrollments, a join needs a stored `STUDENT`, and V12 removed the old ones.**
   - [auditor] A draft whose deadline has passed can be published; every submission is then refused. GATE: refuse it, or document that it is allowed.
   - [auditor] The languages config can define a language no assignment can use (`min-memory-mb` above `MEMORY_LIMIT_MAX_MB`, or an id longer than `LANGUAGE_MAX`); check it at startup.
 

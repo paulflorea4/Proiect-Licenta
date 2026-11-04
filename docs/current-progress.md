@@ -1,4 +1,4 @@
 - Phase: Phase 9 — `docs/tasks/tasks-phase-09.md`
-- Next commit: 9.0d — **GATE**: the roster and users promoted to teacher (filter by role, or drop enrollments on promotion)
+- Next commit: 9.0e — **GATE**: publishing a draft whose deadline has passed (refuse with a new 409, or allow and document)
 - In progress: —
-- Blocked: PR #200 (commit 9.0c) awaiting review.
+- Blocked: PR #201 (commit 9.0d) awaiting review.

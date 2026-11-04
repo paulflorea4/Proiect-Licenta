@@ -67,3 +67,18 @@
   - the other fields stay editable while published;
   - unpublish, change the language, publish again;
   - published with a submission: the submission lock codes are reported, not `ASSIGNMENT_PUBLISHED`.
+
+## 9.0d — GATE: the roster and users promoted to teacher
+
+- **The problem (the phases 0-7 review, low, courses-assignments):** a role change kept the user's enrollment rows, so `GET /courses/{id}/students` (3.2b, "always STUDENT") listed a promoted teacher or admin, who could no longer use the course as a student (access goes by the token's role).
+- **The human's choice (asked in chat):** **drop the enrollments on promotion**, over filtering the roster by role. Recommended because the invariant "enrollments hold only students" then lives in one place, and the roster and every later list built on enrollments (the Phase 10 gradebook, counts) need no filter. Accepted cost: a promotion undone by a demotion does not bring the courses back; the user rejoins with the codes.
+- **How:**
+  - **`UserAdminService.changeRole`:** when the new role is not `STUDENT`, `EnrollmentRepository.deleteByStudentId` runs in the same transaction, after the existing checks (so a refused change, e.g. the 7.7e stale admin, removes nothing). It runs even when the role does not actually change (`TEACHER` to `TEACHER`): harmless, and it cleans a leftover. Submissions, test results and grades are untouched, as when a student leaves a course (3.2b); the teacher views of them still show the user.
+  - **Joining checks the stored role (an addition to the row, needed for the invariant):** a promoted user keeps a `STUDENT` token for up to 24 h (2.4b) and could otherwise rejoin straight away. `EnrollmentService.enroll` first reads the role with `UserRepository.lockRoleForShare` (native `FOR SHARE`); not `STUDENT` is 403 `ACCESS_DENIED` (the 7.7e pattern: a stale token is refused by the stored role), and a deleted user is the existing 401 `ACCOUNT_NO_LONGER_EXISTS`. The check runs before the code lookup, so a non-student learns nothing about codes.
+  - **Race, both orders closed:** the promotion flushes its `UPDATE` of the user's row before deleting the enrollments (Hibernate would otherwise write it only at commit, after the delete). A join holding the role `FOR SHARE` makes the promotion's update wait, and the delete that follows sees the new enrollment; a promotion holding the row makes the join's `FOR SHARE` wait, and it then reads the new role and is refused. The foreign key's own `FOR KEY SHARE` would not have conflicted with the role update (`FOR NO KEY UPDATE`), hence the explicit lock.
+  - **V12 (data only):** deletes the enrollments of users whose role is not `STUDENT`, for promotions made before this commit (the dev seed enrolls only students). Flyway counts: prod 11 -> 12, dev 15 -> 16.
+- **Not changed:** the roster query; a student's other actions with a stale token (a submission needs the enrollment, now gone, so it is the 404 of an unseen assignment).
+- **Tests (backend 2736 -> 2746, +10; ai-service and frontend unchanged and passing):**
+  - **`RealHttpPromotionEnrollmentTests`** (8): promotion to `TEACHER` and to `ADMIN` removes every enrollment and the roster entry, a classmate is untouched; the submissions stay; staying or becoming a student keeps / allows enrollments; a refused role change keeps them; the old student token cannot rejoin (403); a join waits for a promotion in flight and is refused; a promotion waits for a join in flight and then removes it.
+  - **`EnrollmentsOfNonStudentsMigrationTests`** (2): V12 applied; run on inserted data it keeps only the student's enrollment.
+  - Mutation-checked: no delete (4 fail), no flush before it (the race test fails), no role check on join (2 fail).

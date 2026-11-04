@@ -27,7 +27,7 @@ class FlywayDevProfileTests {
     void flywayRanAtStartupWithTheSeedLocationOnThePath() {
         assertThat(locations()).containsExactlyInAnyOrder("db/migration", "db/dev-seed");
         assertThat(applied("SELECT COUNT(*) FROM flyway_schema_history WHERE success"))
-                .isEqualTo(15);
+                .isEqualTo(16);
     }
 
     @Test

@@ -57,7 +57,8 @@ public enum ErrorCode {
             HttpStatus.CONFLICT,
             "Every tests criterion needs at least one test case before the assignment can be published"),
     ASSIGNMENT_PUBLISHED(
-            HttpStatus.CONFLICT, "The assignment is published; unpublish it before changing its rubric or tests"),
+            HttpStatus.CONFLICT,
+            "The assignment is published; unpublish it before changing its language, limits, rubric or tests"),
     TESTS_LOCKED(HttpStatus.CONFLICT, "The assignment has submissions, so its test cases can no longer be changed"),
     TEST_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "Test case not found"),
     TEST_CRITERION_INVALID(HttpStatus.BAD_REQUEST, "The criterion must be a tests criterion of this assignment"),

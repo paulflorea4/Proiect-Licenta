@@ -118,9 +118,10 @@ public class AssignmentService {
      * must be one the user may manage (owning teacher or admin); anyone else who cannot see its
      * course gets the same "not found" as for a missing id. The language is locked once there is a
      * submission, and so are the time and memory limits (9.0b: a submission still queued would be
-     * graded against new limits); a language or a deadline that is not being changed is not
-     * re-checked, so a
-     * teacher can still fix a typo after the deadline has passed. The language's memory minimum is
+     * graded against new limits), and while the assignment is published neither may change at all
+     * (9.0c, as its rubric and tests, 3.5a: unpublish, edit, republish); a language or a deadline
+     * that is not being changed is not re-checked, so a teacher can still fix a typo after the
+     * deadline has passed. The language's memory minimum is
      * checked only when the language or the memory limit changes (7.1c), so an assignment made before
      * a minimum was set is not frozen by it.
      *
@@ -133,6 +134,8 @@ public class AssignmentService {
      * @throws AssignmentLanguageLockedException if the language changes and there are submissions
      * @throws AssignmentLimitsLockedException if the time or memory limit changes (and the language
      *     does not) and there are submissions
+     * @throws AssignmentPublishedException if the language or a limit changes, there are no
+     *     submissions, and the assignment is published
      */
     @Transactional
     public Assignment update(long userId, Role role, long assignmentId, AssignmentRequest request) {
@@ -159,6 +162,9 @@ public class AssignmentService {
                 throw new AssignmentLanguageLockedException();
             }
             throw new AssignmentLimitsLockedException();
+        }
+        if ((languageChanged || limitsChanged) && assignment.isPublished()) {
+            throw new AssignmentPublishedException();
         }
         assignment.revise(
                 request.title(),

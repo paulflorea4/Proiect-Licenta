@@ -109,3 +109,10 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* 9.1a: an enrollment code is what students need from a teacher, so it is shown large. */
+.enroll-code code {
+  font-size: 24px;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}

@@ -4,6 +4,8 @@ import { api, isApiError } from '../api/client'
 import type { PageResponse } from '../api/types'
 import { useAuth } from '../auth/authContext'
 import type { Role, User } from '../auth/authContext'
+import Pager from '../components/Pager'
+import { pageNumberOf } from '../components/pagination'
 
 /** A row of `GET /admin/users` (`UserSummaryResponse`). */
 interface UserRow {
@@ -26,12 +28,6 @@ type Result =
   | { forPage: number; status: 'loaded'; page: PageResponse<UserRow> }
 
 type Load = { status: 'loading' } | Result
-
-/** `?page=` is 1-based for people; anything that is not a whole number from 1 is the first page. */
-function pageNumberOf(value: string | null): number {
-  const n = Number(value)
-  return Number.isInteger(n) && n >= 1 ? n : 1
-}
 
 function messageOf(error: unknown): string {
   return isApiError(error)
@@ -165,27 +161,13 @@ function AdminUsersPage() {
               </tbody>
             </table>
           )}
-          <nav aria-label="Pages">
-            <button
-              type="button"
-              disabled={pageNumber <= 1}
-              onClick={() => goTo(pageNumber - 1)}
-            >
-              Previous
-            </button>{' '}
-            <span>
-              Page {pageNumber} of {Math.max(load.page.totalPages, 1)} (
-              {load.page.totalElements}{' '}
-              {load.page.totalElements === 1 ? 'user' : 'users'})
-            </span>{' '}
-            <button
-              type="button"
-              disabled={pageNumber >= load.page.totalPages}
-              onClick={() => goTo(pageNumber + 1)}
-            >
-              Next
-            </button>
-          </nav>
+          <Pager
+            pageNumber={pageNumber}
+            totalPages={load.page.totalPages}
+            totalElements={load.page.totalElements}
+            noun={['user', 'users']}
+            onGoTo={goTo}
+          />
         </>
       )}
     </main>

@@ -2,7 +2,7 @@
 
 | Commit | Task | Status | Notes |
 | --- | --- | --- | --- |
-| 9.0a | **GATE** — what happens to a submission that ends in `ERROR` after the deadline | Not started | From the phases 0-7 review (`docs/suggestions.md`, M3), approved by the human. Options: judge a resubmission against the `ERROR` submission's arrival time, a teacher re-run, or an automatic retry on `SANDBOX_ERROR`. |
+| 9.0a | **GATE** — what happens to a submission that ends in `ERROR` after the deadline | Done | From the phases 0-7 review (`docs/suggestions.md`, M3), approved by the human. Options: judge a resubmission against the `ERROR` submission's arrival time, a teacher re-run, or an automatic retry on `SANDBOX_ERROR`. **The human chose the teacher re-run** (`POST /submissions/{id}/rerun`). |
 | 9.0b | **GATE** — time and memory limits after the first submission (decided editable at 3.3c; a queued submission is graded with the new limits) | Not started | From the phases 0-7 review (`docs/suggestions.md`, M4), approved by the human. Options: lock them like the language, or snapshot them on the submission when accepted. Align `backend/CLAUDE.md`'s 3.4a wording either way. |
 | 9.0c | **GATE** — may a published assignment's language and limits change while its rubric and tests are frozen (option A, 3.5a) | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
 | 9.0d | **GATE** — the roster and users promoted to teacher (filter by role, or drop enrollments on promotion) | Not started | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. |
@@ -22,7 +22,7 @@
 | 9.5c | Hint panel: "Get a hint" button, shows received hints by level and "hints used" | Not started | Wired to 7.2a/7.2b. Show the 409 and 503 cases as friendly messages, not raw errors. |
 | 9.5d | "Report this hint" button with an optional reason on each hint, wired to 7.4b; reported hints show as flagged | Not started | Confirm the flag visibly so students know it was recorded; don't hide the hint after reporting. |
 | 9.6a | Submission history per assignment with scores and statuses | Not started |  |
-| 9.6b | Teacher: per-assignment submissions list (student, status, score, attempt, hints used) and a full-detail submission page including hidden tests and the submitted code | Not started | Wired to 5.5b and 5.5c. Without this page teachers have no way to look at an individual submission. |
+| 9.6b | Teacher: per-assignment submissions list (student, status, score, attempt, hints used) and a full-detail submission page including hidden tests and the submitted code | Not started | Wired to 5.5b and 5.5c. Without this page teachers have no way to look at an individual submission. A submission in `ERROR` gets a "Run again" action here, wired to 9.0a's `POST /submissions/{id}/rerun`. |
 | 9.6c | Teacher: manual grading form for `MANUAL` criteria on the submission page (score within range + comment), shows the recomputed total and the provisional flag | Not started | Wired to 5.4d and 5.4e. Show server-side range errors inline. |
 | 9.7a | RTL tests: course creation and join flows | Not started |  |
 | 9.7b | RTL tests: result page renders pass/fail correctly and never shows hidden-test content | Not started |  |

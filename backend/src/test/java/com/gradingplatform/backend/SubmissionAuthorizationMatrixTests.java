@@ -89,7 +89,9 @@ class SubmissionAuthorizationMatrixTests extends RealHttpTestBase {
          * Published; a TESTS criterion (70) with a public and a hidden test, a MANUAL one (30); a graded
          * submission of the author and one of the classmate.
          */
-        GRADED
+        GRADED,
+        /** The same as {@link #OPEN}, with the author's one submission ended in {@code ERROR} (9.0a). */
+        FAILED
     }
 
     /** Ids a path or body is built from. */
@@ -156,6 +158,8 @@ class SubmissionAuthorizationMatrixTests extends RealHttpTestBase {
             i -> "/assignments/" + i.assignment() + "/my-submissions";
     private static final String MY_GRADE = "/assignments/{assignmentId}/my-grade";
     private static final Function<Ids, String> MY_GRADE_PATH = i -> "/assignments/" + i.assignment() + "/my-grade";
+    private static final String RERUN = "/submissions/{submissionId}/rerun";
+    private static final Function<Ids, String> RERUN_PATH = i -> "/submissions/" + i.submission() + "/rerun";
 
     /**
      * One row per Phase 5 endpoint and state; the six numbers are the status for the owner, another
@@ -207,7 +211,11 @@ class SubmissionAuthorizationMatrixTests extends RealHttpTestBase {
                     403,
                     403,
                     403,
-                    200));
+                    200),
+
+            // --- a re-run (9.0a): the people who run the course, never a student; only an ERROR -------
+            row("POST", RERUN, RERUN_PATH, NO_BODY, Setup.FAILED, 202, 404, 403, 403, 403, 202),
+            row("POST", RERUN, RERUN_PATH, NO_BODY, Setup.GRADED, 409, 404, 403, 403, 403, 409));
 
     static Stream<Arguments> rowsAndActors() {
         return ENDPOINTS.stream().flatMap(r -> Arrays.stream(Actor.values()).map(a -> Arguments.of(r, a)));
@@ -292,6 +300,9 @@ class SubmissionAuthorizationMatrixTests extends RealHttpTestBase {
             rubricCriteria.save(new RubricCriterion(assignment.getId(), "A", CriterionType.TESTS, 100));
             if (setup == Setup.ATTEMPT_USED) {
                 insertSubmission(assignment.getId(), author, 1, "GRADED");
+            }
+            if (setup == Setup.FAILED) {
+                submissionId = insertSubmission(assignment.getId(), author, 1, "ERROR");
             }
         }
         return new World(

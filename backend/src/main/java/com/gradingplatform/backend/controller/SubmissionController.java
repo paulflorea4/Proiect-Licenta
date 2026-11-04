@@ -109,6 +109,19 @@ public class SubmissionController {
     }
 
     /**
+     * Runs a submission that ended in {@code ERROR} again (9.0a): 202 with it {@code QUEUED}, its code,
+     * attempt and arrival unchanged. For the teacher or admin who runs the course; another teacher
+     * gets the 404 of a missing submission; any other state is 409 {@code SUBMISSION_NOT_IN_ERROR}.
+     */
+    @PostMapping("/submissions/{submissionId}/rerun")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public SubmissionAcceptedResponse rerun(
+            @AuthenticationPrincipal AuthenticatedUser principal, @PathVariable long submissionId) {
+        return SubmissionAcceptedResponse.from(submissionService.rerun(principal.id(), principal.role(), submissionId));
+    }
+
+    /**
      * The same submission with the code uploaded as one file (5.1b): {@code multipart/form-data} with
      * the file in the part {@code file}. Its extension must be the assignment's language's; other
      * parts are ignored. Same roles, answer and 404 as {@link #submit}.

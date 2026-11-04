@@ -134,6 +134,28 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             nativeQuery = true)
     int requeueRunning();
 
+    /**
+     * A teacher's re-run (9.0a): an {@code ERROR} submission is {@code QUEUED} again, without
+     * {@code started_at} and {@code finished_at}, keeping its code, attempt number and
+     * {@code submitted_at} (the arrival the deadline was judged on). Only an {@code ERROR} row
+     * matches, in one statement, so two re-runs at once cannot both take it. Returns 1 when this call
+     * re-queued it, 0 otherwise. Needs the caller's transaction.
+     */
+    @Modifying
+    @Query(
+            value = "update submissions set status = 'QUEUED', started_at = null, finished_at = null"
+                    + " where id = :id and status = 'ERROR'",
+            nativeQuery = true)
+    int requeueError(@Param("id") long id);
+
+    /**
+     * The {@code test_results} of one submission, deleted before it is re-queued (9.0a), so a
+     * {@code QUEUED} row never has results (5.2c). Needs the caller's transaction.
+     */
+    @Modifying
+    @Query(value = "delete from test_results where submission_id = :id", nativeQuery = true)
+    int deleteTestResultsOf(@Param("id") long id);
+
     /** The ids of up to {@code limit} {@code QUEUED} submissions, oldest (lowest id) first. */
     @Query(value = "select id from submissions where status = 'QUEUED' order by id limit :limit", nativeQuery = true)
     List<Long> findQueuedIds(@Param("limit") int limit);

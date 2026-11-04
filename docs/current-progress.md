@@ -1,4 +1,4 @@
 - Phase: Phase 9 — `docs/tasks/tasks-phase-09.md`
-- Next commit: 9.0a — **GATE**: what happens to a submission that ends in `ERROR` after the deadline
+- Next commit: 9.0b — **GATE**: time and memory limits after the first submission (lock them like the language, or snapshot them on the submission)
 - In progress: —
-- Blocked: PR #197 (commit 8.6c, the last Phase 8 row) awaiting review.
+- Blocked: PR #198 (commit 9.0a) awaiting review.

@@ -84,7 +84,8 @@ public enum ErrorCode {
             HttpStatus.SERVICE_UNAVAILABLE,
             "Hints are unavailable right now; your submission and its grade are not affected. Try again later"),
     MANUAL_SCORE_OUT_OF_RANGE(HttpStatus.BAD_REQUEST, "The score must be between 0 and the criterion's weight"),
-    CSRF_HEADER_MISSING(HttpStatus.FORBIDDEN, "This request must carry the X-Requested-With header");
+    CSRF_HEADER_MISSING(HttpStatus.FORBIDDEN, "This request must carry the X-Requested-With header"),
+    SUBMISSION_NOT_IN_ERROR(HttpStatus.CONFLICT, "Only a submission that ended in error can be run again");
 
     private final HttpStatus status;
     private final String defaultMessage;

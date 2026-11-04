@@ -92,3 +92,16 @@
   - **The fix is a `PUT` with a later deadline** (3.3a requires it to be in the future), then publish.
   - **Not checked:** re-publishing an already-published assignment (the 3.3c no-op) and unpublishing, as for the rubric rules.
 - **Tests (backend 2746 -> 2753, +7; ai-service and frontend unchanged and passing), `RealHttpPublishRulesTests`** (uses the `MutableClock`): refused after the deadline (owner and admin, nothing changed); refused exactly at it, accepted one microsecond before; the rubric rule is reported first; an assignment with a submission is published again after its deadline and the student sees it; a published one stays published past its deadline and can be hidden; moving the deadline forward with `PUT` makes the draft publishable. Mutation-checked: no check (4 fail), ignoring submissions (1 fails), `isBefore` for the boundary (1 fails).
+
+## 9.0f — the losing request of a double click
+
+- **The problem (the phases 0-7 review, low, hints):** two requests for the same level at once both call the AI service (7.2a). Only the insert path handled the race (the second insert hits `LEVEL_KEY` and returns the stored row). If the second request's own answer was a fallback, it returned that fallback (200, not stored), and if its call failed, a 503, although the first had stored a real hint for the level: the student saw a worse answer, or an error, for a hint they had.
+- **Fix, as the suggestion said:** on a fallback or an `AiServiceException`, `requestNext` looks the level up once (`storedMeanwhile`: `findBySubmissionIdAndHintLevel`, its own short read-only transaction, after the AI call, so 7.1a's no-transaction rule still holds) and returns the stored row as a 200 with `fallback: false`. Only with no row is it the fallback (200) or the 503, as before. The failure is still logged either way (the AI service did fail).
+  - **Same level only:** the lookup is for the level this request computed. A lower stored level never stands in for it (tested), and a higher one cannot exist (levels are given in order).
+  - **Not a 201:** this request stored nothing, as for the insert-path loser.
+- **Tests (backend 2753 -> 2763, +10; ai-service and frontend unchanged and passing), `RealHttpHintRequestTests`:** the race is played without threads. The mocked AI call inserts the winner's row before answering, which is exactly the interleaving.
+  - a fallback loser gets the stored hint;
+  - a failed loser gets it, for each of the eight `failures()`;
+  - a fallback at level 2 with only level 1 stored is still the fallback.
+  - The existing fallback and 503 tests (no stored row) are unchanged and still pass.
+  - Mutation-checked: reverting the failure path fails 8, reverting the fallback path fails 1.

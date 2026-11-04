@@ -1,4 +1,4 @@
 - Phase: Phase 9 — `docs/tasks/tasks-phase-09.md`
-- Next commit: 9.0b — **GATE**: time and memory limits after the first submission (lock them like the language, or snapshot them on the submission)
+- Next commit: 9.0c — **GATE**: may a published assignment's language and limits change while its rubric and tests are frozen
 - In progress: —
-- Blocked: PR #198 (commit 9.0a) awaiting review.
+- Blocked: PR #199 (commit 9.0b) awaiting review.

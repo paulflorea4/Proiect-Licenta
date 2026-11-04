@@ -289,14 +289,64 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
     }
 
     @Test
-    void everythingButTheLanguageStaysEditableAfterASubmission() throws Exception {
+    void everythingButTheLanguageAndTheLimitsStaysEditableAfterASubmission() throws Exception {
         submit(student.getId());
 
-        HttpResponse<String> response = put(owner, body());
+        HttpResponse<String> response = put(owner, body("timeLimitMs", "2000", "memoryLimitMb", "256"));
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(stored().getTitle()).isEqualTo("Sorting, take two");
-        assertThat(stored().getLanguage()).isEqualTo("JAVA");
+        Assignment now = stored();
+        assertThat(now.getTitle()).isEqualTo("Sorting, take two");
+        assertThat(now.getDescription()).isEqualTo("Sort them faster");
+        assertThat(now.getMaxAttempts()).isEqualTo(5);
+        assertThat(now.getStarterCode()).isEqualTo("class Solution {}");
+        assertThat(now.getLanguage()).isEqualTo("JAVA");
+        assertThat(now.getTimeLimitMs()).isEqualTo(2000);
+        assertThat(now.getMemoryLimitMb()).isEqualTo(256);
+    }
+
+    @Test
+    void theTimeLimitIsLockedAfterASubmission() throws Exception {
+        submit(student.getId());
+
+        HttpResponse<String> response = put(owner, body("memoryLimitMb", "256"));
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("ASSIGNMENT_LIMITS_LOCKED");
+        assertThat(stored().getTimeLimitMs()).isEqualTo(2000);
+        assertThat(stored().getTitle()).isEqualTo("Sorting");
+    }
+
+    @Test
+    void theMemoryLimitIsLockedAfterASubmission() throws Exception {
+        submit(student.getId());
+
+        HttpResponse<String> response = put(owner, body("timeLimitMs", "2000"));
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("ASSIGNMENT_LIMITS_LOCKED");
+        assertThat(stored().getMemoryLimitMb()).isEqualTo(256);
+        assertThat(stored().getTitle()).isEqualTo("Sorting");
+    }
+
+    @Test
+    void aLanguageAndLimitChangeTogetherIsReportedAsTheLanguageLock() throws Exception {
+        submit(student.getId());
+
+        HttpResponse<String> response = put(owner, body("language", "\"PYTHON\""));
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("ASSIGNMENT_LANGUAGE_LOCKED");
+        assertThat(stored().getTimeLimitMs()).isEqualTo(2000);
+    }
+
+    @Test
+    void theLimitsStayEditableWithoutSubmissions() throws Exception {
+        HttpResponse<String> response = put(owner, body("timeLimitMs", "500", "memoryLimitMb", "128"));
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(stored().getTimeLimitMs()).isEqualTo(500);
+        assertThat(stored().getMemoryLimitMb()).isEqualTo(128);
     }
 
     @Test
@@ -315,7 +365,9 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
     void sendingTheSameLanguageInAnotherSpellingIsNotAChangeEvenWithSubmissions() throws Exception {
         submit(student.getId());
 
-        assertThat(put(owner, body("language", "\"java\"")).statusCode()).isEqualTo(200);
+        assertThat(put(owner, body("language", "\"java\"", "timeLimitMs", "2000", "memoryLimitMb", "256"))
+                        .statusCode())
+                .isEqualTo(200);
     }
 
     @Test
@@ -348,6 +400,38 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
             }
         }
         assertThat(stored().getLanguage()).isEqualTo("JAVA");
+    }
+
+    @Test
+    void aSubmissionBeingMadeRightNowDecidesTheLimitsLock() throws Exception {
+        // As for the language: the edit waits for the uncommitted insert, then sees it.
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (var insert = connection.prepareStatement(
+                    "insert into submissions (assignment_id, student_id, language, source_code, attempt_no) "
+                            + "values (?, ?, 'JAVA', 'x', 1)")) {
+                insert.setLong(1, assignment.getId());
+                insert.setLong(2, student.getId());
+                insert.executeUpdate();
+
+                CompletableFuture<HttpResponse<String>> edit = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return put(owner, body());
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                });
+                Thread.sleep(500);
+                assertThat(edit).isNotDone();
+
+                connection.commit();
+                HttpResponse<String> response = edit.get(10, TimeUnit.SECONDS);
+                assertThat(response.statusCode()).isEqualTo(409);
+                assertThat(code(response)).isEqualTo("ASSIGNMENT_LIMITS_LOCKED");
+            }
+        }
+        assertThat(stored().getTimeLimitMs()).isEqualTo(2000);
+        assertThat(stored().getMemoryLimitMb()).isEqualTo(256);
     }
 
     @Test

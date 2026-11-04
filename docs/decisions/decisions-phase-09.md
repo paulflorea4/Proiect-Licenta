@@ -34,3 +34,21 @@
   - the worker not told (no event): 5
   - no course check: 1
   - the arrival reset to now: 1
+
+## 9.0b — GATE: time and memory limits after the first submission
+
+- **The problem (the phases 0-7 review, M4):** 3.3c locked only the language after the first submission. `SubmissionGrader` reads the time and memory limits from the assignment when it grades, so a teacher's edit reached submissions still `QUEUED` (and, since 9.0a, a re-run): two students with the same code could get different outcomes. `backend/CLAUDE.md`'s 3.4a note ("lock anything that changes what a submission is graded against") contradicted the 3.3c rule.
+- **The human's choice (asked in chat, with the trade-offs):** **lock them**, like the language. Chosen over **a snapshot on the submission** (two new columns filled at acceptance, read by the grader and re-runs): that would let a teacher fix a too-tight limit, but the same code submitted before and after the change could still get different results.
+  - Accepted cost: a limit that turns out too tight cannot be fixed once students have submitted (the assignment would have to be recreated).
+- **How:** in `AssignmentService.update`, under the existing native `FOR UPDATE` row lock (so a submission being inserted is waited for and seen, as for the language). One `hasSubmissions` query covers both locks; it runs only when the language or a limit actually changes, so resending the stored values is never refused.
+  - **New 409 `ASSIGNMENT_LIMITS_LOCKED`** ("The assignment has submissions, so its time and memory limits can no longer be changed"), its own code so the frontend (9.2b) can say which field is locked.
+  - **Language and a limit changed together: the language's code is reported**, as the bigger change; nothing is stored either way.
+  - **Validation still runs first** (unsupported language, memory below the language's minimum, deadline): a 400 for a bad value comes before the 409, as before.
+- **Not `lockDraftForGradingChange`:** that also refuses any edit to a published assignment (the 3.5a rule for rubric and tests). Whether the language and limits may change on a published assignment with no submissions yet is 9.0c's question, so this commit keeps their published behaviour unchanged.
+- **Docs:** `backend/CLAUDE.md`'s 3.3c note now names the limits as locked; the 3.4a note names the language and limits as the exception to "use `lockDraftForGradingChange`". The root `CLAUDE.md` default "Locked after the first submission" now lists the time and memory limits (the human's decision, so it is a default now).
+- **Tests (backend 2725 -> 2730, +5; ai-service and frontend unchanged and passing), `RealHttpAssignmentChangeTests`:**
+  - `everythingButTheLanguageStaysEditableAfterASubmission` became `...AndTheLimitsStays...`: it sent new limits, and now sends the stored ones and checks every other field changed; `sendingTheSameLanguageInAnotherSpellingIsNotAChangeEvenWithSubmissions` sends the stored limits too;
+  - a changed time limit and a changed memory limit after a submission are each 409 `ASSIGNMENT_LIMITS_LOCKED` with nothing stored;
+  - language and limits changed together report the language lock;
+  - limits stay editable without submissions;
+  - a submission being inserted at that moment decides the limits lock (the edit waits for it, then gets 409).

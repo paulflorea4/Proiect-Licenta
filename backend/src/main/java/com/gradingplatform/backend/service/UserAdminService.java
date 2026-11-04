@@ -2,6 +2,7 @@ package com.gradingplatform.backend.service;
 
 import com.gradingplatform.backend.entity.Role;
 import com.gradingplatform.backend.entity.User;
+import com.gradingplatform.backend.repository.EnrollmentRepository;
 import com.gradingplatform.backend.repository.UserRepository;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -14,9 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserAdminService {
 
     private final UserRepository users;
+    private final EnrollmentRepository enrollments;
 
-    public UserAdminService(UserRepository users) {
+    public UserAdminService(UserRepository users, EnrollmentRepository enrollments) {
         this.users = users;
+        this.enrollments = enrollments;
     }
 
     /**
@@ -33,6 +36,14 @@ public class UserAdminService {
      * themselves back and demote whoever demoted them. Checked against the locked admin rows, so a
      * demotion of the caller that commits first is seen, and one that comes after waits for this
      * change.
+     *
+     * <p><b>A user who stops being a student loses their enrollments (9.0d, the human's choice over
+     * filtering the roster by role)</b>, in the same transaction: enrollments only ever hold
+     * students, so the roster and every later list built on them need no role filter. Their
+     * submissions and grades stay, as when a student leaves a course (3.2b). The role's
+     * {@code UPDATE} is flushed first, so it holds the user's row before the enrollments go: a join
+     * in flight ({@code EnrollmentService.enroll} reads the role {@code FOR SHARE}) either commits
+     * first and is then removed, or waits and is refused.
      *
      * @throws AccessRefusedException if the caller is no longer an admin
      * @throws AccountNoLongerExistsException if the caller's account was deleted
@@ -53,6 +64,10 @@ public class UserAdminService {
             throw new LastAdminException();
         }
         user.setRole(newRole);
+        if (newRole != Role.STUDENT) {
+            users.flush();
+            enrollments.deleteByStudentId(userId);
+        }
         return user;
     }
 

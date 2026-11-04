@@ -40,10 +40,21 @@ public class EnrollmentService {
      *
      * @param typedCode what the student typed; case and surrounding spaces do not matter
      * @throws EnrollCodeNotFoundException if no course has this code
+     * <p><b>The stored role must still be {@code STUDENT} (9.0d)</b>, not only the token's: a user
+     * promoted since signing in keeps a {@code STUDENT} token until it expires (2.4b), and their
+     * enrollments were dropped by the promotion. The role is read with the user's row locked
+     * {@code FOR SHARE}, so a promotion in flight is waited for and seen, and a later one waits for
+     * this join and then removes it.
+     *
+     * @throws AccessRefusedException if the user is no longer a student
      * @throws AccountNoLongerExistsException if the student's account was deleted since the token was issued
      */
     @Transactional
     public Course enroll(long studentId, String typedCode) {
+        String storedRole = users.lockRoleForShare(studentId).orElseThrow(AccountNoLongerExistsException::new);
+        if (!Role.STUDENT.name().equals(storedRole)) {
+            throw new AccessRefusedException();
+        }
         Course course = courses.findByEnrollCode(EnrollCodeGenerator.normalize(typedCode))
                 .orElseThrow(EnrollCodeNotFoundException::new);
         try {

@@ -27,6 +27,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("select u from User u where u.role = :role order by u.id")
     List<User> lockAllByRole(@Param("role") Role role);
 
+    /**
+     * The user's stored role, with the row locked {@code FOR SHARE} until the transaction ends
+     * (9.0d). A role change (an {@code UPDATE}) waits for it and it waits for a role change in
+     * flight, so a join and a promotion are decided one after the other. Empty if the user is gone.
+     */
+    @Query(value = "select role from users where id = :id for share", nativeQuery = true)
+    Optional<String> lockRoleForShare(@Param("id") Long id);
+
     /** The students enrolled in a course. */
     @Query(
             "select u from User u where u.id in (select e.id.studentId from Enrollment e where e.id.courseId = :courseId)")

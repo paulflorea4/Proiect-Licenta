@@ -29,5 +29,5 @@
 | 8.5a | Header + nav shell, role-aware menu, shows sign-in state, sign-out action | Done |  |
 | 8.5b | Admin page: user list with a role selector wired to 2.5b and 2.5c | Done | Smallest useful admin UI; without it teachers can only be created through the API. |
 | 8.6a | RTL test: sign-up form validation and submit | Done |  |
-| 8.6b | RTL test: protected route redirects when logged out | Not started |  |
+| 8.6b | RTL test: protected route redirects when logged out | Done |  |
 | 8.6c | RTL test: role route blocks a student from teacher/admin pages | Not started |  |

@@ -469,3 +469,25 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - no submission on Enter (the button a plain click handler, so clicking still works): 2
 
   An earlier "no form submit handler" mutation failed 24 tests, so it didn't isolate Enter; the plain-button version does.
+
+## 8.6b — RTL tests: a protected route redirects when logged out
+
+- **Already covered by 8.3c, on stand-in routes** (`auth/routeGuards.test.tsx`):
+  - the guard waits while `/auth/me` is open;
+  - a signed-out user goes to `/signin` with path and query remembered;
+  - signing out on a guarded page leads there.
+
+  Plus `App.test.tsx`'s `/courses` case, the return after sign-in (`SignInPage.test.tsx`) and the header's sign-out (`Header.test.tsx`). As at 8.6a, this row **audits and fills the gaps** rather than rewriting.
+- **What was missing, now in `src/protectedRoutes.test.tsx`, through the real `App`** (its real routes, guards and sign-in page, not stand-ins):
+  1. **Every real guarded route**, `/courses` and `/admin/users`, with and without a query, sends a guest to the real sign-in page (its form is there) with the path remembered. A new guarded route belongs in this table.
+  2. **The guarded page's own data is never requested** for a guest: only the provider's `/auth/me` goes out, no `GET /admin/users`.
+  3. **The redirect replaces the history entry:** from `/` then `/courses`, Back after the redirect returns to `/`, instead of bouncing off the guard again.
+  4. **Every way of being signed out redirects:** a 401, an account deleted since the cookie was set (`ACCOUNT_NO_LONGER_EXISTS`), a server error on the check, and no network.
+  5. **While the check is open** the real route shows "Checking your sign-in…": no redirect, no page, no data request.
+- **No production change.**
+- **Tests (frontend 173 -> 184; backend and ai-service unchanged and passing).**
+- **Mutation-checked:**
+  - the redirect pushing instead of replacing: 1 failure
+  - the admin page not guarded: 4
+  - `RoleRoute` rendering the page while loading: 2
+  - the query not remembered: 2

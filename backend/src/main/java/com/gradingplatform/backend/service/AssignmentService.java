@@ -117,7 +117,9 @@ public class AssignmentService {
      * Replaces the title, description, language, deadline, limits and starter code. The assignment
      * must be one the user may manage (owning teacher or admin); anyone else who cannot see its
      * course gets the same "not found" as for a missing id. The language is locked once there is a
-     * submission; a language or a deadline that is not being changed is not re-checked, so a
+     * submission, and so are the time and memory limits (9.0b: a submission still queued would be
+     * graded against new limits); a language or a deadline that is not being changed is not
+     * re-checked, so a
      * teacher can still fix a typo after the deadline has passed. The language's memory minimum is
      * checked only when the language or the memory limit changes (7.1c), so an assignment made before
      * a minimum was set is not frozen by it.
@@ -129,6 +131,8 @@ public class AssignmentService {
      * @throws DeadlineNotInFutureException if the deadline is changed to one that is not in the future
      * @throws DeadlineTooFarException if the deadline is changed to one too far ahead
      * @throws AssignmentLanguageLockedException if the language changes and there are submissions
+     * @throws AssignmentLimitsLockedException if the time or memory limit changes (and the language
+     *     does not) and there are submissions
      */
     @Transactional
     public Assignment update(long userId, Role role, long assignmentId, AssignmentRequest request) {
@@ -149,8 +153,12 @@ public class AssignmentService {
         if (!request.deadline().equals(assignment.getDeadline())) {
             requireDeadlineInRange(request.deadline());
         }
-        if (languageChanged && assignments.hasSubmissions(assignmentId)) {
-            throw new AssignmentLanguageLockedException();
+        boolean limitsChanged = memoryChanged || request.timeLimitMs() != assignment.getTimeLimitMs();
+        if ((languageChanged || limitsChanged) && assignments.hasSubmissions(assignmentId)) {
+            if (languageChanged) {
+                throw new AssignmentLanguageLockedException();
+            }
+            throw new AssignmentLimitsLockedException();
         }
         assignment.revise(
                 request.title(),

@@ -241,4 +241,99 @@ class RealHttpPublishRulesTests extends RealHttpTestBase {
         assertThat(get("/assignments/" + assignment.getId(), tokenFor(student)).statusCode())
                 .isEqualTo(404);
     }
+
+    // --- 9.0e: the deadline ------------------------------------------------------------------
+
+    private void submit() {
+        jdbc.update(
+                "insert into submissions (assignment_id, student_id, language, source_code, attempt_no) "
+                        + "values (?, ?, 'JAVA', 'class Main {}', 1)",
+                assignment.getId(),
+                student.getId());
+    }
+
+    @Test
+    void aDraftWhoseDeadlineHasPassedIsRefused() throws Exception {
+        criterion(100, true);
+        clock.set(assignment.getDeadline().plus(1, ChronoUnit.DAYS));
+
+        assertStillADraft(publish(owner), "ASSIGNMENT_DEADLINE_PASSED");
+    }
+
+    @Test
+    void aDraftIsRefusedExactlyAtItsDeadlineAndAcceptedJustBefore() throws Exception {
+        // A submission arriving after the deadline is refused (5.1c), so publishing at it is too late.
+        criterion(100, true);
+        clock.set(assignment.getDeadline());
+        assertStillADraft(publish(owner), "ASSIGNMENT_DEADLINE_PASSED");
+
+        clock.set(assignment.getDeadline().minus(1, ChronoUnit.MICROS));
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+        assertThat(stored().isPublished()).isTrue();
+    }
+
+    @Test
+    void anAdminIsRefusedToo() throws Exception {
+        criterion(100, true);
+        clock.set(assignment.getDeadline().plus(1, ChronoUnit.DAYS));
+
+        assertStillADraft(publish(admin), "ASSIGNMENT_DEADLINE_PASSED");
+    }
+
+    @Test
+    void theRubricRulesAreReportedBeforeTheDeadline() throws Exception {
+        criterion(60, true);
+        clock.set(assignment.getDeadline().plus(1, ChronoUnit.DAYS));
+
+        assertStillADraft(publish(owner), "RUBRIC_WEIGHTS_INVALID");
+    }
+
+    @Test
+    void anAssignmentWithSubmissionsMayBeShownAgainAfterItsDeadline() throws Exception {
+        criterion(100, true);
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+        submit();
+        assertThat(unpublish(owner).statusCode()).isEqualTo(200);
+        clock.set(assignment.getDeadline().plus(1, ChronoUnit.DAYS));
+
+        HttpResponse<String> response = publish(owner);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(stored().isPublished()).isTrue();
+        assertThat(get("/assignments/" + assignment.getId(), tokenFor(student)).statusCode())
+                .isEqualTo(200);
+    }
+
+    @Test
+    void afterItsDeadlineAPublishedAssignmentStaysPublishedAndCanBeHidden() throws Exception {
+        criterion(100, true);
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+        clock.set(assignment.getDeadline().plus(1, ChronoUnit.DAYS));
+
+        // Publishing again is the usual no-op (nothing is checked); hiding never checks.
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+        assertThat(unpublish(owner).statusCode()).isEqualTo(200);
+        assertThat(stored().isPublished()).isFalse();
+    }
+
+    @Test
+    void movingThePassedDeadlineForwardMakesTheDraftPublishable() throws Exception {
+        criterion(100, true);
+        jdbc.update(
+                "update assignments set deadline = ? where id = ?",
+                java.sql.Timestamp.from(Instant.now().minus(1, ChronoUnit.DAYS)),
+                assignment.getId());
+        assertThat(publish(owner).statusCode()).isEqualTo(409);
+
+        HttpResponse<String> moved = send(
+                "PUT",
+                "/assignments/" + assignment.getId(),
+                tokenFor(owner),
+                "{\"title\":\"Sorting\",\"description\":\"d\",\"language\":\"JAVA\",\"deadline\":\""
+                        + Instant.now().plus(3, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS)
+                        + "\",\"timeLimitMs\":2000,\"memoryLimitMb\":256}");
+        assertThat(moved.statusCode()).isEqualTo(200);
+
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+    }
 }

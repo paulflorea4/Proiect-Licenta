@@ -38,6 +38,9 @@ public enum ErrorCode {
             HttpStatus.CONFLICT, "The course has assignments and cannot be deleted; delete its assignments first"),
     ASSIGNMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Assignment not found"),
     ASSIGNMENT_HAS_SUBMISSIONS(HttpStatus.CONFLICT, "The assignment has submissions and cannot be deleted"),
+    ASSIGNMENT_DEADLINE_PASSED(
+            HttpStatus.CONFLICT,
+            "The assignment's deadline has passed, so nobody could submit to it; move the deadline before publishing"),
     ASSIGNMENT_LANGUAGE_LOCKED(
             HttpStatus.CONFLICT, "The assignment has submissions, so its language can no longer be changed"),
     ASSIGNMENT_LIMITS_LOCKED(

@@ -1,4 +1,4 @@
 - Phase: Phase 9 — `docs/tasks/tasks-phase-09.md`
-- Next commit: 9.0e — **GATE**: publishing a draft whose deadline has passed (refuse with a new 409, or allow and document)
+- Next commit: 9.0f — The losing request of a double-click returns the stored hint, also when its own answer was a fallback or a failure
 - In progress: —
-- Blocked: PR #201 (commit 9.0d) awaiting review.
+- Blocked: PR #202 (commit 9.0e) awaiting review.

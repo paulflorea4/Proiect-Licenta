@@ -182,12 +182,16 @@ public class AssignmentService {
     /**
      * Makes the assignment visible to students ({@code true}) or hides it again ({@code false}).
      * Setting the state it already has changes nothing, and checks nothing. Publishing a draft
-     * needs a rubric that passes {@link PublishRules}; hiding never does. Same access rules as
-     * {@link #update}.
+     * needs a rubric that passes {@link PublishRules} and, unless it already has submissions, a
+     * deadline still ahead (9.0e: nobody could ever submit to it; one with submissions may be shown
+     * again after its deadline, with the students' grades); hiding never checks anything. Same
+     * access rules as {@link #update}.
      *
      * @throws AssignmentNotFoundException if there is no such assignment or the user may not see it
      * @throws RubricWeightsInvalidException if publishing and the rubric weights do not add up to 100
      * @throws CriterionHasNoTestsException if publishing and a `TESTS` criterion has no test case
+     * @throws AssignmentDeadlinePassedException if publishing, the deadline is not after now and
+     *     there are no submissions
      */
     @Transactional
     public Assignment setPublished(long userId, Role role, long assignmentId, boolean published) {
@@ -195,6 +199,9 @@ public class AssignmentService {
         if (assignment.isPublished() != published) {
             if (published) {
                 publishRules.requirePublishable(assignmentId);
+                if (!assignment.getDeadline().isAfter(now()) && !assignments.hasSubmissions(assignmentId)) {
+                    throw new AssignmentDeadlinePassedException();
+                }
             }
             assignment.setPublished(published, now());
         }

@@ -221,6 +221,77 @@ describe('SignUpPage', () => {
     )
   })
 
+  // 8.6a: the boundaries and the email's own limit, which 8.3a's tests left out.
+  it('a name of exactly 255 characters is sent', async () => {
+    fetchMock.mockResolvedValue(json(201, CREATED))
+    const user = renderSignUp()
+    const fullName = 'a'.repeat(255)
+
+    await user.click(screen.getByLabelText('Full name'))
+    await user.paste(fullName)
+    await fill(user, { email: VALID.email, password: VALID.password })
+    await submit(user)
+
+    expect(sentBody()).toEqual({ ...VALID, fullName })
+  })
+
+  it('an email over 255 characters is refused here', async () => {
+    const user = renderSignUp()
+
+    await fill(user, { fullName: VALID.fullName, password: VALID.password })
+    await user.click(screen.getByLabelText('Email'))
+    await user.paste(`${'a'.repeat(244)}@example.com`) // 256 characters
+    await submit(user)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription(
+      'Use at most 255 characters',
+    )
+  })
+
+  it('an email of 255 characters with spaces around it is accepted and sent trimmed', async () => {
+    fetchMock.mockResolvedValue(json(201, CREATED))
+    const user = renderSignUp()
+    const email = `  ${'a'.repeat(243)}@example.com  ` // 255 characters inside the spaces
+
+    await fill(user, { fullName: VALID.fullName, password: VALID.password })
+    await user.click(screen.getByLabelText('Email'))
+    await user.paste(email)
+    await submit(user)
+
+    // A type="email" input strips surrounding spaces itself (the HTML value sanitization, as in a
+    // browser); the backend trims and lower-cases again (8.0d). The 255 characters still pass.
+    expect(sentBody()).toEqual({ ...VALID, email: email.trim() })
+    expect(email.trim()).toHaveLength(255)
+  })
+
+  it('pressing Enter in a field submits the form', async () => {
+    fetchMock.mockResolvedValue(json(201, CREATED))
+    const user = renderSignUp()
+
+    await fill(user, VALID)
+    await user.type(screen.getByLabelText('Password'), '{Enter}')
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Your account for ana@example.com is ready.',
+    )
+    expect(sentBody()).toEqual(VALID)
+  })
+
+  it('pressing Enter on an incomplete form shows the errors, without a request', async () => {
+    const user = renderSignUp()
+
+    await user.type(screen.getByLabelText('Email'), 'ana@example.com{Enter}')
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Full name')).toHaveAccessibleDescription(
+      'Enter your full name',
+    )
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription(
+      'Enter a password',
+    )
+  })
+
   it('an email already in use is shown on the email field', async () => {
     fetchMock.mockResolvedValue(
       json(409, {

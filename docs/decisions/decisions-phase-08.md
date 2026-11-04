@@ -443,3 +443,29 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - the selectors not disabled while saving: 1
   - a fractional page accepted: 1
   - Next never disabled: 1
+
+## 8.6a — RTL tests: sign-up form validation and submit
+
+- **Most of the row was already done:** 8.3a wrote the sign-up form's tests with React Testing Library together with the form (21 tests in `SignUpPage.test.tsx`, through the real `App` with `fetch` stubbed). They already cover:
+  - the fields and the absence of a role;
+  - the request and the confirmation;
+  - every client check: empty, only spaces, password 7/8 characters, 72/73 bytes and 36/37 `é`, a 256-character name;
+  - the backend's field errors, the unknown-field fallback and `EMAIL_ALREADY_USED`;
+  - a 500, an unreadable answer, a network failure and a retry;
+  - the disabled button, errors cleared on a new submit, and both links to sign-in.
+
+  This row didn't rewrite them. It **audited them against the page's own checks and filled the gaps**, the way 8.1a confirmed rather than redid.
+- **The gaps found and now tested (5 tests):**
+  1. **The email limit** (255 characters, measured after trimming) had no test at all: a 256-character email is refused here, without a request.
+  2. **The exact boundaries**, so an off-by-one would fail: a name of exactly 255 characters is sent, and a 255-character email with spaces around it is accepted.
+  3. **Submitting with Enter** rather than the button: Enter in a field submits the form, and on an incomplete form it shows the field errors without a request.
+- **A fact the tests surfaced:** a `type="email"` input strips surrounding spaces itself (the HTML value sanitization, which jsdom applies like a browser), so the email reaches the request already trimmed. The test asserts that (it first assumed "sent as typed"), and the backend still trims and lower-cases again (8.0d).
+- **No change to `SignUpPage`**: the code already did all of this, but four of its rules had no test that would notice if they broke.
+- **Tests (frontend 168 -> 173; backend and ai-service unchanged and passing).**
+- **Mutation-checked** (each new test fails for its own rule):
+  - no email length check: 1 failure
+  - the name limit off by one: 1
+  - the email limit off by one: 1
+  - no submission on Enter (the button a plain click handler, so clicking still works): 2
+
+  An earlier "no form submit handler" mutation failed 24 tests, so it didn't isolate Enter; the plain-button version does.

@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.6a — RTL test: sign-up form validation and submit
+- Next commit: 8.6b — RTL test: protected route redirects when logged out
 - In progress: —
-- Blocked: PR #194 (commit 8.5b) awaiting review.
+- Blocked: PR #195 (commit 8.6a) awaiting review.

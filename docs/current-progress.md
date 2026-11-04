@@ -1,4 +1,4 @@
-- Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.6c — RTL test: role route blocks a student from teacher/admin pages
+- Phase: Phase 9 — `docs/tasks/tasks-phase-09.md`
+- Next commit: 9.0a — **GATE**: what happens to a submission that ends in `ERROR` after the deadline
 - In progress: —
-- Blocked: PR #196 (commit 8.6b) awaiting review.
+- Blocked: PR #197 (commit 8.6c, the last Phase 8 row) awaiting review.

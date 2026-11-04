@@ -491,3 +491,23 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - the admin page not guarded: 4
   - `RoleRoute` rendering the page while loading: 2
   - the query not remembered: 2
+
+## 8.6c — RTL tests: a role route blocks a student from teacher and admin pages (last Phase 8 row)
+
+- **Already covered before this row:**
+  - 8.3c (`auth/routeGuards.test.tsx`, stand-in routes): a student refused a teacher-and-admin route, a teacher refused an admin-only route, the wait while loading;
+  - 8.4a (`HomePage.test.tsx`): a student and a teacher opening `/admin/users` end at `/courses`;
+  - 8.5a (`Header.test.tsx`): a student's menu offers no admin link.
+
+  As at 8.6a and 8.6b, this row **audits and fills the gaps**.
+- **What was missing, now in `src/roleRoutes.test.tsx`, through the real `App`:**
+  1. **A table of every real role-restricted route** (`ROLE_ROUTES`: today `/admin/users`, with and without a query), checked for **every role**. An allowed role gets the page. Every other role is sent to **their own** home (`homeOf`) and **the page's data is never requested**. No teacher-only route exists yet (Phase 9 adds the teacher pages); each one joins the table as it comes, which makes every role get checked against it. The stand-in teacher route of 8.3c covers the guard until then.
+  2. **In-app navigation, not only a fresh load:** a student already on `/courses` who navigates to `/admin/users` inside the app is sent back to `/courses`, with no request.
+  3. **No flash:** the admin page never mounts for a student (no heading, no list request), because the guard decides before the page renders.
+- **No production change.**
+- **Phase 8 is complete** with this row. Phase 9 opens with four GATE rows (9.0a–9.0d) from the phases 0-7 review, each needing the human's decision.
+- **Tests (frontend 184 -> 192; backend and ai-service unchanged and passing).**
+- **Mutation-checked:**
+  - a teacher let into the admin page: 2 failures
+  - `RoleRoute` ignores the role: 6
+  - a wrong role sent to sign-in instead of home: 6

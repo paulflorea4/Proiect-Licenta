@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.5b — Admin page: user list with a role selector wired to 2.5b and 2.5c
+- Next commit: 8.6a — RTL test: sign-up form validation and submit
 - In progress: —
-- Blocked: PR #193 (commit 8.5a) awaiting review.
+- Blocked: PR #194 (commit 8.5b) awaiting review.

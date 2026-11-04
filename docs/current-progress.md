@@ -1,4 +1,4 @@
 - Phase: Phase 9 — `docs/tasks/tasks-phase-09.md`
-- Next commit: 9.0c — **GATE**: may a published assignment's language and limits change while its rubric and tests are frozen
+- Next commit: 9.0d — **GATE**: the roster and users promoted to teacher (filter by role, or drop enrollments on promotion)
 - In progress: —
-- Blocked: PR #199 (commit 9.0b) awaiting review.
+- Blocked: PR #200 (commit 9.0c) awaiting review.

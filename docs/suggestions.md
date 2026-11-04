@@ -112,7 +112,7 @@ Historical, append-only. Things that would meaningfully help (a missing MCP conn
   - [auditor] Gemini's `systemInstruction` and `responseMimeType: application/json` are not used; the rules travel in the same part as the untrusted blocks. Changes the provider interface (the human's call).
 
   **Low: courses, assignments, rubric, tests**
-  - [auditor] A published assignment's language and limits can change (no published check in `AssignmentService.update`) while its rubric and tests are frozen because it is published (option A, 3.5a). GATE: extend option A to the assignment's grading fields?
+  - [auditor] A published assignment's language and limits can change (no published check in `AssignmentService.update`) while its rubric and tests are frozen because it is published (option A, 3.5a). GATE: extend option A to the assignment's grading fields? **Decided by the human on 2026-11-04: yes, done at 9.0c (PR #200): a changed language or limit on a published assignment is 409 `ASSIGNMENT_PUBLISHED`.**
   - [auditor] A deadline beyond Postgres' `timestamptz` range (e.g. year 300000) is a 500 (`timestamp out of range`), on create and update. Bound it so it is a 400.
   - [auditor] A deadline with sub-microsecond precision is echoed as sent but stored rounded to microseconds, so sending the create answer back later counts as a deadline change and can be refused after the deadline. Truncate to microseconds in the request.
   - [auditor] An auto-appended test position (`max + 1`) can exceed `TestCaseRequest.POSITION_MAX`, after which a `PUT` that echoes the stored test is a 400. Clamp, or apply the cap to both paths.

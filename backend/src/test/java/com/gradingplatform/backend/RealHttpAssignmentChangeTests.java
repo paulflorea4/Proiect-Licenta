@@ -402,6 +402,97 @@ class RealHttpAssignmentChangeTests extends RealHttpTestBase {
         assertThat(stored().getLanguage()).isEqualTo("JAVA");
     }
 
+    // --- 9.0c: a published assignment's language and limits are frozen like its rubric -------
+
+    @Test
+    void aPublishedAssignmentsLanguageCannotChange() throws Exception {
+        addCriterionWithTest();
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+
+        HttpResponse<String> response =
+                put(owner, body("language", "\"PYTHON\"", "timeLimitMs", "2000", "memoryLimitMb", "256"));
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("ASSIGNMENT_PUBLISHED");
+        assertThat(stored().getLanguage()).isEqualTo("JAVA");
+        assertThat(stored().getTitle()).isEqualTo("Sorting");
+    }
+
+    @Test
+    void aPublishedAssignmentsTimeLimitCannotChange() throws Exception {
+        addCriterionWithTest();
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+
+        HttpResponse<String> response = put(owner, body("memoryLimitMb", "256"));
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("ASSIGNMENT_PUBLISHED");
+        assertThat(stored().getTimeLimitMs()).isEqualTo(2000);
+        assertThat(stored().getTitle()).isEqualTo("Sorting");
+    }
+
+    @Test
+    void aPublishedAssignmentsMemoryLimitCannotChange() throws Exception {
+        addCriterionWithTest();
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+
+        HttpResponse<String> response = put(owner, body("timeLimitMs", "2000"));
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(code(response)).isEqualTo("ASSIGNMENT_PUBLISHED");
+        assertThat(stored().getMemoryLimitMb()).isEqualTo(256);
+        assertThat(stored().getTitle()).isEqualTo("Sorting");
+    }
+
+    @Test
+    void everythingElseStaysEditableOnAPublishedAssignment() throws Exception {
+        addCriterionWithTest();
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+
+        HttpResponse<String> response =
+                put(owner, body("language", "\"java\"", "timeLimitMs", "2000", "memoryLimitMb", "256"));
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        Assignment now = stored();
+        assertThat(now.isPublished()).isTrue();
+        assertThat(now.getTitle()).isEqualTo("Sorting, take two");
+        assertThat(now.getDescription()).isEqualTo("Sort them faster");
+        assertThat(now.getMaxAttempts()).isEqualTo(5);
+        assertThat(now.getStarterCode()).isEqualTo("class Solution {}");
+    }
+
+    @Test
+    void unpublishingLetsTheLanguageAndLimitsChangeAndTheAssignmentBePublishedAgain() throws Exception {
+        addCriterionWithTest();
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+        assertThat(unpublish(owner).statusCode()).isEqualTo(200);
+
+        HttpResponse<String> response = put(owner, body("language", "\"PYTHON\""));
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(stored().getLanguage()).isEqualTo("PYTHON");
+        assertThat(stored().getTimeLimitMs()).isEqualTo(3000);
+        assertThat(stored().getMemoryLimitMb()).isEqualTo(512);
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+        assertThat(stored().isPublished()).isTrue();
+    }
+
+    @Test
+    void onAPublishedAssignmentWithSubmissionsTheSubmissionLockIsReported() throws Exception {
+        // As for the rubric and tests (3.5a): unpublishing would not help, so that answer comes first.
+        addCriterionWithTest();
+        assertThat(publish(owner).statusCode()).isEqualTo(200);
+        submit(student.getId());
+
+        HttpResponse<String> limits = put(owner, body("language", "\"JAVA\""));
+        HttpResponse<String> language = put(owner, body("language", "\"PYTHON\""));
+
+        assertThat(limits.statusCode()).isEqualTo(409);
+        assertThat(code(limits)).isEqualTo("ASSIGNMENT_LIMITS_LOCKED");
+        assertThat(language.statusCode()).isEqualTo(409);
+        assertThat(code(language)).isEqualTo("ASSIGNMENT_LANGUAGE_LOCKED");
+    }
+
     @Test
     void aSubmissionBeingMadeRightNowDecidesTheLimitsLock() throws Exception {
         // As for the language: the edit waits for the uncommitted insert, then sees it.

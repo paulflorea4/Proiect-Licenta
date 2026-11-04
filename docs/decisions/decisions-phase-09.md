@@ -52,3 +52,18 @@
   - language and limits changed together report the language lock;
   - limits stay editable without submissions;
   - a submission being inserted at that moment decides the limits lock (the edit waits for it, then gets 409).
+
+## 9.0c — GATE: a published assignment's language and limits
+
+- **The problem (the phases 0-7 review, low, courses-assignments):** since 3.5a (option A) a published assignment's rubric and tests are frozen, but `AssignmentService.update` had no published check, so its language and limits could still change until the first submission (3.3c, 9.0b). A student could write Python against a published assignment that the teacher then switched to Java, and the submission would be built as Java.
+- **The human's choice (asked in chat):** **freeze them while published**, extending option A to them. Chosen over keeping today's behaviour and only documenting it.
+- **How:** in `update`, after the 9.0b submission locks, a changed language or limit on a published assignment is 409 `ASSIGNMENT_PUBLISHED`, the same code as the rubric and tests, so the frontend gives one answer: unpublish, edit, republish (`PublishRules` runs again).
+  - **Order as in 3.5a: submissions first** (`ASSIGNMENT_LANGUAGE_LOCKED` / `ASSIGNMENT_LIMITS_LOCKED`), then published, because unpublishing would not help once someone has submitted. 400 validation still comes before both.
+  - **Only an actual change is refused**: resending the stored language (any spelling) and limits is accepted, so the other fields (title, description, deadline, attempts, starter code) stay editable on a published assignment, as before.
+  - **The code's fixed message** now reads "The assignment is published; unpublish it before changing its language, limits, rubric or tests" (it named only the rubric and tests). The code is unchanged; tests assert codes, not messages.
+- **Not done here:** the frontend's message for this code is 9.2b's.
+- **Tests (backend 2730 -> 2736, +6; ai-service and frontend unchanged and passing), `RealHttpAssignmentChangeTests`:**
+  - a changed language, time limit and memory limit on a published assignment are each 409 `ASSIGNMENT_PUBLISHED`, nothing stored;
+  - the other fields stay editable while published;
+  - unpublish, change the language, publish again;
+  - published with a submission: the submission lock codes are reported, not `ASSIGNMENT_PUBLISHED`.

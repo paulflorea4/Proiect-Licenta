@@ -1,4 +1,4 @@
 - Phase: Phase 9 — `docs/tasks/tasks-phase-09.md`
-- Next commit: 9.1a — Teacher: course list page + create-course form
+- Next commit: 9.1b — Student: "join course" form (enrollment code) + my courses list
 - In progress: —
-- Blocked: PR #203 (commit 9.0f) awaiting review.
+- Blocked: PR #204 (commit 9.1a) awaiting review.

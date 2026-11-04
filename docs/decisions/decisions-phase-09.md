@@ -105,3 +105,26 @@
   - a fallback at level 2 with only level 1 stored is still the fallback.
   - The existing fallback and 503 tests (no stored row) are unchanged and still pass.
   - Mutation-checked: reverting the failure path fails 8, reverting the fallback path fails 1.
+
+## 9.1a — teacher course list + create-course form
+
+- **`/courses` by role** (one route, the home of students and teachers, 8.4a): a teacher gets their courses and the create form; **an admin gets the same list (every course, `GET /courses` picks it by role, 3.1b) without the form** (`POST /courses` is teachers only, 3.1a). The admin's menu already links to Courses (8.5a) and the list is the same component, so the admin part costs nothing; say if admins should see something else. **A student still sees only the heading**: their list, the join form and the empty state are 9.1b's.
+- **The enrollment code** (the row: "prominently with a copy action"): in its own column, in the monospace `<code>` style at 24 px with letter spacing (`.enroll-code` in `index.css`, the first page-specific style), plus a **`CopyButton`** (`src/components/`, reusable): `navigator.clipboard.writeText`, accessible name "Copy the enrollment code of <title>", result in a `role="status"` next to it: "Copied", or "Could not copy: select the code and copy it" when the browser refuses (no secure context, permission denied). The code always stays on screen. No library.
+- **Create form** (`CreateCourseForm`, the 8.3a form conventions): title required after trimming, at most 255; description optional, a `<textarea>` (`TextField` gained `rows`), at most 5000, sent as typed or `null` when blank (the backend treats blank as none anyway). A `VALIDATION_FAILED` goes on its fields; anything else is one alert above the button; the button is disabled while sending. **On success** the form empties and a "New course" region says `"<title>" is created` (`role="status"`) with its code and a Copy button, and the list reloads (the new course is last, oldest first, so the count and page total change).
+- **Course titles are not links yet:** the course page is 9.2a's.
+- **Shared pager:** 8.5b's Previous / Next and `pageNumberOf` moved to `src/components/Pager.tsx` and `pagination.ts`, now used by both list pages; `AdminUsersPage`'s 14 tests pass unchanged.
+- **Checked in a real browser** (the desktop app's pane; dev-profile backend from `backend/.env`, compose database, Vite), signed in as the seeded teacher:
+  - the list showed "Introduction to Programming" with `DEVSEED` large and a Copy button;
+  - **Copy showed the fallback message: the pane itself refuses clipboard writes** (`NotAllowedError: Write permission denied`, also from page script with focus), so the success path is covered by the tests only (user-event's clipboard);
+  - creating "  Browser check 9.1a  " sent a CORS preflight (200), `POST /courses` 201 with the trimmed title, showed the new code and reloaded the list (2 courses);
+  - the test course was deleted afterwards (`DELETE /courses/{id}` 204), and the servers and the database stopped.
+- **Tests (frontend 192 -> 209, +17; backend and ai-service unchanged and passing), `CoursesPage.test.tsx`:**
+  - the teacher's list with codes and Copy buttons, page 0 with the cookie;
+  - loading, a failed load, the empty state (with the form, no table or pager), next and previous page in the URL;
+  - Copy puts the code on the clipboard and says "Copied"; a refused clipboard says to copy by hand and the code stays;
+  - create sends the trimmed title and `null`, shows the new code with Copy, empties the form and reloads; a description is sent as typed from a textarea;
+  - the page's own checks (blank, 256-character title, 5001-character description; nothing sent), exactly 255 accepted;
+  - the backend's field errors on their fields, any other refusal above the button with the text kept, the button disabled while sending;
+  - an admin sees every course with codes and no form, and the admin's empty state;
+  - a student asks for nothing yet.
+  - Mutation-checked: no code in the rows (4 fail), no reload after create (1), the form for admins (2), the title not trimmed (1).

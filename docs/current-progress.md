@@ -1,4 +1,4 @@
 - Phase: Phase 8 — `docs/tasks/tasks-phase-08.md`
-- Next commit: 8.5a — Header + nav shell, role-aware menu, shows sign-in state, sign-out action
+- Next commit: 8.5b — Admin page: user list with a role selector wired to 2.5b and 2.5c
 - In progress: —
-- Blocked: PR #192 (commit 8.4a) awaiting review.
+- Blocked: PR #193 (commit 8.5a) awaiting review.

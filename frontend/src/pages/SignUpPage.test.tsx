@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -113,7 +113,11 @@ describe('SignUpPage', () => {
     await fill(user, VALID)
     await submit(user)
 
-    await user.click(await screen.findByRole('link', { name: 'Sign in' }))
+    await user.click(
+      await within(await screen.findByRole('status')).findByRole('link', {
+        name: 'Sign in',
+      }),
+    )
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Sign in' }),
@@ -123,7 +127,9 @@ describe('SignUpPage', () => {
   it('links to sign-in for someone who already has an account', async () => {
     const user = renderSignUp()
 
-    await user.click(screen.getByRole('link', { name: 'Sign in' }))
+    await user.click(
+      within(screen.getByRole('main')).getByRole('link', { name: 'Sign in' }),
+    )
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Sign in' }),

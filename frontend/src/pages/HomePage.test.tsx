@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -64,7 +64,10 @@ describe('HomePage: a guest', () => {
     stubApi(rest)
     const user = renderAt('/')
 
-    await user.click(await screen.findByRole('link', { name: 'Sign in' }))
+    await screen.findByRole('heading', { level: 1, name: 'Grading platform' })
+    await user.click(
+      within(screen.getByRole('main')).getByRole('link', { name: 'Sign in' }),
+    )
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Sign in' }),
@@ -76,7 +79,9 @@ describe('HomePage: a guest', () => {
     const user = renderAt('/')
 
     await user.click(
-      await screen.findByRole('link', { name: 'create a student account' }),
+      await within(await screen.findByRole('main')).findByRole('link', {
+        name: 'create a student account',
+      }),
     )
 
     expect(

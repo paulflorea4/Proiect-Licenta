@@ -368,3 +368,43 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - no wait while loading: 1
   - sign-in ignores the role: 1
   - the admin page open to any signed-in user: 2
+
+## 8.5a — Header and nav shell, role-aware menu, sign-in state, sign-out
+
+- **A layout route around every route** (`AppShell`: `Header`, then `<Outlet />`), so the header is on every page, the not-found page included, without each page including it.
+- **The menu is a table per role** (`MENU` in `Header.tsx`, the one place it is written):
+  - student: Courses; teacher: Courses (the teacher's management actions will live on the course pages, 8.4a);
+  - admin: Users (their home, 8.4a) and Courses (the backend's `GET /courses` gives an admin every course, 3.1b);
+  - a guest: Sign in and Sign up;
+  - **while `/auth/me` is open, no menu and no button**, so the wrong menu never flashes before the role is known.
+
+  Links are `NavLink`s, which mark the current page with `aria-current="page"`. A role is offered only the links it can use; the backend still decides every access.
+- **Sign-in state:** "Signed in as {full name} ({Role})" and a Sign out button. The button is disabled while the request runs. A failure shows "Could not sign out. Please try again." and keeps the user signed in (the provider rethrows and keeps the state, 8.3b).
+- **Sign-out does not navigate; the route guards do.** The first version jumped to `/` after signing out. The tests showed it racing the guard: the state turned signed out, `ProtectedRoute` on `/courses` redirected to `/signin`, and that redirect landed after the jump to `/`. Navigating before the state changes would instead send a still-signed-in user from `/` to their home. So there is one rule, owned by the guards:
+  - on a guarded page, the guard sends the user to `/signin` and remembers the page (8.3c), so signing in again returns there;
+  - on a public page they stay, now as a guest.
+- **No `<h1>` in the header:** the app's name is a link to `/`, so each page keeps exactly one `<h1>` (the 8.1b convention, which the App tests check). The header's "Sign in" and "Sign up" links share names with links inside pages, so four existing tests now look inside `main`.
+- **Checked in a real browser** (the dev-profile backend from `backend/.env` unchanged, the compose database on 5432, Vite):
+  - the guest landing showed Grading platform, Sign in, Sign up and a single `<h1>`;
+  - signed in as the seeded admin, a full reload of `/` went to `/admin/users`, with Users (`aria-current="page"`) and Courses and "Signed in as Ada Admin (Admin)";
+  - clicking Sign out landed on `/signin` with the guest menu, and `/auth/me` was 401 afterwards.
+
+  The pane was hidden (0×0 viewport), so the sign-in and the click were done from page script, not by pointer.
+- **No styling**, as before; the shell is plain semantic HTML (`header`, `nav aria-label="Main"`).
+- **Tests (frontend 141 -> 154; backend and ai-service unchanged and passing):** `Header.test.tsx` (new, 13):
+  - the guest menu and no sign-out;
+  - each role's menu (student, teacher, admin);
+  - who is signed in, with the role;
+  - nothing while loading;
+  - the current page marked;
+  - a menu link goes to its page;
+  - on the not-found page, with its name linking home and one `<h1>`;
+  - sign-out: posts with the CSRF header, then the guard's `/signin` and the guest menu; a failure says so and keeps the user; the disabled button sends once; on a public page the user stays.
+
+  Plus the four link lookups scoped to `main`.
+- **Mutation-checked:**
+  - the admin menu without Users: 2 failures
+  - the guest menu while loading: 1
+  - no header in the shell: 13
+  - the button never disabled: 1
+  - a failure not shown: 1

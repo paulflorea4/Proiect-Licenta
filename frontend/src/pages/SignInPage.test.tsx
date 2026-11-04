@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -321,7 +321,9 @@ describe('SignInPage', () => {
   it('links to sign up', async () => {
     const user = renderSignIn()
 
-    await user.click(screen.getByRole('link', { name: 'Sign up' }))
+    await user.click(
+      within(screen.getByRole('main')).getByRole('link', { name: 'Sign up' }),
+    )
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Sign up' }),

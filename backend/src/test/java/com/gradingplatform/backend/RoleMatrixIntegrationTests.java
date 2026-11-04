@@ -268,6 +268,14 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
                     "{\"score\":1}",
                     Role.TEACHER,
                     Role.ADMIN),
+            // 9.0a: the people who run the course re-run an ERROR submission (RealHttpSubmissionRerunTests).
+            Endpoint.rolesOnly(
+                    "POST",
+                    "/submissions/{submissionId}/rerun",
+                    "/submissions/987654321/rerun",
+                    "{}",
+                    Role.TEACHER,
+                    Role.ADMIN),
             // Teachers only (admin excluded, as for creating a course); ownership then decides, and
             // this course does not exist, so a teacher who passes is answered by a 404.
             Endpoint.rolesOnly(

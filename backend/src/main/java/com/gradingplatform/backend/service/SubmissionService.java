@@ -82,6 +82,37 @@ public class SubmissionService {
     }
 
     /**
+     * A teacher's re-run of a submission that ended in {@code ERROR} (9.0a, the human's choice among
+     * a late resubmission, a re-run and an automatic retry): it is {@code QUEUED} again and graded like
+     * any other, with the same code, attempt number and {@code submitted_at}, so nothing about it
+     * changes after the deadline and neither the deadline nor the attempt limit is judged again (it
+     * is the attempt the student already made, whose {@code ERROR} had given it back, 5.1d). Only the
+     * people who manage its course may; anyone else gets the 404 of a submission that does not exist,
+     * as for a manual score. A submission in any other state is refused; the conditional update
+     * decides, so of two re-runs at once only one wins.
+     *
+     * @throws SubmissionNotFoundException if there is no such submission or the user may not manage it
+     * @throws SubmissionNotInErrorException if the submission did not end in {@code ERROR}
+     */
+    @Transactional
+    public Submission rerun(long userId, Role role, long submissionId) {
+        long assignmentId =
+                submissions.findAssignmentIdById(submissionId).orElseThrow(SubmissionNotFoundException::new);
+        try {
+            assignmentService.requireManageable(userId, role, assignmentId);
+        } catch (AssignmentNotFoundException e) {
+            throw new SubmissionNotFoundException();
+        }
+        if (submissions.requeueError(submissionId) == 0) {
+            throw new SubmissionNotInErrorException();
+        }
+        submissions.deleteTestResultsOf(submissionId);
+        // Offered to the worker once this transaction commits (5.2a), as a new submission is.
+        events.publishEvent(new SubmissionQueuedEvent(submissionId));
+        return submissions.findById(submissionId).orElseThrow(SubmissionNotFoundException::new);
+    }
+
+    /**
      * The same as {@link #submit} with the code read from one uploaded file (5.1b). The file's text
      * becomes the source code (nothing is written to disk); its name is only used for the extension,
      * which must be that of the assignment's language. The file is checked first (one file, size,

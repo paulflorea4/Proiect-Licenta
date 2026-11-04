@@ -259,6 +259,68 @@ class RealHttpHintRequestTests extends RealHttpTestBase {
         }
     }
 
+    /**
+     * 9.0f: the other click of a double click stores the level while this request waits for the AI
+     * service, whose answer for this request is then a fallback or a failure. Played without
+     * threads: the mocked call stores the winner's row before answering, which is the interleaving.
+     */
+    private void anotherRequestStoresLevelOneMeanwhile(long id) {
+        jdbc.update(
+                "insert into ai_feedback (submission_id, hint_level, content) values (?, 1, 'The winner''s hint.')",
+                id);
+    }
+
+    @Test
+    void aLoserWhoseAnswerWasAFallbackGetsTheStoredHint() throws Exception {
+        long id = graded(student);
+        when(ai.feedback(any())).thenAnswer(invocation -> {
+            anotherRequestStoresLevelOneMeanwhile(id);
+            return new FeedbackResponse("Trace a failing test by hand.", true);
+        });
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        assertThat(JsonPath.<Boolean>read(response.body(), "$.fallback")).isFalse();
+        assertThat(JsonPath.<Integer>read(response.body(), "$.level")).isEqualTo(1);
+        assertThat(JsonPath.<String>read(response.body(), "$.content")).isEqualTo("The winner's hint.");
+        assertThat(JsonPath.<String>read(response.body(), "$.createdAt")).isNotNull();
+        assertThat(storedLevels(id)).containsExactly(1);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("failures")
+    void aLoserWhoseCallFailedGetsTheStoredHint(String name, AiServiceException failure) throws Exception {
+        long id = graded(student);
+        when(ai.feedback(any())).thenAnswer(invocation -> {
+            anotherRequestStoresLevelOneMeanwhile(id);
+            throw failure;
+        });
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        assertThat(JsonPath.<Boolean>read(response.body(), "$.fallback")).isFalse();
+        assertThat(JsonPath.<Integer>read(response.body(), "$.level")).isEqualTo(1);
+        assertThat(JsonPath.<String>read(response.body(), "$.content")).isEqualTo("The winner's hint.");
+        assertThat(storedLevels(id)).containsExactly(1);
+    }
+
+    @Test
+    void aStoredLowerLevelDoesNotStandInForAFallbackAtTheNextLevel() throws Exception {
+        long id = graded(student);
+        answer("One.");
+        assertThat(request(student, id).statusCode()).isEqualTo(201);
+        when(ai.feedback(any())).thenReturn(new FeedbackResponse("Trace a failing test by hand.", true));
+
+        HttpResponse<String> response = request(student, id);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(JsonPath.<Boolean>read(response.body(), "$.fallback")).isTrue();
+        assertThat(JsonPath.<Integer>read(response.body(), "$.level")).isEqualTo(2);
+        assertThat(storedLevels(id)).containsExactly(1);
+    }
+
     // ---- refusals: nothing is asked, nothing is stored ----
 
     @ParameterizedTest

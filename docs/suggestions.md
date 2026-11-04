@@ -104,7 +104,7 @@ Historical, append-only. Things that would meaningfully help (a missing MCP conn
 
   **Low: hints and the AI service**
   - [auditor, two audits] A NUL in the model's hint text is accepted by `parse_hint` and the backend and makes the `ai_feedback` insert fail: a 500, not 503, and the AI call is wasted. Refuse it as a bad answer, or replace it as `SubmissionGrader.storable` does.
-  - [auditor] The loser of a double-click race can answer with a fallback (200) or a 503 for a level the winner already stored; only the insert path checks `LEVEL_KEY`. On fallback or failure, look the level up once and return the stored row.
+  - [auditor] The loser of a double-click race can answer with a fallback (200) or a 503 for a level the winner already stored; only the insert path checks `LEVEL_KEY`. On fallback or failure, look the level up once and return the stored row. **Done at 9.0f (PR #203).**
   - [auditor] A deeply nested model answer (`[[[[...` about 1500 deep) raises `RecursionError` in `json.loads`, which is not caught: a 500 with a traceback and no retry; also a non-dict `promptFeedback` in Gemini's body (`AttributeError`). Catch them as `LlmBadResponse`; a row in `MALFORMED`.
   - [auditor] Some bare statement lines are not seen as code at levels 1 and 2: `return a + b` (no punctuation the pattern wants) and `print(a + b).` (trailing full stop), so the edited-line check never runs on them.
   - [auditor] The AI service reads and parses the body before the token is checked (FastAPI 0.142), against `ai-service/CLAUDE.md` ("checked before the body is read"); a non-JSON body without a token is 422, not 401. Fix the docs, or check the token in middleware.

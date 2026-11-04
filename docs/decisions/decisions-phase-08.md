@@ -408,3 +408,38 @@ Historical, append-only. One entry per commit where a non-obvious call was made 
   - no header in the shell: 13
   - the button never disabled: 1
   - a failure not shown: 1
+
+## 8.5b — Admin page: the user list with a role selector
+
+- **The admin's home, `/admin/users`** (placeholder since 8.4a), is now the list from `GET /admin/users` (2.5c: `PageResponse` of `{id, email, role}`, oldest account first, 20 per page by default). It is a table ("All accounts, oldest first": Email, Role). The admin's own row says "(you)". The row has only what the API gives (no name): enough to find whom to promote, as 2.5c decided.
+- **Pages:** the page is in the URL, 1-based for people (`?page=2` asks the API for `page=1`). Anything that isn't a whole number from 1 (`abc`, `0`, `-2`, `1.5`) is the first page, and page 1 has no parameter. Previous and Next are disabled at the ends, with "Page X of Y (N users)". A page past the end is the API's empty page: "No users on this page."
+- **Role selector per row**, wired to `PATCH /admin/users/{id}/role` (2.5b) on change, labelled "Role of {email}":
+  - **while a change is saved, every selector is disabled**, one change at a time, so two can't cross;
+  - on success the row shows the role the answer returned, and a status says "{email} is now {Role}.";
+  - a refusal (409 `LAST_ADMIN`, 403 for a caller no longer admin in the database (7.7e), 404 for a vanished user, anything else) shows `ApiError.message`, and the selector stays on the stored role, since the row is only updated from an answer.
+
+  No confirmation step: one change is one request, and it can be changed back the same way.
+- **An admin who demotes themselves leaves the page at once.** On success for their own row, the page updates the auth state (`signedIn` with the new role), so `RoleRoute` sends them to `/`, which sends them to their new home. The backend already treats the stored role as theirs for role changes (7.7e), while their token still says `ADMIN` until it expires; following the stored role in the UI avoids leaving them on a page whose next action would be refused.
+- **Loading without `setState` in the effect body** (react-hooks lint): the answer is stored with the page it is for, and the page is "loading" whenever that isn't the URL's page. The effect only starts the request (with an `AbortController`, so a page change cancels the old one), and its callbacks set the state.
+- **`PageResponse<T>`** is typed once in `src/api/types.ts`, for the later lists.
+- **Checked in a real browser** against the dev-profile backend and the seeded users:
+  - the page listed all four accounts with their roles, "(you)" on the admin, and "Page 1 of 1 (4 users)";
+  - `student2` was changed to Teacher and back to Student through the selector, each shown on the page and confirmed stored via `GET /admin/users`;
+  - demoting the only admin showed "The last remaining admin cannot be demoted", with the selector still on Admin;
+  - the seeded roles ended exactly as they started, and the browser was signed out after.
+- **Tests (frontend 154 -> 168; backend and ai-service unchanged and passing):** `AdminUsersPage.test.tsx` (14):
+  - the list: rows, roles, "(you)", the counts, page 0 asked with the cookie;
+  - loading, a failed load, an empty page;
+  - next and previous with the URL kept and the ends disabled;
+  - the URL-to-API page mapping (5 cases);
+  - a role change: the request, the CSRF header, the row, the message;
+  - every selector disabled while saving;
+  - a refusal shown with the role unchanged;
+  - self-demotion lands on `/courses`.
+- **Mutation-checked:**
+  - the 1-based page sent to the API: 7 failures
+  - self-demotion not followed: 1
+  - the row not updated after a change: 1
+  - the selectors not disabled while saving: 1
+  - a fractional page accepted: 1
+  - Next never disabled: 1

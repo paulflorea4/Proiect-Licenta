@@ -27,7 +27,7 @@
 | 8.3c | `ProtectedRoute` (redirects unauthenticated users to `/signin`) and `RoleRoute` (redirects users without the required role) | Done | Frontend role checks are a convenience only — the backend (2.5a) is what actually enforces access. |
 | 8.4a | Landing page for guests describing the platform, redirecting signed-in users to their role's home | Done | Student home = their courses, teacher home = their courses with management actions, admin home = user management. |
 | 8.5a | Header + nav shell, role-aware menu, shows sign-in state, sign-out action | Done |  |
-| 8.5b | Admin page: user list with a role selector wired to 2.5b and 2.5c | Not started | Smallest useful admin UI; without it teachers can only be created through the API. |
+| 8.5b | Admin page: user list with a role selector wired to 2.5b and 2.5c | Done | Smallest useful admin UI; without it teachers can only be created through the API. |
 | 8.6a | RTL test: sign-up form validation and submit | Not started |  |
 | 8.6b | RTL test: protected route redirects when logged out | Not started |  |
 | 8.6c | RTL test: role route blocks a student from teacher/admin pages | Not started |  |

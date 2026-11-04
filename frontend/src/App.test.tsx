@@ -35,11 +35,11 @@ describe('App routes', () => {
     ['/', 'Grading platform'],
     ['/signin', 'Sign in'],
     ['/signup', 'Sign up'],
-  ])('%s shows its page', (path, heading) => {
+  ])('%s shows its page to a guest', async (path, heading) => {
     renderAt(path)
 
     expect(
-      screen.getByRole('heading', { level: 1, name: heading }),
+      await screen.findByRole('heading', { level: 1, name: heading }),
     ).toBeInTheDocument()
     // Exactly one page at a time: no other route's heading is rendered.
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { api, isApiError } from '../api/client'
-import { returnPathOf, useAuth } from '../auth/authContext'
+import { homeOf, returnPathOf, useAuth } from '../auth/authContext'
 import type { User } from '../auth/authContext'
 import TextField from '../components/TextField'
 import { fieldErrorsOf } from '../components/fieldErrors'
@@ -23,9 +23,6 @@ interface SigninResponse {
 
 const FIELDS: readonly Field[] = ['email', 'password']
 
-/** Where a successful signin goes, unless a guarded route sent the user here (8.3c). */
-const AFTER_SIGNIN = '/courses'
-
 function validate(body: SigninBody): FieldErrors {
   const errors: FieldErrors = {}
   if (body.email.trim() === '') {
@@ -38,7 +35,8 @@ function validate(body: SigninBody): FieldErrors {
 }
 
 // Signs in with POST /auth/signin. The JWT arrives as an httpOnly cookie the page never sees; the
-// page only records the returned user (useAuth) and moves on to the courses.
+// page only records the returned user (useAuth) and moves on: back to the page a guarded route
+// sent them from (8.3c), else to their role's home (8.4a).
 function SignInPage() {
   const auth = useAuth()
   const navigate = useNavigate()
@@ -67,7 +65,9 @@ function SignInPage() {
     try {
       const response = await api.post<SigninResponse>('/auth/signin', body)
       auth.signedIn(response.user)
-      navigate(returnPathOf(location.state) ?? AFTER_SIGNIN, { replace: true })
+      navigate(returnPathOf(location.state) ?? homeOf(response.user.role), {
+        replace: true,
+      })
     } catch (error) {
       setSubmitting(false)
       showError(error)
@@ -98,7 +98,7 @@ function SignInPage() {
       {auth.state.status === 'signedIn' && (
         <p role="status">
           You are signed in as {auth.state.user.email}.{' '}
-          <Link to={AFTER_SIGNIN}>Go to your courses</Link>
+          <Link to={homeOf(auth.state.user.role)}>Continue</Link>
         </p>
       )}
       <form onSubmit={submit} noValidate>

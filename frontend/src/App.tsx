@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router'
 import AuthProvider from './auth/AuthProvider'
-import { ProtectedRoute } from './auth/routeGuards'
+import { ProtectedRoute, RoleRoute } from './auth/routeGuards'
+import AdminUsersPage from './pages/AdminUsersPage'
 import CoursesPage from './pages/CoursesPage'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -16,9 +17,13 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
-        {/* Signed-in users only (8.3c); role-restricted routes go under <RoleRoute roles={...} />. */}
+        {/* Signed-in users only (8.3c). */}
         <Route element={<ProtectedRoute />}>
           <Route path="/courses" element={<CoursesPage />} />
+        </Route>
+        {/* Admins only (8.4a: the admin's home). */}
+        <Route element={<RoleRoute roles={['ADMIN']} />}>
+          <Route path="/admin/users" element={<AdminUsersPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

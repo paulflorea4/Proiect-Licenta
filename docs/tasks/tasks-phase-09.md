@@ -9,7 +9,7 @@
 | 9.0e | **GATE** — publishing a draft whose deadline has passed (refuse with a new 409, or allow and document) | Done | From the phases 0-7 review (`docs/suggestions.md`, low, courses-assignments), approved by the human. **The human chose to refuse it unless the assignment has submissions** (409 `ASSIGNMENT_DEADLINE_PASSED`). |
 | 9.0f | The losing request of a double-click returns the stored hint, also when its own answer was a fallback or a failure | Done | From the phases 0-7 review (`docs/suggestions.md`, low, hints), approved by the human. |
 | 9.1a | Teacher: course list page + create-course form | Done | Shows the enrollment code prominently with a copy action. |
-| 9.1b | Student: "join course" form (enrollment code) + my courses list | Not started | Empty state matters here — a new student has no courses, and the page should say how to join, not look broken. |
+| 9.1b | Student: "join course" form (enrollment code) + my courses list | Done | Empty state matters here — a new student has no courses, and the page should say how to join, not look broken. |
 | 9.2a | Course page: assignment list (students see published only) with deadline and best score | Not started |  |
 | 9.2b | Teacher: assignment create/edit form (language, deadline, limits, starter code, publish toggle) | Not started | Surface the server-side validation errors from 3.3a inline. |
 | 9.2c | Teacher: rubric editor with a live "weights sum to 100" indicator | Not started | The indicator is a convenience; 3.4b's server-side check is authoritative. |

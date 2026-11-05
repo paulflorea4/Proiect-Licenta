@@ -150,7 +150,8 @@ describe('a student', () => {
       await screen.findByRole('heading', { level: 1, name: 'Courses' }),
     ).toBeInTheDocument()
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/courses$/)
-    expect(pageRequests()).toEqual([])
+    // Their own home loads their courses (9.1b); the admin list is never asked for.
+    expect(pageRequests()).not.toContain('GET /admin/users')
   })
 
   it('never sees the admin page’s heading, not even for a moment', async () => {
@@ -159,10 +160,11 @@ describe('a student', () => {
     renderAt('/admin/users')
 
     await screen.findByRole('heading', { level: 1, name: 'Courses' })
-    // The guard decides before the page renders: no list was loaded, so it never mounted.
+    // The guard decides before the page renders: the user list was never loaded, so it never
+    // mounted (only the student's own courses are, 9.1b).
     expect(
       screen.queryByRole('heading', { name: 'Users' }),
     ).not.toBeInTheDocument()
-    expect(pageRequests()).toEqual([])
+    expect(pageRequests()).toEqual(['GET /courses'])
   })
 })

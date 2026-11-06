@@ -153,3 +153,34 @@
   - paging with the page in the URL;
   - teachers get no join form.
   - Mutation-checked: no reload after joining, no help in the empty state, the code not trimmed, an unknown code shown as an alert (1 each).
+
+## 9.2a — the course page and its assignment list
+
+- **Route `/courses/:courseId`, `CoursePage`** (behind `ProtectedRoute`): `GET /courses/{id}` first (its title becomes the page's one `<h1>`, "Course" while loading, plus the description), then `GET /courses/{id}/assignments` (3.3b: a student gets published assignments only; the backend filters, the page shows what it gets), paginated with the page in the URL (`Pager`). Course titles on `/courses` (both views) now link here.
+- **Columns:** Assignment, Deadline, and then **Best score for a student, Status (Published / Draft) for the people who run the course.** A best score has no meaning for a teacher (many students); the gradebook is Phase 10's.
+- **Best score: one `GET /assignments/{id}/my-grade` per row** (5.4c, the endpoint the row's best-score rule lives in). There is no list endpoint for it; at most 20 rows per page, fetched in parallel, each row on its own: "85.5 / 100", "(provisional)" when a manual criterion still waits (5.4e), "Not graded yet" for `best: null`, and "Could not load the score" in that row alone if its request fails. **If this many requests is a concern, a batch endpoint (best scores of a course for the caller) would be a backend task; say if you want one.**
+- **Deadline:** `Intl.DateTimeFormat` in the user's own locale and time zone (`formatDateTime`, new `src/components/format.ts`), inside `<time dateTime={iso}>`, plus "(closed)" once it has passed (submissions are refused after it, 5.1c). Tests assert the `dateTime` attribute, not the text, which depends on the machine's locale.
+- **Scores** are shown with at most two decimals and no trailing zeros (`formatScore`: 85.5, 100), not localised, so the decimal point does not change with the browser's language.
+- **"Course not found":** the backend's `COURSE_NOT_FOUND` (missing, another teacher's, a course the student is not in: all the same 404, 3.1c) and an id that is not a whole number from 1 (nothing is asked for) show the same page, "This course does not exist, or you are not in it", with a link back to the courses. Any other failure is an alert under the "Course" heading, and no assignments are asked for.
+- **Not here:** links on assignment titles (the student's assignment page is 9.3a, the teacher's form 9.2b); the teacher's "create assignment" action (9.2b).
+- **`App.test.tsx`:** its not-found example `/courses/extra` now matches the course route, so it became `/courses/1/extra`.
+- **Checked in a real browser** (dev-profile backend, compose database, Vite). Two things on the way:
+  - Docker Desktop had stopped again (the stale `run` folder, renamed aside as before).
+  - **The host's own Postgres held 5432 this time** ("forbidden by its access permissions"; the 8.3b suggestion), so the compose database ran on 5433 (`POSTGRES_PORT`) with the backend's datasource URL pointed there for the run only; no file changed.
+
+  Results:
+  - as the seeded student, the link on "Introduction to Programming" opened `/courses/1`: "Seeded dev course.", two assignments, deadline `2030-12-31T23:59:00Z` shown in local time, best scores "68.33 / 100" and "53.33 / 100 (provisional)" from the seeded grades;
+  - `/courses/999` showed "Course not found";
+  - as the seeded teacher, the same course with the Status column, both Published.
+
+  Nothing was written; servers and database stopped afterwards.
+- **Tests (frontend 219 -> 235, +16; backend and ai-service unchanged and passing), `CoursePage.test.tsx`:**
+  - a student's view: the course, the three kinds of score, the `<time>` attribute, the requests;
+  - "(closed)" only for a passed deadline;
+  - one failed score in its own row only;
+  - the student's empty state; paging with the page in the URL;
+  - a teacher's view: Published / Draft, no score requests; the teacher's empty state;
+  - not found (with the link back, and no list asked); three malformed ids asking for nothing;
+  - a failed course load (no list asked); a failed list under the course;
+  - a student and a teacher open a course from their list; a signed-out visitor goes to sign in with nothing asked.
+  - Mutation-checked: no "(provisional)", the student shown the Status column (3 fail), no "(closed)", the 404 shown as a plain failure (1 each otherwise).

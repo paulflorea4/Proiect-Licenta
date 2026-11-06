@@ -19,3 +19,37 @@ export interface Course {
   enrollCode?: string
   createdAt: string
 }
+
+/**
+ * An assignment (`AssignmentResponse`, 3.3b). `published`, `createdAt` and `updatedAt` are sent only
+ * to the people who run the course; a student's JSON has no such keys (a student sees published
+ * assignments only).
+ */
+export interface Assignment {
+  id: number
+  courseId: number
+  title: string
+  description: string
+  language: string
+  deadline: string
+  maxAttempts: number | null
+  timeLimitMs: number
+  memoryLimitMb: number
+  starterCode: string | null
+  published?: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+/** `GET /assignments/{id}/my-grade` (5.4c): the attempt whose score counts, or `null` while none is graded. */
+export interface MyGrade {
+  assignmentId: number
+  best: {
+    submissionId: number
+    attemptNo: number
+    totalScore: number
+    maxScore: number
+    gradedAt: string
+    provisional: boolean
+  } | null
+}

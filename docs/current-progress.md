@@ -1,4 +1,4 @@
 - Phase: Phase 9 — `docs/tasks/tasks-phase-09.md`
-- Next commit: 9.2a — Course page: assignment list (students see published only) with deadline and best score
+- Next commit: 9.2b — Teacher: assignment create/edit form (language, deadline, limits, starter code, publish toggle)
 - In progress: —
-- Blocked: PR #205 (commit 9.1b) awaiting review.
+- Blocked: PR #206 (commit 9.2a) awaiting review.

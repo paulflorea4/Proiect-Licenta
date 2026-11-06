@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { api, isApiError } from '../api/client'
 import type { Course, PageResponse } from '../api/types'
 import { useAuth } from '../auth/authContext'
@@ -135,7 +135,9 @@ function ManagedCourses({ canCreate }: { canCreate: boolean }) {
               <tbody>
                 {load.page.items.map((course) => (
                   <tr key={course.id}>
-                    <td>{course.title}</td>
+                    <td>
+                      <Link to={`/courses/${course.id}`}>{course.title}</Link>
+                    </td>
                     <td>
                       <EnrollCode course={course} />
                     </td>
@@ -192,7 +194,7 @@ function StudentCourses() {
             <ul aria-label="My courses">
               {load.page.items.map((course) => (
                 <li key={course.id}>
-                  {course.title}
+                  <Link to={`/courses/${course.id}`}>{course.title}</Link>
                   {course.description && <p>{course.description}</p>}
                 </li>
               ))}

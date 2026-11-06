@@ -67,7 +67,7 @@ describe('App routes', () => {
     ).not.toBeInTheDocument()
   })
 
-  it.each(['/nothing-here', '/courses/extra', '/SIGNIN/x'])(
+  it.each(['/nothing-here', '/courses/1/extra', '/SIGNIN/x'])(
     '%s matches no route and shows the not-found page',
     (path) => {
       renderAt(path)

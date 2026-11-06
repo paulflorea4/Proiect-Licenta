@@ -3,6 +3,7 @@ import AuthProvider from './auth/AuthProvider'
 import { ProtectedRoute, RoleRoute } from './auth/routeGuards'
 import AppShell from './components/AppShell'
 import AdminUsersPage from './pages/AdminUsersPage'
+import CoursePage from './pages/CoursePage'
 import CoursesPage from './pages/CoursesPage'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -23,6 +24,7 @@ function App() {
           {/* Signed-in users only (8.3c). */}
           <Route element={<ProtectedRoute />}>
             <Route path="/courses" element={<CoursesPage />} />
+            <Route path="/courses/:courseId" element={<CoursePage />} />
           </Route>
           {/* Admins only (8.4a: the admin's home). */}
           <Route element={<RoleRoute roles={['ADMIN']} />}>

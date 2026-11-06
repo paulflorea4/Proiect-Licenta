@@ -184,3 +184,43 @@
   - a failed course load (no list asked); a failed list under the course;
   - a student and a teacher open a course from their list; a signed-out visitor goes to sign in with nothing asked.
   - Mutation-checked: no "(provisional)", the student shown the Status column (3 fail), no "(closed)", the 404 shown as a plain failure (1 each otherwise).
+
+## 9.2b — teacher assignment create/edit form
+
+- **Gate on the way (asked in chat): where the form gets the languages.** The backend had no endpoint listing them (they live only in `sandbox.languages`), and CLAUDE.md forbids naming a language in code. **The human chose a new backend endpoint over a free-text field.**
+  - **`GET /languages`** (`LanguageController`, `LanguagesResponse`): `hasAnyRole('TEACHER', 'ADMIN')`, the people who create and change assignments (a student sees an assignment's language on the assignment). It answers `{languages: [{id, minMemoryMb}]}` in config order; images and commands stay private.
+  - `minMemoryMb` is the new `LanguageSpec.effectiveMinMemoryMb()`, the higher of the language's own minimum and the sandbox floor (8 MB, 7.7f): exactly the value `allowsMemoryLimit` accepts from, so the form's check and the backend's agree (a unit test ties the two).
+  - Role-matrix row added. The hidden-test sweep and `NoLanguageBranchTests` pass unchanged.
+- **Routes:** `/courses/:courseId/assignments/new` is teachers only (`POST` is teachers only, 3.3a); `/assignments/:assignmentId/edit` is teachers and admins (`PUT`, publish, unpublish, 3.3c). Both are in `roleRoutes.test.tsx`. The course page shows "New assignment" to a teacher and links each title to its edit page for teachers and admins; a student's titles stay plain (9.3a).
+- **One `AssignmentForm` for both**, with every field of `AssignmentRequest` and its limits as named constants (description 20000, starter code 50000, attempts 1-100 or empty for unlimited, time 1-10000 ms, memory 1-1024 MB):
+  - **No defaults for the limits:** the backend requires them so none is loosened silently (3.3a), so the form starts them empty.
+  - **The language's memory minimum is checked only when the language or the memory limit changes**, as the backend does (7.1c). An old assignment below a later minimum stays editable.
+  - **A language no longer configured stays selectable on its own assignment**, so it can be sent back unchanged (the backend checks a language only when it changes, 3.3c).
+  - **Deadline:** a `datetime-local` input in the user's time zone (to the minute). **An untouched deadline is sent exactly as stored**: the input cannot hold seconds or microseconds, and a re-sent value that differs is a change the backend validates again, so a past deadline would be refused (8.0f's concern).
+- **Errors on their fields** (`CODE_FIELDS`):
+  - `UNSUPPORTED_LANGUAGE` and `ASSIGNMENT_LANGUAGE_LOCKED` on the language;
+  - `MEMORY_LIMIT_BELOW_LANGUAGE_MINIMUM` on the memory;
+  - `ASSIGNMENT_LIMITS_LOCKED` on both limits;
+  - `DEADLINE_NOT_IN_FUTURE` and `DEADLINE_TOO_FAR` on the deadline;
+  - `VALIDATION_FAILED` by field;
+  - anything else (`ASSIGNMENT_PUBLISHED`, `COURSE_NOT_FOUND`) above the button.
+- **Published assignments (9.0c):** the language and both limits are shown disabled, with a note to unpublish first, and sent back as they are, so a save of the other fields is never refused for them.
+- **Publish toggle:** a Publishing section on the edit page says Draft or Published, and its button calls `POST .../publish` or `.../unpublish`. The backend's refusal (3.4b's rubric rules, 9.0e's deadline) is shown there. Publishing locks the fields at once; unpublishing unlocks them.
+- **After creating**, the edit page opens with "The assignment is created as a draft: students cannot see it until you publish it." The rubric and tests come with 9.2c and 9.2d.
+- **Not here:** deleting an assignment (not in the row).
+- **Checked in a real browser** (dev-profile backend; compose database on 5433 again, the host's Postgres holding 5432; Vite), as the seeded teacher:
+  - the course page had "New assignment" and edit links;
+  - a published seeded assignment showed its stored values with the language and limits disabled;
+  - the new form listed JAVA and PYTHON from the live endpoint;
+  - Java with 64 MB was refused on the form ("JAVA needs at least 128 MB");
+  - a deadline in 2099 came back as the backend's 400 `DEADLINE_TOO_FAR` on the deadline field (the 5-year cap, 8.0e);
+  - with 2027 the draft was created and its edit page opened;
+  - a title change saved (`PUT` 200, untouched deadline);
+  - Publish was refused (409, the rubric weights message), so the draft stayed a draft;
+  - the test assignment was deleted afterwards (204), and the servers and database were stopped.
+- **Tests:**
+  - **Backend 2763 -> 2776, +13:** `RealHttpLanguagesTests` (4), `LanguageSpecTests` (+4 cases), the role-matrix row.
+  - **Frontend 235 -> 270, +35:** `AssignmentPages.test.tsx` (29) and `roleRoutes` (+6, two routes for three roles). `App.test` is unchanged.
+  - Mutation-checked:
+    - frontend: an untouched deadline converted anyway (1 fails), the published lock ignored (2), no memory minimum (1), a limits lock on the time only (1);
+    - backend: the floor ignored in `effectiveMinMemoryMb` (1).

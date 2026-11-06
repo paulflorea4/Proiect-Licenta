@@ -5,7 +5,9 @@ import AppShell from './components/AppShell'
 import AdminUsersPage from './pages/AdminUsersPage'
 import CoursePage from './pages/CoursePage'
 import CoursesPage from './pages/CoursesPage'
+import EditAssignmentPage from './pages/EditAssignmentPage'
 import HomePage from './pages/HomePage'
+import NewAssignmentPage from './pages/NewAssignmentPage'
 import NotFoundPage from './pages/NotFoundPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
@@ -25,6 +27,20 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/courses" element={<CoursesPage />} />
             <Route path="/courses/:courseId" element={<CoursePage />} />
+          </Route>
+          {/* Teachers only: creating an assignment (9.2b; POST is teachers only, 3.3a). */}
+          <Route element={<RoleRoute roles={['TEACHER']} />}>
+            <Route
+              path="/courses/:courseId/assignments/new"
+              element={<NewAssignmentPage />}
+            />
+          </Route>
+          {/* The people who run a course: changing an assignment (9.2b). */}
+          <Route element={<RoleRoute roles={['TEACHER', 'ADMIN']} />}>
+            <Route
+              path="/assignments/:assignmentId/edit"
+              element={<EditAssignmentPage />}
+            />
           </Route>
           {/* Admins only (8.4a: the admin's home). */}
           <Route element={<RoleRoute roles={['ADMIN']} />}>

@@ -89,9 +89,11 @@ function BestScore({ assignmentId }: { assignmentId: number }) {
 function AssignmentList({
   courseId,
   isStudent,
+  canCreate,
 }: {
   courseId: number
   isStudent: boolean
+  canCreate: boolean
 }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const pageNumber = pageNumberOf(searchParams.get('page'))
@@ -123,6 +125,13 @@ function AssignmentList({
   return (
     <section aria-labelledby="assignments-heading">
       <h2 id="assignments-heading">Assignments</h2>
+      {canCreate && (
+        <p>
+          <Link to={`/courses/${courseId}/assignments/new`}>
+            New assignment
+          </Link>
+        </p>
+      )}
       {load === null && <p role="status">Loading assignments…</p>}
       {load?.status === 'failed' && <p role="alert">{load.message}</p>}
       {load?.status === 'loaded' && (
@@ -148,7 +157,15 @@ function AssignmentList({
               <tbody>
                 {load.page.items.map((assignment) => (
                   <tr key={assignment.id}>
-                    <td>{assignment.title}</td>
+                    <td>
+                      {isStudent ? (
+                        assignment.title
+                      ) : (
+                        <Link to={`/assignments/${assignment.id}/edit`}>
+                          {assignment.title}
+                        </Link>
+                      )}
+                    </td>
                     <td>
                       <Deadline iso={assignment.deadline} />
                     </td>
@@ -186,8 +203,8 @@ function AssignmentList({
 // and the page says so the same way.
 function CoursePage() {
   const auth = useAuth()
-  const isStudent =
-    auth.state.status === 'signedIn' && auth.state.user.role === 'STUDENT'
+  const role = auth.state.status === 'signedIn' ? auth.state.user.role : null
+  const isStudent = role === 'STUDENT'
   const courseId = courseIdOf(useParams().courseId)
   const [result, setResult] = useState<CourseLoad | null>(null)
   const load = result && result.forCourse === courseId ? result : null
@@ -242,7 +259,11 @@ function CoursePage() {
       {load?.status === 'loaded' && (
         <>
           {load.course.description && <p>{load.course.description}</p>}
-          <AssignmentList courseId={courseId} isStudent={isStudent} />
+          <AssignmentList
+            courseId={courseId}
+            isStudent={isStudent}
+            canCreate={role === 'TEACHER'}
+          />
         </>
       )}
     </main>

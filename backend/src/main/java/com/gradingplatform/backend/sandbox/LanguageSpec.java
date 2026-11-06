@@ -65,6 +65,15 @@ public record LanguageSpec(
     }
 
     /**
+     * The smallest memory limit an assignment in this language may have: its own minimum or the
+     * sandbox's floor, whichever is higher (what {@link #allowsMemoryLimit} accepts from). Shown to
+     * teachers by {@code GET /languages} (9.2b).
+     */
+    public int effectiveMinMemoryMb() {
+        return minMemoryMb == null ? SANDBOX_MIN_MEMORY_MB : Math.max(SANDBOX_MIN_MEMORY_MB, minMemoryMb);
+    }
+
+    /**
      * Whether an assignment in this language may have this memory limit: at least the language's own
      * minimum (7.1c) and at least {@link #SANDBOX_MIN_MEMORY_MB} (7.7f).
      */

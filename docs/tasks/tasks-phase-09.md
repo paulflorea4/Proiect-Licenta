@@ -11,7 +11,7 @@
 | 9.1a | Teacher: course list page + create-course form | Done | Shows the enrollment code prominently with a copy action. |
 | 9.1b | Student: "join course" form (enrollment code) + my courses list | Done | Empty state matters here — a new student has no courses, and the page should say how to join, not look broken. |
 | 9.2a | Course page: assignment list (students see published only) with deadline and best score | Done |  |
-| 9.2b | Teacher: assignment create/edit form (language, deadline, limits, starter code, publish toggle) | Not started | Surface the server-side validation errors from 3.3a inline. |
+| 9.2b | Teacher: assignment create/edit form (language, deadline, limits, starter code, publish toggle) | Done | Surface the server-side validation errors from 3.3a inline. |
 | 9.2c | Teacher: rubric editor with a live "weights sum to 100" indicator | Not started | The indicator is a convenience; 3.4b's server-side check is authoritative. |
 | 9.2d | Teacher: test case editor (name, stdin, expected stdout, public/hidden, criterion) | Not started | Multi-line textareas with visible whitespace — trailing-space bugs are invisible otherwise. |
 | 9.3a | Student: assignment detail page (description, public tests, deadline countdown, attempts left) | Not started | Hidden tests appear only as "N hidden tests", per 3.5b. |

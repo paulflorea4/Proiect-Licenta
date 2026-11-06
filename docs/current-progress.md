@@ -1,4 +1,4 @@
 - Phase: Phase 9 — `docs/tasks/tasks-phase-09.md`
-- Next commit: 9.2b — Teacher: assignment create/edit form (language, deadline, limits, starter code, publish toggle)
+- Next commit: 9.2c — Teacher: rubric editor with a live "weights sum to 100" indicator
 - In progress: —
-- Blocked: PR #206 (commit 9.2a) awaiting review.
+- Blocked: PR #207 (commit 9.2b) awaiting review.

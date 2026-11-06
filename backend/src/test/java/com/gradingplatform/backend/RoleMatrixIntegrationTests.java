@@ -101,6 +101,8 @@ class RoleMatrixIntegrationTests extends RealHttpTestBase {
             Endpoint.publicEndpoint("POST", "/auth/signin"),
             Endpoint.publicEndpoint("POST", "/auth/signout"),
             Endpoint.signedIn("GET", "/auth/me"),
+            // 9.2b: the configured languages, for the assignment form (RealHttpLanguagesTests).
+            Endpoint.rolesOnly("GET", "/languages", "/languages", "{}", Role.TEACHER, Role.ADMIN),
             Endpoint.rolesOnly("GET", "/admin/users", "/admin/users", "{}", Role.ADMIN),
             Endpoint.rolesOnly(
                     "PATCH",

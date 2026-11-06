@@ -116,6 +116,20 @@ class LanguageSpecTests {
         assertThat(spec.allowsMemoryLimit(8)).isTrue();
     }
 
+    // ---- 9.2b: the minimum shown to teachers is exactly what allowsMemoryLimit accepts from ----
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"-1, 8", "4, 8", "8, 8", "128, 128"})
+    void theEffectiveMinimumIsTheHigherOfTheLanguagesAndTheFloor(int declared, int effective) {
+        LanguageSpec spec = declared < 0
+                ? new LanguageSpec("img", "main.py", List.of(), RUN)
+                : new LanguageSpec("img", "main.py", List.of(), RUN, declared);
+
+        assertThat(spec.effectiveMinMemoryMb()).isEqualTo(effective);
+        assertThat(spec.allowsMemoryLimit(effective)).isTrue();
+        assertThat(spec.allowsMemoryLimit(effective - 1)).isFalse();
+    }
+
     @Test
     void withAMinimumTheLimitMustReachIt() {
         LanguageSpec spec = new LanguageSpec("img", "Main.java", List.of("javac", "Main.java"), RUN, 128);

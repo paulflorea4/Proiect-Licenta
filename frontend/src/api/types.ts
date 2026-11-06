@@ -53,3 +53,21 @@ export interface MyGrade {
     provisional: boolean
   } | null
 }
+
+/** `GET /languages` (9.2b): a language an assignment may use, and the smallest memory limit it accepts. */
+export interface Language {
+  id: string
+  minMemoryMb: number
+}
+
+/** The body of `POST /courses/{id}/assignments` and `PUT /assignments/{id}` (`AssignmentRequest`, 3.3a). */
+export interface AssignmentBody {
+  title: string
+  description: string
+  language: string
+  deadline: string
+  maxAttempts: number | null
+  timeLimitMs: number
+  memoryLimitMb: number
+  starterCode: string | null
+}

@@ -12,9 +12,8 @@ import { jsonResponse, stubApi } from './test/api'
 // in auth/routeGuards.test.tsx (8.3c).
 
 /**
- * Every role-restricted route of the App, with the roles allowed and the heading of its page. No
- * teacher-only route exists yet (Phase 9's teacher pages): add each one here as it comes, so every
- * role is checked against it.
+ * Every role-restricted route of the App, with the roles allowed and the heading of its page: add
+ * each new one here, so every role is checked against it.
  */
 const ROLE_ROUTES: readonly [
   path: string,
@@ -23,6 +22,9 @@ const ROLE_ROUTES: readonly [
 ][] = [
   ['/admin/users', ['ADMIN'], 'Users'],
   ['/admin/users?page=3', ['ADMIN'], 'Users'],
+  // 9.2b: creating an assignment is teachers only (3.3a); changing one is teachers and admins.
+  ['/courses/5/assignments/new', ['TEACHER'], 'New assignment'],
+  ['/assignments/5/edit', ['TEACHER', 'ADMIN'], 'Sum of two numbers'],
 ]
 
 const ROLES: readonly Role[] = ['STUDENT', 'TEACHER', 'ADMIN']
@@ -49,16 +51,38 @@ function signedInAs(role: Role) {
       role,
     }),
   )
-  // A page an allowed role opens may load data; answer it with an empty list.
-  rest.mockResolvedValue(
-    jsonResponse(200, {
+  // A page an allowed role opens may load data: an assignment for the edit page (9.2b), the
+  // configured languages for the assignment form, an empty list for anything else.
+  rest.mockImplementation(async (input) => {
+    const path = new URL(String(input)).pathname
+    if (/^\/assignments\/\d+$/.test(path)) {
+      return jsonResponse(200, {
+        id: 5,
+        courseId: 1,
+        title: 'Sum of two numbers',
+        description: 'd',
+        language: 'PYTHON',
+        deadline: '2099-01-01T00:00:00Z',
+        maxAttempts: null,
+        timeLimitMs: 2000,
+        memoryLimitMb: 256,
+        starterCode: null,
+        published: false,
+      })
+    }
+    if (path === '/languages') {
+      return jsonResponse(200, {
+        languages: [{ id: 'PYTHON', minMemoryMb: 8 }],
+      })
+    }
+    return jsonResponse(200, {
       items: [],
       page: 0,
       size: 20,
       totalElements: 0,
       totalPages: 0,
-    }),
-  )
+    })
+  })
 }
 
 /** The requests that went out besides AuthProvider's GET /auth/me, as "METHOD path". */

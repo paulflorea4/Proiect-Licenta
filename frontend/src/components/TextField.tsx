@@ -3,9 +3,11 @@ interface TextFieldProps<F extends string> {
   form: string
   field: F
   label: string
-  type?: 'text' | 'email' | 'password'
+  type?: 'text' | 'email' | 'password' | 'number' | 'datetime-local'
   /** A multi-line `<textarea>` with this many rows instead of an `<input>` (9.1a). */
   rows?: number
+  /** Shown but not editable (9.2b: a published assignment's language and limits). */
+  disabled?: boolean
   autoComplete: string
   value: string
   error: string | undefined
@@ -21,6 +23,7 @@ function TextField<F extends string>({
   label,
   type = 'text',
   rows,
+  disabled,
   autoComplete,
   value,
   error,
@@ -32,6 +35,7 @@ function TextField<F extends string>({
     name: field,
     autoComplete,
     value,
+    disabled,
     'aria-invalid': error ? true : undefined,
     'aria-describedby': error ? `${id}-error` : undefined,
   }

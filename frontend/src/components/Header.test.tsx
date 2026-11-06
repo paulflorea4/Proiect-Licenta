@@ -4,7 +4,7 @@ import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
 import type { Role } from '../auth/authContext'
-import { API, jsonResponse, stubApi } from '../test/api'
+import { API, jsonResponse, stubApi, withEmptyCourses } from '../test/api'
 
 const rest = vi.fn<typeof fetch>()
 
@@ -147,7 +147,9 @@ describe('Header: the menu', () => {
 
 describe('Header: signing out', () => {
   it('posts /auth/signout; on a guarded page the guard then sends the user to sign in', async () => {
-    stubApi(rest, () => jsonResponse(200, userWith('STUDENT')))
+    stubApi(withEmptyCourses(rest), () =>
+      jsonResponse(200, userWith('STUDENT')),
+    )
     rest.mockResolvedValue(new Response(null, { status: 204 }))
     const user = renderAt('/courses')
     await screen.findByRole('heading', { level: 1, name: 'Courses' })
@@ -171,7 +173,9 @@ describe('Header: signing out', () => {
   })
 
   it('a failed sign-out says so and keeps the user signed in', async () => {
-    stubApi(rest, () => jsonResponse(200, userWith('STUDENT')))
+    stubApi(withEmptyCourses(rest), () =>
+      jsonResponse(200, userWith('STUDENT')),
+    )
     rest.mockRejectedValue(new TypeError('Failed to fetch'))
     const user = renderAt('/courses')
     await screen.findByRole('heading', { level: 1, name: 'Courses' })
@@ -190,7 +194,9 @@ describe('Header: signing out', () => {
   })
 
   it('the button is disabled while signing out, so it is sent once', async () => {
-    stubApi(rest, () => jsonResponse(200, userWith('STUDENT')))
+    stubApi(withEmptyCourses(rest), () =>
+      jsonResponse(200, userWith('STUDENT')),
+    )
     let answer: (response: Response) => void = () => {}
     rest.mockReturnValue(
       new Promise((resolve) => {
@@ -213,7 +219,9 @@ describe('Header: signing out', () => {
   })
 
   it('on a public page the user stays there, now as a guest', async () => {
-    stubApi(rest, () => jsonResponse(200, userWith('STUDENT')))
+    stubApi(withEmptyCourses(rest), () =>
+      jsonResponse(200, userWith('STUDENT')),
+    )
     rest.mockResolvedValue(new Response(null, { status: 204 }))
     const user = renderAt('/nothing-here')
     await screen.findByRole('heading', { level: 1, name: 'Page not found' })

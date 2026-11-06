@@ -128,3 +128,28 @@
   - an admin sees every course with codes and no form, and the admin's empty state;
   - a student asks for nothing yet.
   - Mutation-checked: no code in the rows (4 fail), no reload after create (1), the form for admins (2), the title not trimmed (1).
+
+## 9.1b — student "join course" form + my courses
+
+- **Layout:** the join form first, then "My courses", so the empty state can point "above" to it. A student in no course reads: "You are not in any course yet. Ask your teacher for the course's enrollment code and enter it above to join." (the row's "empty state matters"). No table: a student's course has no code (3.1b), so the list is a `<ul aria-label="My courses">` of titles with their description.
+- **`JoinCourseForm`** (`src/components/`, the 8.3a form conventions): the code is trimmed and sent as typed (the backend upper-cases it, 3.2a); required, at most `CODE_MAX_LENGTH` 20 (`EnrollRequest.CODE_MAX`). `ENROLL_CODE_NOT_FOUND` goes on the field (it is about what was typed, like signup's `EMAIL_ALREADY_USED`), a `VALIDATION_FAILED` on its field, anything else (e.g. 9.0d's 403 for a user promoted since signing in) above the button. On success the field empties, a status says **"You are in “<title>”."** and the list reloads. **The same words whether the student just joined or was already in** the course: the backend answers both with the same 200 and body (3.2a), so the page cannot tell them apart, and the sentence is true either way.
+- **No "leave course" button:** not in the row (`DELETE /courses/{id}/enrollment` exists since 3.2b). Course titles are not links yet (9.2a).
+- **`useCourseList`:** 9.1a's list state (page in the URL, the request, `reload`) became one hook in `CoursesPage`, used by the managed and the student view.
+- **Existing tests:** five tests in `SignInPage`, `Header` and `roleRoutes` land on `/courses` as a student, which made no request before. They now answer it with an empty list via the new `withEmptyCourses(rest)` in `src/test/api.ts` (sign-in and header), or allow `GET /courses` while still asserting the admin list is never asked for (`roleRoutes`). The empty page matters: a mock that answers a list request with something else (the sign-in answer, a 204) crashes the list, as it would any list page.
+- **Checked in a real browser** (dev-profile backend, compose database, Vite; the pane did not draw, so the forms were filled with `form_input` and submitted from page script), as the seeded `student1`:
+  - signing in landed on `/courses` with the join form and "Introduction to Programming" (with its description), no code anywhere;
+  - `WRONG234`: `POST /courses/enroll` 404, "No course has this enrollment code" on the field, the text kept;
+  - ` devseed ` (lower case, spaces): 200, "You are in “Introduction to Programming”.", the field emptied, the list reloaded. The student was already enrolled, so the dev data is unchanged; servers and database stopped afterwards.
+  - Not checked live: the empty state (every seeded student is enrolled; a new account would have stayed in the dev database). The tests cover it.
+- **Tests (frontend 209 -> 219, +10 net; backend and ai-service unchanged and passing), `CoursesPage.test.tsx`** (the 9.1a "a student asks for nothing" test replaced by 11):
+  - the student's list without codes or Copy or the create form, page 0;
+  - the empty state with the form, no list or pager;
+  - a failed load with the form still usable;
+  - join with the trimmed code, the status, the field emptied, the list reloaded;
+  - the page's own checks (blank, 21 characters; nothing sent);
+  - an unknown code on the field with the text kept;
+  - a backend field error on the field; any other refusal (403) above the button;
+  - the button disabled while joining;
+  - paging with the page in the URL;
+  - teachers get no join form.
+  - Mutation-checked: no reload after joining, no help in the empty state, the code not trimmed, an unknown code shown as an alert (1 each).

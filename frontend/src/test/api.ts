@@ -36,3 +36,25 @@ export function stubApi(
       : rest(input, init),
   )
 }
+
+/**
+ * Wraps `rest` for `stubApi`: `GET /courses` (any page) answers an empty list, every other call
+ * goes to `rest`. For tests that land on the courses page, which loads the student's or teacher's
+ * list (9.1a, 9.1b), but look at something else: `rest` then sees only their own requests.
+ */
+export function withEmptyCourses(rest: Mock<typeof fetch>): Mock<typeof fetch> {
+  return vi.fn<typeof fetch>((input, init) =>
+    new URL(String(input)).pathname === '/courses' &&
+    (init?.method ?? 'GET') === 'GET'
+      ? Promise.resolve(
+          jsonResponse(200, {
+            items: [],
+            page: 0,
+            size: 20,
+            totalElements: 0,
+            totalPages: 0,
+          }),
+        )
+      : rest(input, init),
+  )
+}

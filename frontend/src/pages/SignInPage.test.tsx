@@ -3,13 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
-import { API, jsonResponse, stubApi } from '../test/api'
+import { API, jsonResponse, stubApi, withEmptyCourses } from '../test/api'
 
 // Every call but AuthProvider's GET /auth/me (signed out unless a test says otherwise).
 const fetchMock = vi.fn<typeof fetch>()
 
 beforeEach(() => {
-  stubApi(fetchMock)
+  // Signing in lands on /courses, which loads the student's list (9.1b): answered apart.
+  stubApi(withEmptyCourses(fetchMock))
 })
 
 afterEach(() => {
@@ -185,7 +186,7 @@ describe('SignInPage', () => {
   })
 
   it('someone already signed in is told so', async () => {
-    stubApi(fetchMock, () => jsonResponse(200, ADA))
+    stubApi(withEmptyCourses(fetchMock), () => jsonResponse(200, ADA))
 
     renderSignIn()
 
